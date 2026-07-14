@@ -1,0 +1,5 @@
+# Security and privacy model for cloud AI and STT integration
+
+For v1, the self-hosted backend is the trust boundary for financial data. Voice audio is transcribed by a cloud STT provider called directly from the device, because v1 is single-user and this avoids STT credential and audio-handling complexity on the backend. Natural-language commands are parsed by a cloud LLM, but only command text and pre-aggregated summaries cross that boundary; account numbers, balances, and the full transaction ledger stay on the backend. All traffic uses TLS 1.3, API keys live as environment secrets, and PostgreSQL data and backups are encrypted. Backend debug logs are retained for 30 days and then purged; providers must be chosen on terms that do not retain inputs or use them for training. A settings screen and onboarding acknowledgment make the data flow transparent to the user.
+
+This is a deliberate v1 trade-off: it prioritizes shipping speed for a single self-hosted user, with a clear migration path to backend-mediated STT and stricter local-first handling for public or multi-user releases.

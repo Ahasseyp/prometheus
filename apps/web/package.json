@@ -1,0 +1,14 @@
+{
+  "name": "@prometheus/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Web dev server will be implemented in #38'",
+    "test": "echo 'Web tests will be implemented in #38'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

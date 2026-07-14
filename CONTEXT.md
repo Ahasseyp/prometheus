@@ -157,8 +157,27 @@ A generated summary, comparison, or projection produced by the AI assistant from
 _Avoid_: Report, advice, tip, notification
 
 **Command**:
-A user intent directed at the AI assistant, such as entering data, asking a question, or triggering an action.
+A user intent directed at the AI assistant, such as entering data, asking a question, requesting analysis, or triggering an action.
 _Avoid_: Query, instruction, action, operation
+
+**Add Command**:
+A Command that creates, updates, or deletes an Entry. In free-form input the user may say things like "spent $50 on groceries"; the canonical shortcut prefix is `add`.
+_Avoid_: Create Command, Log Command
+
+**Ask Command**:
+A Command that requests a raw fact from the app's data, such as a balance, total, or transaction list. The canonical shortcut prefix is `ask`.
+_Avoid_: Query Command, Lookup Command
+
+**Check Command**:
+A Command that requests an Insight, such as budget status, goal progress, or a spending projection. The canonical shortcut prefix is `check`.
+_Avoid_: Analyze Command, Insight Command
+
+**Do Command**:
+A Command that triggers an app action, such as a Transfer, Budget change, or Recurring Transaction setup. The canonical shortcut prefix is `do`.
+_Avoid_: Act Command, Action Command
+
+**Confirmation Setting**:
+A user preference that controls whether the Assistant executes `do` Commands immediately or asks for confirmation first.
 
 **Assistant**:
 The AI-driven feature that interprets voice or text Commands and produces Entries, Insights, or app actions.

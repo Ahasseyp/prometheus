@@ -1,0 +1,14 @@
+{
+  "name": "@prometheus/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'API dev server will be implemented in #37'",
+    "test": "echo 'API tests will be implemented in #37'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

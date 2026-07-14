@@ -16,6 +16,14 @@ _Avoid_: Admin, superuser
 A User who can create, edit, and delete Accounts, transactions, budgets, and goals within a Household.
 _Avoid_: Editor, contributor
 
+**Household Invitation**:
+A token-based request sent by a Household Owner to invite another User to join a Household. New recipients are guided through signup and acceptance; existing recipients accept directly and receive an in-app notification.
+_Avoid_: Invite link, share
+
+**Recovery Code**:
+A one-time code generated for a User during first-run setup, used to recover access when the password is forgotten and CLI access is unavailable.
+_Avoid_: Backup code, reset token
+
 **Loan**:
 An Account representing money borrowed by the Household. Its balance is the remaining amount owed, which reduces the Household's net worth.
 _Avoid_: Debt, liability, mortgage

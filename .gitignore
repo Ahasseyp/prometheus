@@ -25,6 +25,10 @@ Thumbs.db
 .vscode/
 *.swp
 
+# Local tooling / environment metadata
+.obsidian/
+opencode.json
+
 # Database
 *.db
 *.db-journal

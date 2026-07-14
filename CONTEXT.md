@@ -24,8 +24,12 @@ _Avoid_: Debt, liability, mortgage
 A classification of an Account: checking, savings, credit card, cash, investment, or loan.
 _Avoid_: Account kind, category
 
+**Account Currency**:
+The single fixed Currency in which an Account is denominated. All Transactions recorded against that Account use its Account Currency, and its Balance is expressed in that Currency.
+_Avoid_: Account's money, currency setting
+
 **Account**:
-A financial container owned by a Household, such as a checking account, credit card, savings account, wallet, investment, or loan.
+A financial container owned by a Household, such as a checking account, credit card, savings account, wallet, investment, or loan. Each Account has exactly one Account Currency.
 _Avoid_: Wallet, profile
 
 **Transaction**:
@@ -33,7 +37,7 @@ A movement of Money into or out of an Account.
 _Avoid_: Expense, income, payment, charge
 
 **Transfer**:
-A pair of linked Transactions that moves Money from one Account to another Account.
+A pair of linked Transactions that moves Money from one Account to another Account. A cross-currency Transfer connects two Transactions denominated in different Account Currencies and stores the Exchange Rate used.
 _Avoid_: Move, internal transaction
 
 **Transaction Type**:
@@ -65,7 +69,7 @@ A Category that belongs to a parent Category; a Category may have at most one le
 _Avoid_: Nested category, child category
 
 **Budget**:
-A planned spending limit for a Category or set of Categories over a Budget Period.
+A planned spending limit for a Category or set of Categories over a Budget Period, denominated in the Household's Reporting Currency.
 _Avoid_: Limit, spending plan
 
 **Budget Period**:
@@ -89,7 +93,7 @@ A Transaction Instance that was not created because the user chose to skip it fo
 _Avoid_: Skipped occurrence, exception
 
 **Goal**:
-A savings target with a target amount, a deadline, and one or more funding Accounts. The saved amount is an allocation of money that still belongs to the Account balance, like a virtual bucket.
+A savings target with a target amount, a deadline, and one or more funding Accounts, all denominated in the same Currency. The saved amount is an allocation of money that still belongs to the Account balance, like a virtual bucket.
 _Avoid_: Target, objective, wishlist
 
 **Goal Contribution**:
@@ -119,6 +123,14 @@ _Avoid_: Organization, tenant, family, profile
 **Currency**:
 The unit of money in which an Account, Transaction, or valuation is denominated, expressed as an ISO 4217 code. The Household may have a default reporting Currency while Accounts keep their own Currency.
 _Avoid_: Money, denomination
+
+**Reporting Currency**:
+The default Currency of a Household, used for Budgets, dashboards, net-worth summaries, and other cross-Account reports. A Household chooses its Reporting Currency at creation and may change it later; historical reports keep the Currency they were originally computed in.
+_Avoid_: Base currency, home currency
+
+**Exchange Rate**:
+The rate used to convert a Money amount from one Currency to another. A per-Transaction Exchange Rate is stored at creation so historical reports reflect the rate on the transaction date; current balances and net worth use the latest available rate. Users may override any stored rate.
+_Avoid_: Conversion rate, FX rate
 
 **Money**:
 A quantity of value in a specific Currency, used for transactions, balances, budgets, and goals.

@@ -67,6 +67,18 @@
       "skillPath": "skills/engineering/prototype/SKILL.md",
       "computedHash": "faba901c53a6ca245174c4ba5db3929d14253232b3050fdbd46539720adf1ab8"
     },
+    "react-component-composition": {
+      "source": "useparagon/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-component-composition/SKILL.md",
+      "computedHash": "7b9e2e08da9befd622ba05b79d56877ee224cbce2bc80b32c694ce8f1403466f"
+    },
+    "readable-code": {
+      "source": "useparagon/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/readable-code/SKILL.md",
+      "computedHash": "b15e1d20f55c85611c184c157efc8a14815e19cf3a6b9844b8a10e40eed0d86f"
+    },
     "research": {
       "source": "mattpocock/skills",
       "sourceType": "github",

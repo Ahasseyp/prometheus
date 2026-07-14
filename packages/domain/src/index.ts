@@ -1,1 +1,2 @@
-// Domain package placeholder. Money helpers will be implemented in #36.
+export { createMoney } from './money.js';
+export type { Money, MoneyError, Result, MoneyFactor, CurrencyCode } from './money.js';

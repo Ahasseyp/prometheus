@@ -24,7 +24,7 @@ Closes #<!-- issue number -->
 - [ ] The change matches the acceptance criteria of the linked issue.
 - [ ] No secrets, tokens, or Recovery Codes are committed.
 - [ ] Domain language from `CONTEXT.md` is used where appropriate.
-- [ ] Code follows the [readable-code principles](.agents/skills/readable-code/SKILL.md).
+- [ ] Code follows the [readable-code principles](../.agents/skills/readable-code/SKILL.md).
 
 ## Screenshots / recordings
 

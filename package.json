@@ -5,7 +5,7 @@
   "packageManager": "pnpm@9.15.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"pnpm --filter @prometheus/web dev\" \"pnpm --filter @prometheus/api dev\"",
+    "dev": "concurrently --names \"web,api\" --prefix-colors \"blue.bold,green.bold\" \"pnpm --filter @prometheus/web dev\" \"pnpm --filter @prometheus/api dev\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

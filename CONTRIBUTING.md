@@ -81,6 +81,52 @@ chore(ci): add GitHub Actions workflow for lint/typecheck/test
 - Do not commit secrets, API keys, or `.env` files.
 - Do not commit without confirmation when asked not to.
 
+## Local development
+
+The API uses PostgreSQL. Copy `.env.example` to `.env` and start a local database with Docker Compose:
+
+```bash
+cp .env.example .env
+pnpm db:start
+```
+
+Run Prisma migrations after changing `apps/api/prisma/schema.prisma`:
+
+```bash
+pnpm db:migrate
+```
+
+See [`docs/schema.md`](docs/schema.md) for a visual ER diagram of the current schema.
+
+Generate the Prisma client after schema changes (also runs automatically on `pnpm install`):
+
+```bash
+pnpm db:generate
+```
+
+### Tests
+
+Tests that hit the database read `DATABASE_URL` from the environment. Use a separate test database to avoid touching development data:
+
+```bash
+cp .env.example .env.test.local
+# Edit DATABASE_URL to point to a test database, e.g.:
+# DATABASE_URL=postgresql://prometheus:prometheus@localhost:5432/prometheus_test
+```
+
+Create the test database once:
+
+```bash
+docker compose exec db createdb -U prometheus prometheus_test
+```
+
+Apply migrations to the test database and run the API test suite:
+
+```bash
+DATABASE_URL=$(grep DATABASE_URL .env.test.local | cut -d '=' -f2-) pnpm db:migrate:deploy
+DATABASE_URL=$(grep DATABASE_URL .env.test.local | cut -d '=' -f2-) pnpm --filter @prometheus/api test
+```
+
 ## Pre-commit checks
 
 Before asking for commit approval, run:

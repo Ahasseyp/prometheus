@@ -61,6 +61,12 @@ export const currencyMap = {
 
 export type CurrencyCode = keyof typeof currencyMap;
 
+export function isCurrencyCode(code: string): code is CurrencyCode {
+  return code in currencyMap;
+}
+
 export function currencyFor(code: string): DineroCurrency<bigint, CurrencyCode> | undefined {
-  return currencyMap[code as CurrencyCode] as DineroCurrency<bigint, CurrencyCode> | undefined;
+  return isCurrencyCode(code)
+    ? (currencyMap[code] as DineroCurrency<bigint, CurrencyCode>)
+    : undefined;
 }

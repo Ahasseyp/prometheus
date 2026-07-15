@@ -9,7 +9,10 @@ export type MoneyError =
   | { type: 'unsupported-currency'; currency: string }
   | { type: 'divide-by-zero' };
 
-export type Result<T> = { ok: true; value: T } | { ok: false; error: MoneyError };
+/**
+ * A typed result: either a successful value or an error.
+ */
+export type Result<T, E = MoneyError> = { ok: true; value: T } | { ok: false; error: E };
 
 /**
  * A value that can be used as a factor or divisor in Money multiplication

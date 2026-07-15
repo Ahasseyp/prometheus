@@ -1,0 +1,17 @@
+// This is the initial Prisma schema for Prometheus.
+// Models will be added in later tickets. See issue #21.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Placeholder model so Prisma Client can be generated before real domain models are added.
+// This model is not migrated and does not represent a real domain concept.
+model SchemaPlaceholder {
+  id Int @id @default(autoincrement())
+}

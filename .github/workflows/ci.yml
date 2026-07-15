@@ -10,6 +10,24 @@ jobs:
   checks:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: prometheus
+          POSTGRES_PASSWORD: prometheus
+          POSTGRES_DB: prometheus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://prometheus:prometheus@localhost:5432/prometheus_test
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,6 +52,9 @@ jobs:
 
       - name: Format check
         run: pnpm format:check
+
+      - name: Apply database migrations
+        run: pnpm --filter @prometheus/api exec prisma migrate deploy
 
       - name: Test
         run: pnpm test

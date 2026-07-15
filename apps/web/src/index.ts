@@ -1,1 +1,1 @@
-export const webPlaceholder = "web";
+export const webPlaceholder = 'web';

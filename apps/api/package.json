@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    "./router": {
+      "types": "./src/router.ts",
+      "default": "./src/router.ts"
+    }
+  },
   "scripts": {
     "dev": "tsx src/server.ts",
     "test": "vitest run",

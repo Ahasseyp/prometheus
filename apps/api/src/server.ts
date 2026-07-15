@@ -1,12 +1,22 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import express from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { z } from 'zod';
 import { appRouter } from './router.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const portSchema = z.coerce.number().int().min(1).max(65535).default(3000);
+
+function resolveWebDist(): string {
+  return path.resolve(__dirname, '../../../apps/web/dist');
+}
 
 export function createApp(): express.Express {
   const app = express();
+  const webDistPath = resolveWebDist();
 
   app.use(
     '/api/trpc',
@@ -14,6 +24,14 @@ export function createApp(): express.Express {
       router: appRouter,
     })
   );
+
+  app.use(express.static(webDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    res.sendFile(path.join(webDistPath, 'index.html'));
+  });
 
   return app;
 }

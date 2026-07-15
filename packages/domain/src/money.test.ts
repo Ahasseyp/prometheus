@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createMoney, MoneyError } from './money.js';
+import { createMoney } from './money.js';
+import type { MoneyError } from './types.js';
 
 const usd = (decimal: string) => createMoney(decimal, 'USD');
 const eur = (decimal: string) => createMoney(decimal, 'EUR');

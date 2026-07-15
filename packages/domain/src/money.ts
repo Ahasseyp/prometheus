@@ -1,135 +1,26 @@
 import {
   add as dineroAdd,
-  AED,
   allocate as dineroAllocate,
-  AUD,
-  BRL,
-  CAD,
-  CHF,
-  CLP,
-  CNY,
   compare as dineroCompare,
-  COP,
   dinero,
-  DKK,
   equal as dineroEqual,
-  EUR,
-  GBP,
   halfUp,
-  HKD,
-  ILS,
-  INR,
   isNegative as dineroIsNegative,
   isPositive as dineroIsPositive,
   isZero as dineroIsZero,
-  JPY,
-  KRW,
   multiply as dineroMultiply,
-  MXN,
-  NOK,
-  NZD,
-  PEN,
-  PLN,
-  SAR,
-  SEK,
-  SGD,
   subtract as dineroSubtract,
   toDecimal,
   toSnapshot,
   transformScale,
-  TRY,
   type Dinero,
   type DineroCurrency,
-  USD,
-  ZAR,
 } from 'dinero.js/bigint';
 
-const currencyMap = {
-  AED,
-  AUD,
-  BRL,
-  CAD,
-  CHF,
-  CLP,
-  CNY,
-  COP,
-  DKK,
-  EUR,
-  GBP,
-  HKD,
-  ILS,
-  INR,
-  JPY,
-  KRW,
-  MXN,
-  NOK,
-  NZD,
-  PEN,
-  PLN,
-  SAR,
-  SEK,
-  SGD,
-  TRY,
-  USD,
-  ZAR,
-};
-
-export type CurrencyCode = keyof typeof currencyMap;
-
-/**
- * Describes why a Money operation failed.
- */
-export type MoneyError =
-  | { type: 'currency-mismatch'; left: CurrencyCode; right: CurrencyCode }
-  | { type: 'invalid-decimal'; value: string; reason: string }
-  | { type: 'unsupported-currency'; currency: string }
-  | { type: 'divide-by-zero' };
-
-export type Result<T> = { ok: true; value: T } | { ok: false; error: MoneyError };
-
-/**
- * A value that can be used as a factor or divisor in Money multiplication
- * and division, either as a decimal string (e.g. "1.5") or a bigint.
- */
-export type MoneyFactor = string | bigint;
-
-type Comparison = -1 | 0 | 1;
-
-type ScaledDecimal = {
-  amount: bigint;
-  scale: bigint;
-};
-
-/**
- * A quantity of Money in a specific Currency. All arithmetic is exact
- * integer math; same-currency operations are the default and cross-currency
- * conversion is out of scope.
- */
-export type Money = {
-  readonly currency: CurrencyCode;
-  toDecimal: () => string;
-  add: (other: Money) => Result<Money>;
-  subtract: (other: Money) => Result<Money>;
-  multiply: (factor: MoneyFactor) => Result<Money>;
-  divide: (divisor: MoneyFactor) => Result<Money>;
-  allocate: (ratios: readonly bigint[]) => Money[];
-  compare: (other: Money) => Result<Comparison>;
-  equals: (other: Money) => boolean;
-  isZero: () => boolean;
-  isNegative: () => boolean;
-  isPositive: () => boolean;
-};
+import { CurrencyCode, currencyFor } from './currencies.js';
+import type { Money, MoneyFactor, Result } from './types.js';
 
 const moneyRegistry = new WeakMap<Money, Dinero<bigint>>();
-
-function currencyFor(code: string): Result<DineroCurrency<bigint, CurrencyCode>> {
-  const currency = currencyMap[code as CurrencyCode] as
-    DineroCurrency<bigint, CurrencyCode> | undefined;
-  if (currency == null) {
-    return { ok: false, error: { type: 'unsupported-currency', currency: code } };
-  }
-  return { ok: true, value: currency };
-}
 
 function unwrap(money: Money): Dinero<bigint> {
   const dineroObject = moneyRegistry.get(money);
@@ -171,6 +62,11 @@ function decimalToMinorUnits(decimal: string, scale: number): Result<bigint> {
   const paddedFraction = fraction.padEnd(scale, '0');
   return { ok: true, value: BigInt(`${sign}${whole}${paddedFraction}`) };
 }
+
+type ScaledDecimal = {
+  amount: bigint;
+  scale: bigint;
+};
 
 function parseFactor(value: MoneyFactor): Result<ScaledDecimal> {
   const asString = typeof value === 'bigint' ? value.toString() : value;
@@ -275,7 +171,10 @@ function wrapDinero(dineroObject: Dinero<bigint>, currency: CurrencyCode): Money
       if (currency !== other.currency) {
         return currencyMismatchError(currency, other.currency);
       }
-      return { ok: true, value: dineroCompare(dineroObject, unwrap(other)) as Comparison };
+      return {
+        ok: true,
+        value: dineroCompare(dineroObject, unwrap(other)) as 1 | 0 | -1,
+      };
     },
     equals: (other) => {
       return currency === other.currency && dineroEqual(dineroObject, unwrap(other));
@@ -293,11 +192,10 @@ function wrapDinero(dineroObject: Dinero<bigint>, currency: CurrencyCode): Money
  * The decimal must not have more fractional digits than the currency allows.
  */
 export function createMoney(decimal: string, currencyCode: CurrencyCode): Result<Money> {
-  const currencyResult = currencyFor(currencyCode);
-  if (!currencyResult.ok) {
-    return currencyResult;
+  const currency = currencyFor(currencyCode);
+  if (currency == null) {
+    return { ok: false, error: { type: 'unsupported-currency', currency: currencyCode } };
   }
-  const currency = currencyResult.value;
   const scale = currency.exponent;
   const minorUnitsResult = decimalToMinorUnits(decimal, Number(scale));
   if (!minorUnitsResult.ok) {

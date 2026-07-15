@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { createHealthGateway, type HealthStatus as HealthStatusData } from '@/gateways/health.js';
+import { createFailingHealthClient, createMockHealthClient } from '@/test/health-client.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 
 import { HealthStatus } from './health-status.js';
@@ -11,15 +12,11 @@ function renderWithProviders(element: React.ReactElement) {
 }
 
 function createGateway(response: HealthStatusData) {
-  return createHealthGateway({
-    query: () => Promise.resolve(response),
-  });
+  return createHealthGateway(createMockHealthClient(response));
 }
 
 function createFailingGateway() {
-  return createHealthGateway({
-    query: () => Promise.reject(new Error('failed')),
-  });
+  return createHealthGateway(createFailingHealthClient(new Error('failed')));
 }
 
 describe('HealthStatus', () => {

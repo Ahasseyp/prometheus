@@ -2,26 +2,15 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { createFailingHealthClient, createMockHealthClient } from '@/test/health-client.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 import { server } from '@/test/server.js';
 
-import { createHealthGateway, healthGateway, type HealthStatus } from './health.js';
-
-function createClient(response: HealthStatus) {
-  return {
-    query: () => Promise.resolve(response),
-  };
-}
-
-function createFailingClient(error: Error) {
-  return {
-    query: () => Promise.reject(error),
-  };
-}
+import { createHealthGateway, healthGateway } from './health.js';
 
 describe('health gateway', () => {
   it('returns the backend health status', async () => {
-    const gateway = createHealthGateway(createClient({ status: 'ok' }));
+    const gateway = createHealthGateway(createMockHealthClient({ status: 'ok' }));
     const { result } = renderHook(() => gateway.useHealth(), {
       wrapper: createQueryClientWrapper(),
     });
@@ -32,7 +21,7 @@ describe('health gateway', () => {
   });
 
   it('surfaces errors when the backend is unreachable', async () => {
-    const gateway = createHealthGateway(createFailingClient(new Error('network error')));
+    const gateway = createHealthGateway(createFailingHealthClient(new Error('network error')));
     const { result } = renderHook(() => gateway.useHealth(), {
       wrapper: createQueryClientWrapper(),
     });

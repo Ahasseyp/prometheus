@@ -7,7 +7,7 @@ dist/
 node_modules/
 .pnpm-store/
 prototypes/
-src/
+/src/
 docs/
 *.db
 *.db-journal

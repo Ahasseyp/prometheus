@@ -1,17 +1,55 @@
-// This is the initial Prisma schema for Prometheus.
-// Models will be added in later tickets. See issue #21.
+// Prisma schema for Prometheus.
+// See CONTEXT.md for domain language and docs/adr/ for architectural decisions.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Placeholder model so Prisma Client can be generated before real domain models are added.
-// This model is not migrated and does not represent a real domain concept.
-model SchemaPlaceholder {
-  id Int @id @default(autoincrement())
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  memberships HouseholdMembership[]
+}
+
+model Household {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  reportingCurrency String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  memberships HouseholdMembership[]
+}
+
+// A household may have at most one OWNER. That constraint is enforced by a
+// partial unique index in the migration because Prisma 5.22 does not support
+// partial indexes in the schema. The application layer ensures a household is
+// created with exactly one OWNER.
+model HouseholdMembership {
+  id          String                  @id @default(uuid()) @db.Uuid
+  householdId String                  @db.Uuid
+  userId      String                  @db.Uuid
+  role        HouseholdMembershipRole
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @default(now()) @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([householdId, userId])
+  @@index([userId])
+}
+
+enum HouseholdMembershipRole {
+  OWNER
+  MEMBER
 }

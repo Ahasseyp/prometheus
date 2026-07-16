@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
+import { registrationRouter } from './registration.js';
 
 export const appRouter = router({
   // Verifies both that the server is up and that PostgreSQL is reachable.
@@ -12,6 +13,8 @@ export const appRouter = router({
     await prisma.$queryRaw`SELECT 1`;
     return { status: 'ok' };
   }),
+
+  registration: registrationRouter,
 });
 
 export type AppRouter = typeof appRouter;

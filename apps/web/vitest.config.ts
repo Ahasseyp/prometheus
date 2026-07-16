@@ -2,8 +2,13 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 
 import viteConfig from './vite.config.js';
 
+const isViteConfigFunction = typeof viteConfig === 'function';
+const resolvedViteConfig = isViteConfigFunction
+  ? await viteConfig({ command: 'serve', mode: 'test' })
+  : viteConfig;
+
 export default mergeConfig(
-  viteConfig,
+  resolvedViteConfig,
   defineConfig({
     test: {
       globals: true,

@@ -10,3 +10,5 @@ export { createHousehold } from './household.js';
 export type { Household, HouseholdError } from './household.js';
 export { createHouseholdMembership, HouseholdMembershipRole } from './household-membership.js';
 export type { HouseholdMembership, HouseholdMembershipError } from './household-membership.js';
+export { passwordSchema } from './password.js';
+export type { Password } from './password.js';

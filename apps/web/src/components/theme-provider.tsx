@@ -82,7 +82,12 @@ export function ThemeProvider({
     (nextTheme: Theme) => {
       const root = document.documentElement;
       const resolvedTheme = nextTheme === 'system' ? getSystemTheme() : nextTheme;
-      const restoreTransitions = disableTransitionOnChange ? disableTransitionsTemporarily() : null;
+      const shouldDisableTransitions = disableTransitionOnChange;
+
+      let restoreTransitions: (() => void) | null = null;
+      if (shouldDisableTransitions) {
+        restoreTransitions = disableTransitionsTemporarily();
+      }
 
       root.classList.remove('light', 'dark');
       root.classList.add(resolvedTheme);

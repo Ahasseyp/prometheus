@@ -1,12 +1,19 @@
 import { z } from 'zod';
-import argon2 from 'argon2';
-import { getPrisma } from './prisma.js';
+
+import { passwordSchema } from '@prometheus/domain';
+
+import { registerUser } from './services/registration.js';
 import { publicProcedure, router } from './trpc.js';
 
 const registerInputSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: passwordSchema,
 });
+
+const isoDateString = z.preprocess(
+  (value) => (value instanceof Date ? value.toISOString() : value),
+  z.string().datetime()
+);
 
 const registerOutputSchema = z.union([
   z.object({
@@ -15,14 +22,8 @@ const registerOutputSchema = z.union([
       id: z.string().uuid(),
       email: z.string().email(),
       name: z.string().nullable(),
-      createdAt: z.preprocess(
-        (value) => (value instanceof Date ? value.toISOString() : value),
-        z.string().datetime()
-      ),
-      updatedAt: z.preprocess(
-        (value) => (value instanceof Date ? value.toISOString() : value),
-        z.string().datetime()
-      ),
+      createdAt: isoDateString,
+      updatedAt: isoDateString,
     }),
   }),
   z.object({
@@ -40,10 +41,6 @@ function isRegistrationEnabled(): boolean {
   return allowRegistrationSchema.parse(process.env.ALLOW_REGISTRATION);
 }
 
-function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
-}
-
 export const registrationRouter = router({
   register: publicProcedure
     .input(registerInputSchema)
@@ -53,34 +50,13 @@ export const registrationRouter = router({
         return { ok: false as const, error: 'registration-disabled' as const };
       }
 
-      const email = normalizeEmail(input.email);
-      const prisma = getPrisma();
+      const result = await registerUser(input);
 
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser !== null) {
-        return { ok: false as const, error: 'email-already-exists' as const };
+      if (!result.ok) {
+        return { ok: false as const, error: result.error };
       }
 
-      const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
-
-      const user = await prisma.user.create({
-        data: {
-          email,
-          passwordHash,
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      return { ok: true as const, user };
+      return { ok: true as const, user: result.user };
     }),
 });
 

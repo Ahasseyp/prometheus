@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
@@ -21,6 +21,14 @@ function makeTestEmail(localPart: string): string {
   return `${localPart}-${suffix}@example.com`;
 }
 
+function enableRegistration(): void {
+  process.env.ALLOW_REGISTRATION = 'true';
+}
+
+function disableRegistration(): void {
+  process.env.ALLOW_REGISTRATION = 'false';
+}
+
 describe.sequential('registration procedure', () => {
   let server: Server;
   let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
@@ -38,10 +46,6 @@ describe.sequential('registration procedure', () => {
         }),
       ],
     });
-  });
-
-  beforeEach(() => {
-    process.env.ALLOW_REGISTRATION = 'true';
   });
 
   afterAll(async () => {
@@ -67,10 +71,11 @@ describe.sequential('registration procedure', () => {
   });
 
   it('registers a new user and returns safe fields', async () => {
+    enableRegistration();
     const email = makeTestEmail('register-test-1');
     const response = await client.registration.register.mutate({
       email,
-      password: 'secure-password-1',
+      password: 'Secure-password-1',
     });
 
     expect(response.ok).toBe(true);
@@ -88,28 +93,29 @@ describe.sequential('registration procedure', () => {
 
     const response = await client.registration.register.mutate({
       email: makeTestEmail('register-test-2'),
-      password: 'secure-password-2',
+      password: 'Secure-password-2',
     });
 
     expect(response).toEqual({ ok: false, error: 'registration-disabled' });
   });
 
   it('rejects registration when ALLOW_REGISTRATION is false', async () => {
-    process.env.ALLOW_REGISTRATION = 'false';
+    disableRegistration();
 
     const response = await client.registration.register.mutate({
       email: makeTestEmail('register-test-3'),
-      password: 'secure-password-3',
+      password: 'Secure-password-3',
     });
 
     expect(response).toEqual({ ok: false, error: 'registration-disabled' });
   });
 
   it('rejects a duplicate email registration', async () => {
+    enableRegistration();
     const email = makeTestEmail('register-test-4');
     const first = await client.registration.register.mutate({
       email,
-      password: 'secure-password-4',
+      password: 'Secure-password-4',
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
@@ -117,22 +123,24 @@ describe.sequential('registration procedure', () => {
 
     const second = await client.registration.register.mutate({
       email: email.toUpperCase(),
-      password: 'another-password-4',
+      password: 'Another-password-4',
     });
 
     expect(second).toEqual({ ok: false, error: 'email-already-exists' });
   });
 
   it('rejects an invalid email', async () => {
+    enableRegistration();
     await expect(
       client.registration.register.mutate({
         email: 'not-an-email',
-        password: 'secure-password-5',
+        password: 'Secure-password-5',
       })
     ).rejects.toThrow();
   });
 
-  it('rejects a password shorter than 8 characters', async () => {
+  it('rejects a weak password', async () => {
+    enableRegistration();
     await expect(
       client.registration.register.mutate({
         email: makeTestEmail('register-test-6'),

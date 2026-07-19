@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
+import { authRouter } from './auth.js';
 import { registrationRouter } from './registration.js';
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
     return { status: 'ok' };
   }),
 
+  auth: authRouter,
   registration: registrationRouter,
 });
 

@@ -2,12 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import express from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { z } from 'zod';
 
 import { appRouter } from './router.js';
+import { createContext } from './trpc.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -36,10 +38,13 @@ export function createApp(): express.Express {
   const app = express();
   const webDistPath = resolveWebDist();
 
+  app.use(cookieParser());
+
   app.use(
     '/api/trpc',
     createExpressMiddleware({
       router: appRouter,
+      createContext,
     })
   );
 

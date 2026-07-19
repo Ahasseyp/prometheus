@@ -1,54 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import { parse as parseCookie } from 'cookie';
 import argon2 from 'argon2';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
-import { disconnectPrisma, getPrisma } from './prisma.js';
-import { makeTestEmail, startTestServer } from './test/server.js';
-
-function createCookieJarFetch() {
-  const cookieJar = new Map<string, string>();
-  const lastSetCookies: string[] = [];
-
-  async function fetchWithCookies(
-    input: string | URL | Request,
-    init?: RequestInit
-  ): Promise<Response> {
-    const url = input.toString();
-    const cookieHeader = Array.from(cookieJar.values()).join('; ');
-
-    const response = await fetch(url, {
-      ...init,
-      headers: {
-        ...(init?.headers ?? {}),
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
-      credentials: 'include',
-    });
-
-    lastSetCookies.length = 0;
-    const setCookies = response.headers.getSetCookie();
-    lastSetCookies.push(...setCookies);
-
-    for (const setCookie of setCookies) {
-      const parsed = parseCookie(setCookie);
-      for (const [name, value] of Object.entries(parsed)) {
-        if (value === '' || /Max-Age=0/i.test(setCookie)) {
-          cookieJar.delete(name);
-        } else {
-          cookieJar.set(name, `${name}=${value}`);
-        }
-      }
-    }
-
-    return response;
-  }
-
-  fetchWithCookies.getLastSetCookies = () => lastSetCookies;
-
-  return fetchWithCookies;
-}
+import { getPrisma } from './prisma.js';
+import { createCookieJarFetch } from './test/cookies.js';
+import { cleanupTestData, makeTestEmail, startTestServer } from './test/server.js';
 
 describe.sequential('authentication procedures', () => {
   let server: Server;
@@ -56,8 +13,10 @@ describe.sequential('authentication procedures', () => {
   let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
   let fetchWithCookies: ReturnType<typeof createCookieJarFetch>;
   const createdUserIds: string[] = [];
+  let originalAllowInsecureCookies: string | undefined;
 
   beforeAll(async () => {
+    originalAllowInsecureCookies = process.env.ALLOW_INSECURE_COOKIES;
     process.env.ALLOW_INSECURE_COOKIES = 'true';
     const { server: s, url } = await startTestServer();
     server = s;
@@ -74,14 +33,12 @@ describe.sequential('authentication procedures', () => {
   });
 
   afterAll(async () => {
-    const prisma = getPrisma();
-    await prisma.session.deleteMany({
-      where: { userId: { in: createdUserIds } },
-    });
-    await prisma.user.deleteMany({
-      where: { id: { in: createdUserIds } },
-    });
-    await disconnectPrisma();
+    if (originalAllowInsecureCookies === undefined) {
+      delete process.env.ALLOW_INSECURE_COOKIES;
+    } else {
+      process.env.ALLOW_INSECURE_COOKIES = originalAllowInsecureCookies;
+    }
+    await cleanupTestData({ userIds: createdUserIds });
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
         if (error) {

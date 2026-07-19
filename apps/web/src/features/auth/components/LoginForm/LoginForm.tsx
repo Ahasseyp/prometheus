@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { passwordSchema } from '@prometheus/domain';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button.js';
 import { FieldGroup } from '@/components/ui/field.js';
 import { Input } from '@/components/ui/input.js';
 import { PasswordInput } from '@/components/molecules/PasswordInput/PasswordInput.js';
-import { useRegister, type RegisterOutput } from '@/features/auth/gateways/registration.js';
+import { useLogin, type LoginOutput } from '@/features/auth/gateways/auth.js';
 
 import { FormError } from '../FormError.js';
 import { FormField } from '../FormField.js';
@@ -16,26 +15,19 @@ import { FormField } from '../FormField.js';
 type FormState = {
   email: string;
   password: string;
-  confirmPassword: string;
 };
 
-const registrationFormSchema = z
-  .object({
-    email: z.string().min(1, 'Enter your email address.').email('Enter a valid email address.'),
-    password: z.string().min(1, 'Enter a password.').pipe(passwordSchema),
-    confirmPassword: z.string().min(1, 'Confirm your password.'),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: 'Passwords do not match.',
-    path: ['confirmPassword'],
-  });
+const loginFormSchema = z.object({
+  email: z.string().min(1, 'Enter your email address.').email('Enter a valid email address.'),
+  password: z.string().min(1, 'Enter a password.'),
+});
 
-export interface RegisterFormProps {
-  onSuccess?: (email: string) => void;
+export interface LoginFormProps {
+  onSuccess?: (user: Extract<LoginOutput, { ok: true }>['user']) => void;
 }
 
-export function RegisterForm({ onSuccess }: RegisterFormProps) {
-  const { mutate, isPending, reset } = useRegister();
+export function LoginForm({ onSuccess }: LoginFormProps) {
+  const { mutate, isPending, reset } = useLogin();
   const [formError, setFormError] = useState<string | null>(null);
 
   function clearFormError() {
@@ -43,20 +35,18 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     reset();
   }
 
-  function handleRegisterSuccess(result: RegisterOutput) {
+  function handleLoginSuccess(result: LoginOutput) {
     if (result.ok) {
-      onSuccess?.(result.user.email);
+      onSuccess?.(result.user);
       return;
     }
 
-    if (result.error === 'email-already-exists') {
-      setFormError('An account with this email already exists. Sign in instead.');
-    } else if (result.error === 'registration-disabled') {
-      setFormError('Registration is currently disabled.');
+    if (result.error === 'invalid-credentials') {
+      setFormError('Incorrect email or password.');
     }
   }
 
-  function handleRegisterError() {
+  function handleLoginError() {
     setFormError('Something went wrong. Please check your connection and try again.');
   }
 
@@ -64,8 +54,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     mutate(
       { email: value.email.trim(), password: value.password },
       {
-        onSuccess: handleRegisterSuccess,
-        onError: handleRegisterError,
+        onSuccess: handleLoginSuccess,
+        onError: handleLoginError,
       }
     );
   }
@@ -74,10 +64,9 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: '',
     } satisfies FormState,
     validators: {
-      onSubmit: registrationFormSchema,
+      onSubmit: loginFormSchema,
     },
     onSubmit: handleSubmit,
   });
@@ -110,30 +99,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           )}
         </FormField>
 
-        <FormField
-          form={form}
-          name="password"
-          label="Password"
-          disabled={isPending}
-          description="Use at least 12 characters with uppercase, lowercase, number, and special character."
-        >
+        <FormField form={form} name="password" label="Password" disabled={isPending}>
           {(fieldProps) => (
             <PasswordInput
               {...fieldProps}
-              autoComplete="new-password"
-              onChange={(event) => {
-                fieldProps.onChange(event.target.value);
-                clearFormError();
-              }}
-            />
-          )}
-        </FormField>
-
-        <FormField form={form} name="confirmPassword" label="Confirm password" disabled={isPending}>
-          {(fieldProps) => (
-            <PasswordInput
-              {...fieldProps}
-              autoComplete="new-password"
+              autoComplete="current-password"
               onChange={(event) => {
                 fieldProps.onChange(event.target.value);
                 clearFormError();
@@ -147,10 +117,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         {isPending ? (
           <>
             <Loader2 className="mr-2 size-4 animate-spin" />
-            Creating account…
+            Signing in…
           </>
         ) : (
-          'Create account'
+          'Sign in'
         )}
       </Button>
     </form>

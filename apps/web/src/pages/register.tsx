@@ -1,19 +1,19 @@
-import { useState, type ReactNode } from 'react';
-import { Link } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
 
-import { buttonVariants } from '@/components/ui/button.js';
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card.js';
-import { RegisterForm } from '@/features/auth/components/RegisterForm/index.js';
+import { ButtonLink } from '@/components/molecules/ButtonLink/ButtonLink.js';
+import { TextLink } from '@/components/molecules/TextLink/TextLink.js';
+import { AuthCardShell } from '@/features/auth/components/AuthCardShell/AuthCardShell.js';
+import { AuthHeading } from '@/features/auth/components/AuthHeading/AuthHeading.js';
+import { AuthStatusIcon } from '@/features/auth/components/AuthStatusIcon/AuthStatusIcon.js';
+import { RegisterForm } from '@/features/auth/components/RegisterForm/RegisterForm.js';
 import { isRegistrationEnabled } from '@/lib/env.js';
-import { cn } from '@/lib/utils.js';
 
 export function RegisterPage({ isEnabled }: { isEnabled?: boolean } = {}) {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function RegisterPage({ isEnabled }: { isEnabled?: boolean } = {}) {
 
   if (!registrationEnabled) {
     return (
-      <RegisterLayout>
+      <AuthCardShell>
         <CardHeader>
           <CardTitle>Registration unavailable</CardTitle>
           <CardDescription>
@@ -34,66 +34,48 @@ export function RegisterPage({ isEnabled }: { isEnabled?: boolean } = {}) {
           </CardDescription>
         </CardHeader>
         <CardFooter>
-          <Link to="/" className={cn(buttonVariants({ variant: 'ghost' }), 'gap-2 px-0')}>
-            <ArrowLeft className="size-4" />
-            Back to home
-          </Link>
+          <ButtonLink to="/login" variant="ghost" className="px-0">
+            Sign in
+          </ButtonLink>
         </CardFooter>
-      </RegisterLayout>
+      </AuthCardShell>
     );
   }
 
   if (registeredEmail) {
     return (
-      <RegisterLayout>
+      <AuthCardShell>
         <CardHeader>
-          <div className="mb-4 flex size-10 items-center justify-center rounded-full bg-primary/10">
-            <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-xl font-semibold leading-snug">Account created</h1>
+          <AuthStatusIcon />
+          <AuthHeading>Account created</AuthHeading>
           <CardDescription>
             We've created an account for{' '}
             <span className="font-medium text-foreground">{registeredEmail}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link to="/" className={cn(buttonVariants(), 'w-full')}>
-            Back to home
-          </Link>
+          <ButtonLink to="/login" className="w-full">
+            Sign in
+          </ButtonLink>
         </CardContent>
-      </RegisterLayout>
+      </AuthCardShell>
     );
   }
 
   return (
-    <RegisterLayout>
+    <AuthCardShell>
       <CardHeader>
-        <h1 className="font-heading text-xl font-semibold leading-snug">Create your account</h1>
+        <AuthHeading>Create your account</AuthHeading>
         <CardDescription>Start tracking your money with Prometheus.</CardDescription>
       </CardHeader>
       <CardContent>
         <RegisterForm onSuccess={handleRegisterSuccess} />
       </CardContent>
-      <CardFooter className="flex-col items-start gap-3">
-        <Link to="/" className={cn(buttonVariants({ variant: 'ghost' }), 'gap-2 px-0')}>
-          <ArrowLeft className="size-4" />
-          Back to home
-        </Link>
+      <CardFooter>
         <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link to="/" className="font-medium text-foreground underline-offset-4 hover:underline">
-            Sign in
-          </Link>
+          Already have an account? <TextLink to="/login">Sign in</TextLink>
         </p>
       </CardFooter>
-    </RegisterLayout>
-  );
-}
-
-function RegisterLayout({ children }: { children: ReactNode }) {
-  return (
-    <main className="flex min-h-svh flex-col items-center justify-center p-6">
-      <Card className="w-full max-w-sm">{children}</Card>
-    </main>
+    </AuthCardShell>
   );
 }

@@ -1,4 +1,4 @@
-import { createTRPCProxyClient, httpLink } from '@trpc/client';
+import { createTRPCProxyClient, httpLink, type TRPCClient } from '@trpc/client';
 import type { AppRouter } from '@prometheus/api/router';
 
 // In dev the Vite proxy forwards /api to the backend, avoiding CORS.
@@ -6,10 +6,11 @@ import type { AppRouter } from '@prometheus/api/router';
 // so the same-origin relative URL works.
 const TRPC_URL = '/api/trpc';
 
-export const trpc = createTRPCProxyClient<AppRouter>({
+export const trpc: TRPCClient<AppRouter> = createTRPCProxyClient<AppRouter>({
   links: [
     httpLink({
       url: TRPC_URL,
+      fetch: (input, init) => fetch(input, { ...init, credentials: 'include' }),
     }),
   ],
 });

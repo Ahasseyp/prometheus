@@ -45,10 +45,11 @@ model Household {
   memberships HouseholdMembership[]
 }
 
-// A household may have at most one OWNER. That constraint is enforced by a
-// partial unique index in the migration because Prisma 5.22 does not support
-// partial indexes in the schema. The application layer ensures a household is
-// created with exactly one OWNER.
+// A household may have at most one OWNER, and in v1 a user may be the OWNER of
+// at most one household. Those constraints are enforced by partial unique
+// indexes in the migration because Prisma 5.22 does not support partial indexes
+// in the schema. The application layer ensures a household is created with
+// exactly one OWNER.
 model HouseholdMembership {
   id          String                  @id @default(uuid()) @db.Uuid
   householdId String                  @db.Uuid

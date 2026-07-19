@@ -3,6 +3,11 @@ import crypto from 'node:crypto';
 import argon2 from 'argon2';
 
 import { getPrisma } from '../prisma.js';
+import {
+  mapMembershipToHouseholdContext,
+  type HouseholdContext,
+  type MembershipWithHousehold,
+} from './household.js';
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -11,7 +16,7 @@ export type LoginInput = {
   password: string;
 };
 
-export type AuthenticatedUser = {
+type User = {
   id: string;
   email: string;
   name: string | null;
@@ -19,9 +24,13 @@ export type AuthenticatedUser = {
   updatedAt: Date;
 };
 
+export type AuthenticatedUser = User & {
+  household: HouseholdContext | null;
+};
+
 type LoginSuccess = {
   ok: true;
-  user: AuthenticatedUser;
+  user: User;
   token: string;
 };
 
@@ -31,6 +40,20 @@ type LoginFailure = {
 };
 
 export type LoginResult = LoginSuccess | LoginFailure;
+
+function mapUserToAuthenticatedUser(
+  user: User,
+  memberships: MembershipWithHousehold[]
+): AuthenticatedUser {
+  // v1 restricts a user to a single household (see #49), so the first
+  // membership is the active one.
+  const activeMembership = memberships[0] ?? null;
+
+  return {
+    ...user,
+    household: activeMembership === null ? null : mapMembershipToHouseholdContext(activeMembership),
+  };
+}
 
 export async function loginUser(input: LoginInput): Promise<LoginResult> {
   const email = input.email.toLowerCase().trim();
@@ -87,18 +110,21 @@ export async function findUserBySessionToken(token: string): Promise<Authenticat
 
   const session = await prisma.session.findUnique({
     where: { token },
-    include: { user: true },
+    include: {
+      user: {
+        include: {
+          memberships: {
+            orderBy: { createdAt: 'asc' },
+            include: { household: true },
+          },
+        },
+      },
+    },
   });
 
   if (session === null || session.expiresAt <= new Date()) {
     return null;
   }
 
-  return {
-    id: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-    createdAt: session.user.createdAt,
-    updatedAt: session.user.updatedAt,
-  };
+  return mapUserToAuthenticatedUser(session.user, session.user.memberships);
 }

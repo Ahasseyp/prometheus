@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
 import { authRouter } from './auth.js';
+import { householdRouter } from './household.js';
 import { registrationRouter } from './registration.js';
 
 export const appRouter = router({
@@ -16,6 +17,7 @@ export const appRouter = router({
   }),
 
   auth: authRouter,
+  household: householdRouter,
   registration: registrationRouter,
 });
 

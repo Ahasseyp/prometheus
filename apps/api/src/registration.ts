@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { passwordSchema } from '@prometheus/domain';
 
+import { publicUserSchema } from './lib/user.js';
 import { registerUser } from './services/registration.js';
 import { publicProcedure, router } from './trpc.js';
 
@@ -10,21 +11,10 @@ const registerInputSchema = z.object({
   password: passwordSchema,
 });
 
-const isoDateString = z.preprocess(
-  (value) => (value instanceof Date ? value.toISOString() : value),
-  z.string().datetime()
-);
-
 const registerOutputSchema = z.union([
   z.object({
     ok: z.literal(true),
-    user: z.object({
-      id: z.string().uuid(),
-      email: z.string().email(),
-      name: z.string().nullable(),
-      createdAt: isoDateString,
-      updatedAt: isoDateString,
-    }),
+    user: publicUserSchema,
   }),
   z.object({
     ok: z.literal(false),

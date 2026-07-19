@@ -35,6 +35,12 @@ Package names use the `@prometheus/` scope.
 - Use single quotes, trailing commas where valid, semicolons, and 100-character print width.
 - Prefer named exports over default exports for libraries and shared code.
 
+## Frontend structure
+
+- **Pages are thin shells.** Page components in `src/pages/` and `src/App.tsx` compose higher-level components; they should not apply ad-hoc `className` overrides or call `buttonVariants` directly on primitives from `src/components/ui/`.
+- **Customize primitives in a feature or molecule.** If a screen needs a bespoke layout, styled card, or button-like link, extract it into `src/features/<domain>/components/` or `src/components/molecules/`. Keep primitive overrides out of pages.
+- **No barrel files.** Do not add `index.ts` re-export files inside `apps/web/src`. Import directly from the source file (`@/components/molecules/ButtonLink/ButtonLink.js`). Because this repo uses ESM with explicit `.js` extensions, barrels do not shorten imports; they only add indirection and maintenance. Package-level public API barrels (e.g. `packages/domain/src/index.ts`) are the exception.
+
 ## Domain language
 
 Use the terms defined in [CONTEXT.md](CONTEXT.md):

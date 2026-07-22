@@ -4,6 +4,7 @@ import { RouterProvider } from '@tanstack/react-router';
 
 import { ThemeProvider } from '@/components/theme-provider.js';
 import { QueryProvider } from '@/providers/query-provider.js';
+import { TooltipProvider } from '@/components/ui/tooltip.js';
 
 import { router } from './router.js';
 import './index.css';
@@ -18,7 +19,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <QueryProvider>
       <ThemeProvider>
-        <RouterProvider router={router} />
+        <TooltipProvider>
+          <RouterProvider router={router} />
+        </TooltipProvider>
       </ThemeProvider>
     </QueryProvider>
   </StrictMode>

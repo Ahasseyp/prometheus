@@ -7,6 +7,7 @@ import {
   createRouter,
   Outlet,
   RouterProvider,
+  type AnyRouter,
 } from '@tanstack/react-router';
 
 import { createQueryClientWrapper } from './providers.js';
@@ -15,10 +16,14 @@ export type RenderRouterOptions = {
   initialEntries?: string[];
 };
 
+export type RenderWithRouterResult = RenderResult & {
+  router: AnyRouter;
+};
+
 export async function renderWithRouter(
   Subject: FC,
   options: RenderRouterOptions = {}
-): Promise<RenderResult> {
+): Promise<RenderWithRouterResult> {
   const history = createMemoryHistory({ initialEntries: options.initialEntries ?? ['/'] });
 
   const rootRoute = createRootRoute({
@@ -34,6 +39,7 @@ export async function renderWithRouter(
   const router = createRouter({
     routeTree: rootRoute.addChildren([subjectRoute]),
     history,
+    defaultNotFoundComponent: () => <div data-testid="not-found">Not Found</div>,
   });
 
   await router.load();
@@ -50,5 +56,5 @@ export async function renderWithRouter(
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
-  return result;
+  return { ...result, router };
 }

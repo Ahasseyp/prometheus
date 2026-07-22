@@ -33,10 +33,10 @@ export function mockMeResponse(user: unknown) {
   );
 }
 
-export function mockHouseholdMeResponse(data: unknown) {
+export function mockLogoutResponse() {
   server.use(
-    http.get('/api/trpc/household.me', () => {
-      return HttpResponse.json({ result: { data } });
+    http.post('/api/trpc/auth.logout', () => {
+      return HttpResponse.json({ result: { data: { ok: true } } });
     })
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 
+import { Alert, AlertDescription } from '@/components/ui/alert.js';
+
 export interface FormErrorProps {
   message: string;
 }
@@ -13,15 +15,15 @@ export function FormError({ message }: FormErrorProps) {
   }, []);
 
   return (
-    <div
+    <Alert
       ref={formErrorRef}
       tabIndex={-1}
-      role="alert"
+      variant="destructive"
       aria-live="assertive"
-      className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+      className="items-start"
     >
-      <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <span>{message}</span>
-    </div>
+      <AlertCircle className="mt-0.5 shrink-0" aria-hidden="true" />
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }

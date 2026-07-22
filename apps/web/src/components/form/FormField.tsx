@@ -46,7 +46,7 @@ export function FormField({
         const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
         return (
-          <Field data-invalid={isInvalid}>
+          <Field data-invalid={isInvalid} data-disabled={disabled}>
             <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
             {children({
               id: field.name,

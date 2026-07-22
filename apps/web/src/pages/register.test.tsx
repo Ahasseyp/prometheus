@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithRouter } from '@/test/render-router.js';
 import { server } from '@/test/server.js';
@@ -22,8 +22,8 @@ async function fillRegistrationForm(
   await user.type(screen.getByLabelText(/confirm password/i), confirmPassword);
 }
 
-async function renderRegisterPage(isEnabled = true) {
-  return renderWithRouter(() => <RegisterPage isEnabled={isEnabled} />);
+async function renderRegisterPage(props: Partial<React.ComponentProps<typeof RegisterPage>> = {}) {
+  return renderWithRouter(() => <RegisterPage {...props} />);
 }
 
 function mockRegistrationResponse(data: unknown) {
@@ -36,14 +36,14 @@ function mockRegistrationResponse(data: unknown) {
 
 describe('RegisterPage', () => {
   it('shows a disabled message when registration is not enabled', async () => {
-    await renderRegisterPage(false);
+    await renderRegisterPage({ isEnabled: false });
 
     expect(screen.getByRole('heading', { name: /registration unavailable/i })).toBeInTheDocument();
     expect(screen.getByText(/new account creation is currently disabled/i)).toBeInTheDocument();
   });
 
   it('renders the registration form when enabled', async () => {
-    await renderRegisterPage(true);
+    await renderRegisterPage();
 
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -52,7 +52,9 @@ describe('RegisterPage', () => {
     expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
   });
 
-  it('shows a success state after a valid registration', async () => {
+  it('calls onSuccess and redirects home after a valid registration', async () => {
+    const onSuccess = vi.fn();
+
     mockRegistrationResponse({
       ok: true,
       user: {
@@ -64,15 +66,15 @@ describe('RegisterPage', () => {
       },
     });
 
-    await renderRegisterPage(true);
+    const { router } = await renderRegisterPage({ onSuccess });
     const user = userEvent.setup();
 
     await fillRegistrationForm(user, validEmail, validPassword);
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /account created/i })).toBeInTheDocument();
+      expect(onSuccess).toHaveBeenCalled();
+      expect(router.state.location.pathname).toBe('/');
     });
-    expect(screen.getByText(validEmail)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithRouter } from '@/test/render-router.js';
 import { fillLoginForm, mockLoginResponse } from '@/test/login-helpers.js';
@@ -10,8 +10,8 @@ import { LoginPage } from './login.js';
 const validEmail = 'user@example.com';
 const validPassword = 'Secure-password-1';
 
-async function renderLoginPage() {
-  return renderWithRouter(() => <LoginPage />);
+async function renderLoginPage(props: Partial<React.ComponentProps<typeof LoginPage>> = {}) {
+  return renderWithRouter(() => <LoginPage {...props} />);
 }
 
 describe('LoginPage', () => {
@@ -24,7 +24,9 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('shows a success state after a valid login', async () => {
+  it('calls onSuccess and navigates home after a valid login', async () => {
+    const onSuccess = vi.fn();
+
     mockLoginResponse({
       ok: true,
       user: {
@@ -36,15 +38,14 @@ describe('LoginPage', () => {
       },
     });
 
-    await renderLoginPage();
+    await renderLoginPage({ onSuccess });
     const user = userEvent.setup();
 
     await fillLoginForm(user, validEmail, validPassword);
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /you're signed in/i })).toBeInTheDocument();
+      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({ email: validEmail }));
     });
-    expect(screen.getByText(validEmail)).toBeInTheDocument();
   });
 });

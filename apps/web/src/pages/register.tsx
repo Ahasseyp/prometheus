@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 
 import {
   CardContent,
@@ -11,17 +11,21 @@ import { ButtonLink } from '@/components/molecules/ButtonLink/ButtonLink.js';
 import { TextLink } from '@/components/molecules/TextLink/TextLink.js';
 import { AuthCardShell } from '@/features/auth/components/AuthCardShell/AuthCardShell.js';
 import { AuthHeading } from '@/features/auth/components/AuthHeading/AuthHeading.js';
-import { AuthStatusIcon } from '@/features/auth/components/AuthStatusIcon/AuthStatusIcon.js';
 import { RegisterForm } from '@/features/auth/components/RegisterForm/RegisterForm.js';
 import { isRegistrationEnabled } from '@/lib/env.js';
 
-export function RegisterPage({ isEnabled }: { isEnabled?: boolean } = {}) {
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+export interface RegisterPageProps {
+  isEnabled?: boolean;
+  onSuccess?: () => void;
+}
 
+export function RegisterPage({ isEnabled, onSuccess }: RegisterPageProps) {
+  const navigate = useNavigate({ from: '/register' });
   const registrationEnabled = isEnabled ?? isRegistrationEnabled();
 
-  function handleRegisterSuccess(email: string) {
-    setRegisteredEmail(email);
+  function handleRegisterSuccess() {
+    onSuccess?.();
+    navigate({ to: '/' });
   }
 
   if (!registrationEnabled) {
@@ -38,26 +42,6 @@ export function RegisterPage({ isEnabled }: { isEnabled?: boolean } = {}) {
             Sign in
           </ButtonLink>
         </CardFooter>
-      </AuthCardShell>
-    );
-  }
-
-  if (registeredEmail) {
-    return (
-      <AuthCardShell>
-        <CardHeader>
-          <AuthStatusIcon />
-          <AuthHeading>Account created</AuthHeading>
-          <CardDescription>
-            We've created an account for{' '}
-            <span className="font-medium text-foreground">{registeredEmail}</span>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ButtonLink to="/login" className="w-full">
-            Sign in
-          </ButtonLink>
-        </CardContent>
       </AuthCardShell>
     );
   }

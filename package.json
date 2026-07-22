@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm --filter @prometheus/domain build && pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "DATABASE_URL=${DATABASE_URL:-$(grep DATABASE_URL .env.test.local 2>/dev/null | cut -d '=' -f2-)} pnpm -r test"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

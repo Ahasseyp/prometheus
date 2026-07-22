@@ -41,6 +41,13 @@ Package names use the `@prometheus/` scope.
 - **Customize primitives in a feature or molecule.** If a screen needs a bespoke layout, styled card, or button-like link, extract it into `src/features/<domain>/components/` or `src/components/molecules/`. Keep primitive overrides out of pages.
 - **No barrel files.** Do not add `index.ts` re-export files inside `apps/web/src`. Import directly from the source file (`@/components/molecules/ButtonLink/ButtonLink.js`). Because this repo uses ESM with explicit `.js` extensions, barrels do not shorten imports; they only add indirection and maintenance. Package-level public API barrels (e.g. `packages/domain/src/index.ts`) are the exception.
 
+## UI components
+
+- **Install from shadcn/ui first.** When adding a new primitive, prefer `pnpm shadcn add <component>` (or `pnpm dlx shadcn@latest add <component>`) over hand-rolling it from Base UI primitives. This keeps styling, accessibility, and API consistency with the rest of the design system.
+- **Follow the shadcn skill conventions.** The project skill at `.agents/skills/shadcn/SKILL.md` is the canonical reference for composing, styling, and updating shadcn components. Review it (and its linked rule files) before adding or modifying UI primitives.
+- **Prefer composition over custom markup.** Use existing shadcn components (`Alert`, `Empty`, `Badge`, `Separator`, `Skeleton`, etc.) and compound APIs (`SelectGroup`, `DialogTitle`, `CardHeader`, etc.) instead of hand-rolled `div`s.
+- **Document hand-rolled exceptions.** Only build a custom primitive when the shadcn registry does not provide the needed component or when the required customization is significant enough that installing and overriding would be more work. Leave a short comment explaining why, or record it in `docs/adr/` if the decision has broader impact.
+
 ## Domain language
 
 Use the terms defined in [CONTEXT.md](CONTEXT.md):

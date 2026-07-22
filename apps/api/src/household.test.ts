@@ -68,11 +68,7 @@ describe.sequential('household creation procedure', () => {
 
     createdUserIds.push(registerResponse.user.id);
 
-    const loginResponse = await client.auth.login.mutate({ email, password });
-    expect(loginResponse.ok).toBe(true);
-    if (!loginResponse.ok) return null;
-
-    return loginResponse.user;
+    return registerResponse.user;
   }
 
   it('creates a household and assigns the authenticated user as owner', async () => {

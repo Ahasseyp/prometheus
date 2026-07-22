@@ -3,6 +3,7 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
 import { disconnectPrisma, getPrisma } from './prisma.js';
+import { createCookieJarFetch } from './test/cookies.js';
 import { makeTestEmail, startTestServer } from './test/server.js';
 
 function enableRegistration(): void {
@@ -16,17 +17,23 @@ function disableRegistration(): void {
 describe.sequential('registration procedure', () => {
   let server: Server;
   let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+  let fetchWithCookies: ReturnType<typeof createCookieJarFetch>;
   const createdUserIds: string[] = [];
   let originalAllowRegistration: string | undefined;
+  let originalAllowInsecureCookies: string | undefined;
 
   beforeAll(async () => {
     originalAllowRegistration = process.env.ALLOW_REGISTRATION;
+    originalAllowInsecureCookies = process.env.ALLOW_INSECURE_COOKIES;
+    process.env.ALLOW_INSECURE_COOKIES = 'true';
     const { server: s, url } = await startTestServer();
     server = s;
+    fetchWithCookies = createCookieJarFetch();
     client = createTRPCProxyClient<AppRouter>({
       links: [
         httpBatchLink({
           url: `${url}/api/trpc`,
+          fetch: fetchWithCookies,
         }),
       ],
     });
@@ -37,6 +44,11 @@ describe.sequential('registration procedure', () => {
       delete process.env.ALLOW_REGISTRATION;
     } else {
       process.env.ALLOW_REGISTRATION = originalAllowRegistration;
+    }
+    if (originalAllowInsecureCookies === undefined) {
+      delete process.env.ALLOW_INSECURE_COOKIES;
+    } else {
+      process.env.ALLOW_INSECURE_COOKIES = originalAllowInsecureCookies;
     }
     const prisma = getPrisma();
     await prisma.user.deleteMany({
@@ -54,7 +66,7 @@ describe.sequential('registration procedure', () => {
     });
   });
 
-  it('registers a new user and returns safe fields', async () => {
+  it('registers a new user, returns safe fields, and sets a session cookie', async () => {
     enableRegistration();
     const email = makeTestEmail('register-test-1');
     const response = await client.registration.register.mutate({
@@ -70,6 +82,30 @@ describe.sequential('registration procedure', () => {
     expect(response.user).not.toHaveProperty('passwordHash');
 
     createdUserIds.push(response.user.id);
+
+    const [setCookie] = fetchWithCookies.getLastSetCookies();
+    expect(setCookie).toMatch(/HttpOnly/i);
+    expect(setCookie).toMatch(/SameSite=Strict/i);
+    expect(setCookie).not.toMatch(/Secure/i);
+  });
+
+  it('authenticates the user immediately after registration', async () => {
+    enableRegistration();
+    const email = makeTestEmail('register-test-auth');
+    const registerResponse = await client.registration.register.mutate({
+      email,
+      password: 'Secure-password-1',
+    });
+
+    expect(registerResponse.ok).toBe(true);
+    if (!registerResponse.ok) return;
+
+    createdUserIds.push(registerResponse.user.id);
+
+    const meResponse = await client.auth.me.query();
+
+    expect(meResponse.id).toBe(registerResponse.user.id);
+    expect(meResponse.email).toBe(email.toLowerCase());
   });
 
   it('rejects registration when ALLOW_REGISTRATION is unset (defaults to false)', async () => {

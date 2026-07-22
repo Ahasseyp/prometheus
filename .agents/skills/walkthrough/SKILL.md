@@ -1,6 +1,6 @@
 ---
 name: walkthrough
-description: Before committing, walk the user through the working-tree changes grouped by area so they can review what will be committed.
+description: Before committing, walk the user through the working-tree changes in the clearest grouping — by dependency order when one change builds on another, or by area when changes are independent.
 disable-model-invocation: true
 ---
 
@@ -22,12 +22,15 @@ Run a structured pre-commit walkthrough of the current working tree. The goal is
    - Read them in parallel using `Read`.
    - For large generated files (lockfiles, build outputs) skip the read and just note them.
 
-4. **Narrate by area.**
-   - Group findings under clear headings: Database/Schema, API, Domain, Tooling/CI/Docs.
+4. **Choose the narration mode.**
+   - Use **dependency order** when changes form a producer-to-consumer chain (e.g., schema → migration → factory → route → consumer). This keeps the foundation legible before the file that uses it.
+   - Use **area grouping** when changes are mostly independent or touch many disconnected files. Headings: Database/Schema, API, Domain, Tooling/CI/Docs.
+
+5. **Narrate the changes.**
    - For each file, state what changed and why it matters in one sentence.
    - Keep code snippets short; prefer citing file paths over dumping full content.
 
-5. **Invite review.**
+6. **Invite review.**
    - End with: "Any part you want to dig deeper into or change before committing?"
    - Do not commit. Wait for the user's direction.
 

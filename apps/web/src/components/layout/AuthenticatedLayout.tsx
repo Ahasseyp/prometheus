@@ -2,10 +2,12 @@ import * as React from 'react';
 import { Link, Outlet, useMatches, useNavigate } from '@tanstack/react-router';
 
 import { Button } from '@/components/ui/button.js';
+import { Kbd } from '@/components/ui/kbd.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar.js';
-import { useMe } from '@/features/auth/gateways/auth.js';
-import { useHouseholdMe } from '@/features/household/gateways/household.js';
+import { useLogout } from '@/features/auth/gateways/auth.js';
+import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdState.js';
+import { CreateHouseholdCard } from '@/features/household/components/CreateHouseholdCard/CreateHouseholdCard.js';
 
 import { AppSidebar } from './AppSidebar.js';
 import { AssistantDialog } from './AssistantDialog.js';
@@ -19,9 +21,12 @@ function useRouteTitle(): string {
   return staticData?.title ?? '';
 }
 
-function ShellSkeleton() {
+export function ShellSkeleton() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6">
+    <div
+      className="flex min-h-svh flex-col items-center justify-center gap-4 p-6"
+      data-testid="shell-skeleton"
+    >
       <Skeleton className="size-12 rounded-xl" />
       <Skeleton className="h-5 w-40" />
     </div>
@@ -29,17 +34,21 @@ function ShellSkeleton() {
 }
 
 export function AuthenticatedLayout() {
-  const { data: user, isLoading: isAuthLoading } = useMe();
-  const { data: householdData } = useHouseholdMe();
+  const { isLoading, user, household } = useAuthHouseholdState();
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const navigate = useNavigate({ from: '/' });
   const [assistantOpen, setAssistantOpen] = React.useState(false);
   const pageTitle = useRouteTitle();
 
   React.useEffect(() => {
-    if (!isAuthLoading && !user) {
+    if (isLoading) {
+      return;
+    }
+
+    if (!user) {
       navigate({ to: '/login' });
     }
-  }, [isAuthLoading, user, navigate]);
+  }, [isLoading, user, navigate]);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -53,13 +62,23 @@ export function AuthenticatedLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (isAuthLoading || !user) {
+  if (isLoading || !user) {
     return <ShellSkeleton />;
+  }
+
+  function handleBackToLogin() {
+    logout(undefined, { onSuccess: () => navigate({ to: '/login' }) });
+  }
+
+  if (!household) {
+    return (
+      <CreateHouseholdCard onBackToLogin={handleBackToLogin} isBackToLoginPending={isLoggingOut} />
+    );
   }
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} household={householdData?.household} />
+      <AppSidebar user={user} household={household} />
       <SidebarInset className="max-md:pb-20">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b px-4 py-3 md:hidden">
@@ -90,9 +109,7 @@ export function AuthenticatedLayout() {
               aria-label="Open assistant"
             >
               Ask or do anything
-              <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 py-0.5 text-xs font-medium tracking-widest text-muted-foreground sm:inline-block">
-                ⌘K
-              </kbd>
+              <Kbd className="hidden sm:inline-flex">⌘K</Kbd>
             </Button>
           </div>
         </header>

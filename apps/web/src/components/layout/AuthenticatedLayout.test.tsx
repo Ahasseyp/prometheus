@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createMemoryHistory,
@@ -18,7 +19,9 @@ import { GoalsPage } from '@/pages/goals.js';
 import { OverviewPage } from '@/pages/overview.js';
 import { TransactionsPage } from '@/pages/transactions.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
-import { mockHouseholdMeResponse, mockMeResponse } from '@/test/login-helpers.js';
+import { server } from '@/test/server.js';
+import { mockMeResponse } from '@/test/login-helpers.js';
+import { mockCreateHouseholdResponse, mockHouseholdMeResponse } from '@/test/household-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -52,9 +55,17 @@ function createMatchMedia(matches: boolean) {
   });
 }
 
-async function renderAuthenticatedLayout(initialEntries: string[] = ['/']) {
-  mockMeResponse(mockUser);
-  mockHouseholdMeResponse(mockHousehold);
+type RenderAuthenticatedLayoutOptions = {
+  initialEntries?: string[];
+  user?: unknown;
+  householdResponse?: unknown;
+};
+
+async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptions = {}) {
+  const { initialEntries = ['/'], user = mockUser, householdResponse = mockHousehold } = options;
+
+  mockMeResponse(user);
+  mockHouseholdMeResponse(householdResponse);
 
   const history = createMemoryHistory({ initialEntries });
 
@@ -134,7 +145,7 @@ async function renderAuthenticatedLayout(initialEntries: string[] = ['/']) {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
-  return result;
+  return { ...result, router };
 }
 
 describe('AuthenticatedLayout', () => {
@@ -147,7 +158,7 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('renders the authenticated shell around the current page', async () => {
-    await renderAuthenticatedLayout(['/']);
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
 
     await waitFor(() => {
       expect(
@@ -161,7 +172,7 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('marks the current page as active in the desktop sidebar', async () => {
-    await renderAuthenticatedLayout(['/transactions']);
+    await renderAuthenticatedLayout({ initialEntries: ['/transactions'] });
 
     await waitFor(() => {
       expect(
@@ -175,7 +186,7 @@ describe('AuthenticatedLayout', () => {
 
   it('marks the current page as active in the mobile tab bar', async () => {
     window.matchMedia = createMatchMedia(true);
-    await renderAuthenticatedLayout(['/budgets']);
+    await renderAuthenticatedLayout({ initialEntries: ['/budgets'] });
 
     await waitFor(() => {
       expect(screen.getAllByRole('heading', { level: 1, name: /budgets/i }).length).toBeGreaterThan(
@@ -188,7 +199,7 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('opens the assistant dialog from the header button and closes with Escape', async () => {
-    await renderAuthenticatedLayout(['/']);
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
 
     await waitFor(() => {
@@ -209,7 +220,7 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('opens the assistant dialog with Command+K and closes with Escape', async () => {
-    await renderAuthenticatedLayout(['/']);
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
 
     await waitFor(() => {
@@ -226,6 +237,73 @@ describe('AuthenticatedLayout', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders the household creation card inline when the user has no household', async () => {
+    const { router } = await renderAuthenticatedLayout({
+      initialEntries: ['/'],
+      householdResponse: { household: null },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /create your household/i })).toBeInTheDocument();
+    });
+
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('unlocks the dashboard after the user creates a household', async () => {
+    const user = userEvent.setup();
+    const createdHousehold = {
+      id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+      name: 'Home',
+      reportingCurrency: 'USD',
+      role: 'OWNER',
+    };
+
+    mockCreateHouseholdResponse({
+      ok: true,
+      household: createdHousehold,
+    });
+
+    await renderAuthenticatedLayout({
+      initialEntries: ['/'],
+      householdResponse: { household: null },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/household name/i)).toBeInTheDocument();
+    });
+
+    // After the form is submitted the `household.me` query is invalidated.
+    // Replace the static null handler with one that returns the new household
+    // so the layout unlocks the dashboard.
+    server.use(
+      http.get('/api/trpc/household.me', () => {
+        return HttpResponse.json({
+          result: {
+            data: {
+              household: createdHousehold,
+            },
+          },
+        });
+      })
+    );
+
+    await user.type(screen.getByLabelText(/household name/i), 'Home');
+    await user.click(screen.getByRole('combobox', { name: /reporting currency/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: /us dollar \(USD\)/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('option', { name: /us dollar \(USD\)/i }));
+    await user.click(screen.getByRole('button', { name: /create household/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByLabelText(/main navigation/i)).toBeInTheDocument();
     });
   });
 });

@@ -3,6 +3,7 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
 import { createApp } from './server.js';
+import { disconnectPrisma } from './prisma.js';
 
 async function startTestServer() {
   const app = createApp();
@@ -32,6 +33,7 @@ describe('health procedure', () => {
   });
 
   afterAll(async () => {
+    await disconnectPrisma();
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
         if (error) {

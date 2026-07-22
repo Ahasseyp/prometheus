@@ -6,11 +6,16 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently --names \"web,api\" --prefix-colors \"blue.bold,green.bold\" \"pnpm --filter @prometheus/web dev\" \"pnpm --filter @prometheus/api dev\"",
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down",
+    "db:migrate": "pnpm --filter @prometheus/api exec prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter @prometheus/api exec prisma migrate deploy",
+    "db:generate": "pnpm --filter @prometheus/api exec prisma generate",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "typecheck": "pnpm --filter @prometheus/domain build && pnpm -r typecheck",
+    "test": "DATABASE_URL=${DATABASE_URL:-$(grep DATABASE_URL .env.test.local 2>/dev/null | cut -d '=' -f2-)} pnpm -r test"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

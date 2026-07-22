@@ -8,3 +8,10 @@ export function getPrisma(): PrismaClient {
   }
   return prisma;
 }
+
+export async function disconnectPrisma(): Promise<void> {
+  if (prisma !== undefined) {
+    await prisma.$disconnect();
+    prisma = undefined;
+  }
+}

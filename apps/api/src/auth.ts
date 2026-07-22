@@ -1,22 +1,14 @@
-import { serialize } from 'cookie';
 import { z } from 'zod';
 
+import { createSessionCookieValue, SESSION_TTL_SECONDS } from './lib/session-cookie.js';
 import { publicUserSchema } from './lib/user.js';
 import { loginUser, logoutUser } from './services/session.js';
 import { protectedProcedure, publicProcedure, router } from './trpc.js';
-
-const SESSION_COOKIE_NAME = 'session_token';
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 const loginInputSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, 'Enter a password.'),
 });
-
-const allowInsecureCookiesSchema = z
-  .enum(['true', 'false'])
-  .default('false')
-  .transform((value) => value === 'true');
 
 const loginOutputSchema = z.union([
   z.object({
@@ -28,20 +20,6 @@ const loginOutputSchema = z.union([
     error: z.enum(['invalid-credentials']),
   }),
 ]);
-
-function isInsecureCookiesAllowed(): boolean {
-  return allowInsecureCookiesSchema.parse(process.env.ALLOW_INSECURE_COOKIES);
-}
-
-function createSessionCookieValue(token: string, maxAge: number): string {
-  return serialize(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: !isInsecureCookiesAllowed(),
-    maxAge,
-    path: '/',
-  });
-}
 
 export const authRouter = router({
   login: publicProcedure

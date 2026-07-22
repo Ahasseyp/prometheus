@@ -24,3 +24,19 @@ export function mockLoginResponse(data: unknown) {
 export function mockLoginError() {
   server.use(http.post('/api/trpc/auth.login', () => HttpResponse.error()));
 }
+
+export function mockMeResponse(user: unknown) {
+  server.use(
+    http.get('/api/trpc/auth.me', () => {
+      return HttpResponse.json({ result: { data: user } });
+    })
+  );
+}
+
+export function mockHouseholdMeResponse(data: unknown) {
+  server.use(
+    http.get('/api/trpc/household.me', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}

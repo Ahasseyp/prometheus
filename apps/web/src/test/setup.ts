@@ -5,6 +5,15 @@ import { server } from './server.js';
 
 beforeAll(() => {
   vi.stubGlobal('scrollTo', vi.fn());
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal(
+    'ResizeObserver',
+    class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  );
   server.listen({ onUnhandledRequest: 'error' });
 });
 afterEach(() => server.resetHandlers());

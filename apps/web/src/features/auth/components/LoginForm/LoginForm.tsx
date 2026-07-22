@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button.js';
 import { FieldGroup } from '@/components/ui/field.js';
+import { Spinner } from '@/components/ui/spinner.js';
 import { Input } from '@/components/ui/input.js';
 import { PasswordInput } from '@/components/molecules/PasswordInput/PasswordInput.js';
 import { useLogin, type LoginOutput } from '@/features/auth/gateways/auth.js';
 
-import { FormError } from '../FormError.js';
-import { FormField } from '../FormField.js';
+import { FormError } from '@/components/form/FormError.js';
+import { FormField } from '@/components/form/FormField.js';
 
 type FormState = {
   email: string;
@@ -116,7 +116,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       <Button type="submit" disabled={isPending}>
         {isPending ? (
           <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
+            <Spinner data-icon="inline-start" />
             Signing in…
           </>
         ) : (

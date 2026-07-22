@@ -43,7 +43,7 @@ describe('RegisterPage', () => {
   });
 
   it('renders the registration form when enabled', async () => {
-    await renderRegisterPage();
+    await renderRegisterPage({ isEnabled: true });
 
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('RegisterPage', () => {
       },
     });
 
-    const { router } = await renderRegisterPage({ onSuccess });
+    const { router } = await renderRegisterPage({ isEnabled: true, onSuccess });
     const user = userEvent.setup();
 
     await fillRegistrationForm(user, validEmail, validPassword);

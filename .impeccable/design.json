@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-23T06:38:21Z",
+  "title": "Design System: Prometheus",
+  "extensions": {
+    "colorMeta": {
+      "soft-paper": {
+        "role": "neutral",
+        "displayName": "Soft Paper",
+        "canonical": "oklch(0.995 0.006 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 85)",
+          "oklch(0.26 0.006 85)",
+          "oklch(0.38 0.006 85)",
+          "oklch(0.50 0.006 85)",
+          "oklch(0.62 0.006 85)",
+          "oklch(0.74 0.006 85)",
+          "oklch(0.86 0.006 85)",
+          "oklch(0.95 0.006 85)"
+        ]
+      },
+      "soft-background": {
+        "role": "neutral",
+        "displayName": "Soft Background",
+        "canonical": "oklch(0.98 0.005 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.005 85)",
+          "oklch(0.26 0.005 85)",
+          "oklch(0.38 0.005 85)",
+          "oklch(0.50 0.005 85)",
+          "oklch(0.62 0.005 85)",
+          "oklch(0.74 0.005 85)",
+          "oklch(0.86 0.005 85)",
+          "oklch(0.95 0.005 85)"
+        ]
+      },
+      "soft-ink": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "oklch(0.18 0.02 90)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 90)",
+          "oklch(0.26 0.02 90)",
+          "oklch(0.38 0.02 90)",
+          "oklch(0.50 0.02 90)",
+          "oklch(0.62 0.02 90)",
+          "oklch(0.74 0.02 90)",
+          "oklch(0.86 0.02 90)",
+          "oklch(0.95 0.02 90)"
+        ]
+      },
+      "soft-primary": {
+        "role": "primary",
+        "displayName": "Soft Sage",
+        "canonical": "oklch(0.42 0.09 150)",
+        "tonalRamp": [
+          "oklch(0.15 0.09 150)",
+          "oklch(0.26 0.09 150)",
+          "oklch(0.38 0.09 150)",
+          "oklch(0.50 0.09 150)",
+          "oklch(0.62 0.09 150)",
+          "oklch(0.74 0.09 150)",
+          "oklch(0.86 0.09 150)",
+          "oklch(0.95 0.09 150)"
+        ]
+      },
+      "soft-primary-dark": {
+        "role": "primary",
+        "displayName": "Soft Sage Bright",
+        "canonical": "oklch(0.55 0.11 145)",
+        "tonalRamp": [
+          "oklch(0.15 0.11 145)",
+          "oklch(0.26 0.11 145)",
+          "oklch(0.38 0.11 145)",
+          "oklch(0.50 0.11 145)",
+          "oklch(0.62 0.11 145)",
+          "oklch(0.74 0.11 145)",
+          "oklch(0.86 0.11 145)",
+          "oklch(0.95 0.11 145)"
+        ]
+      },
+      "soft-sidebar": {
+        "role": "neutral",
+        "displayName": "Soft Sidebar",
+        "canonical": "oklch(0.96 0.008 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 85)",
+          "oklch(0.26 0.008 85)",
+          "oklch(0.38 0.008 85)",
+          "oklch(0.50 0.008 85)",
+          "oklch(0.62 0.008 85)",
+          "oklch(0.74 0.008 85)",
+          "oklch(0.86 0.008 85)",
+          "oklch(0.95 0.008 85)"
+        ]
+      },
+      "soft-card-dark": {
+        "role": "neutral",
+        "displayName": "Soft Card Dark",
+        "canonical": "oklch(0.12 0.015 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.015 85)",
+          "oklch(0.26 0.015 85)",
+          "oklch(0.38 0.015 85)",
+          "oklch(0.50 0.015 85)",
+          "oklch(0.62 0.015 85)",
+          "oklch(0.74 0.015 85)",
+          "oklch(0.86 0.015 85)",
+          "oklch(0.95 0.015 85)"
+        ]
+      },
+      "soft-foreground-dark": {
+        "role": "neutral",
+        "displayName": "Soft Foreground Dark",
+        "canonical": "oklch(0.93 0.01 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 85)",
+          "oklch(0.26 0.01 85)",
+          "oklch(0.38 0.01 85)",
+          "oklch(0.50 0.01 85)",
+          "oklch(0.62 0.01 85)",
+          "oklch(0.74 0.01 85)",
+          "oklch(0.86 0.01 85)",
+          "oklch(0.95 0.01 85)"
+        ]
+      },
+      "soft-muted": {
+        "role": "neutral",
+        "displayName": "Soft Muted",
+        "canonical": "oklch(0.52 0.02 90)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 90)",
+          "oklch(0.26 0.02 90)",
+          "oklch(0.38 0.02 90)",
+          "oklch(0.50 0.02 90)",
+          "oklch(0.62 0.02 90)",
+          "oklch(0.74 0.02 90)",
+          "oklch(0.86 0.02 90)",
+          "oklch(0.95 0.02 90)"
+        ]
+      },
+      "soft-destructive": {
+        "role": "destructive",
+        "displayName": "Soft Destructive",
+        "canonical": "oklch(0.55 0.17 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.17 25)",
+          "oklch(0.26 0.17 25)",
+          "oklch(0.38 0.17 25)",
+          "oklch(0.50 0.17 25)",
+          "oklch(0.62 0.17 25)",
+          "oklch(0.74 0.17 25)",
+          "oklch(0.86 0.17 25)",
+          "oklch(0.95 0.17 25)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Empty-state heroes, welcome screens, and large confirmation moments."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, modal headers, and major section heads."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles, list section headers, and form group labels."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary reading text; cap long prose at 65–75ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, input labels, badges, and tab labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 2px 8px oklch(0.2 0.02 85 / 0.08), 0 1px 2px oklch(0.2 0.02 85 / 0.05)",
+        "purpose": "Default shadow for cards and grouped content in light mode."
+      },
+      {
+        "name": "elevated",
+        "value": "0 8px 24px oklch(0.2 0.02 85 / 0.1), 0 4px 8px oklch(0.2 0.02 85 / 0.06)",
+        "purpose": "Dropdowns, sheets, and floating panels."
+      },
+      {
+        "name": "float",
+        "value": "0 18px 48px oklch(0.2 0.02 85 / 0.14), 0 8px 16px oklch(0.2 0.02 85 / 0.08)",
+        "purpose": "Modals and bottom sheets."
+      },
+      {
+        "name": "button",
+        "value": "0 1px 2px oklch(0.2 0.02 85 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.2)",
+        "purpose": "Resting primary button."
+      },
+      {
+        "name": "button-hover",
+        "value": "0 2px 4px oklch(0.2 0.02 85 / 0.18), inset 0 1px 0 oklch(1 0 0 / 0.24)",
+        "purpose": "Primary button hover."
+      },
+      {
+        "name": "sidebar-active",
+        "value": "0 2px 2px oklch(0.2 0.02 85 / 0.22), inset 0 1px 0 oklch(1 0 0 / 0.2)",
+        "purpose": "Selected sidebar item in light mode."
+      },
+      {
+        "name": "sidebar-active-hover",
+        "value": "0 2px 3px oklch(0.2 0.02 85 / 0.28), inset 0 1px 0 oklch(1 0 0 / 0.24)",
+        "purpose": "Selected sidebar item hover — harder than the resting selected state."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for state transitions."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The default action button. Borderless, gradient-filled, with an internal glow on hover.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; height: 2rem; padding: 0 1.25rem; border: 0; border-radius: 0.8rem; font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.4; color: #fff; background-image: linear-gradient(180deg, var(--gradient-button-start), var(--gradient-button-end)); box-shadow: var(--shadow-button); transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; } .ds-btn-primary:hover { box-shadow: var(--shadow-button-hover); filter: brightness(1.02); } .ds-btn-primary::after { content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; box-shadow: inset 0 1px 1px oklch(from var(--glow-internal-color) l c h / 0.15), inset 0 0 20px oklch(from var(--glow-internal-color) l c h / var(--glow-internal-opacity)); transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; } .ds-btn-primary:hover::after { opacity: 1; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lower-emphasis action button using the muted surface color.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; height: 2rem; padding: 0 1.25rem; border: 0; border-radius: 0.8rem; font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.4; color: var(--foreground); background-color: var(--secondary); transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; } .ds-btn-secondary:hover { background-color: color-mix(in oklch, var(--secondary), var(--foreground) 5%); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A bordered, shadowed container. Always has both a border and a shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\">Card title</div><div class=\"ds-card-content\">Card content goes here.</div></div>",
+      "css": ".ds-card { display: flex; flex-direction: column; gap: 1rem; overflow: hidden; border: 1px solid var(--border); border-radius: 1rem; background-color: var(--card); color: var(--card-foreground); box-shadow: var(--shadow-card); font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; line-height: 1.5; padding: 1rem 0; } .ds-card-header { padding: 0 1rem; font-weight: 600; font-size: 1.125rem; line-height: 1.3; } .ds-card-content { padding: 0 1rem; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A transparent field with a subtle border and Soft Sage focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Amount\" />",
+      "css": ".ds-input { width: 100%; height: 2.5rem; padding: 0.75rem 1rem; border: 1px solid var(--input); border-radius: 0.8rem; background-color: transparent; color: var(--foreground); font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; line-height: 1.4; outline: none; transition: border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }"
+    },
+    {
+      "name": "Sidebar Selected Item",
+      "kind": "nav",
+      "refersTo": "sidebar-selected",
+      "description": "The active navigation item in the sidebar. Uses primary fill, gradient overlay, and a harder shadow on hover.",
+      "html": "<button class=\"ds-sidebar-item ds-sidebar-item--active\" aria-current=\"page\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\"/></svg><span>Overview</span></button>",
+      "css": ".ds-sidebar-item { position: relative; display: flex; width: 100%; align-items: center; gap: 0.5rem; overflow: hidden; border-radius: 0.625rem; padding: 0.5rem; text-align: left; font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.4; color: var(--sidebar-foreground); background-color: transparent; border: 0; cursor: pointer; transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-sidebar-item:hover { background-color: var(--sidebar-accent); color: var(--sidebar-accent-foreground); } .ds-sidebar-item--active { color: var(--sidebar-primary-foreground); background-color: var(--sidebar-primary); box-shadow: var(--shadow-sidebar-active); } .ds-sidebar-item--active::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(180deg, var(--gradient-button-start), var(--gradient-button-end)); opacity: 0.4; pointer-events: none; } .ds-sidebar-item--active:hover { filter: brightness(1.05); box-shadow: var(--shadow-sidebar-active-hover); } .ds-sidebar-item--active:hover::before { opacity: 0.5; } .ds-icon { width: 1rem; height: 1rem; flex-shrink: 0; }"
+    },
+    {
+      "name": "Sidebar Default Item",
+      "kind": "nav",
+      "refersTo": "sidebar-default",
+      "description": "An inactive navigation item in the sidebar.",
+      "html": "<button class=\"ds-sidebar-item\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M16 8h-6a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"/><path d=\"M12 12h.01\"/></svg><span>Accounts</span></button>",
+      "css": ".ds-sidebar-item { position: relative; display: flex; width: 100%; align-items: center; gap: 0.5rem; overflow: hidden; border-radius: 0.625rem; padding: 0.5rem; text-align: left; font-family: 'Inter Variable', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.4; color: var(--sidebar-foreground); background-color: transparent; border: 0; cursor: pointer; transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-sidebar-item:hover { background-color: var(--sidebar-accent); color: var(--sidebar-accent-foreground); } .ds-icon { width: 1rem; height: 1rem; flex-shrink: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Ledger",
+    "overview": "Prometheus is built around the idea of a ledger that feels calm before it feels clever. The interface is soft, rounded, and warm without drifting into decorative pastels. Color is restrained, type is clear, and every interactive surface responds with a small, purposeful lift. The personality is still sharp, modern, and private — but the visual translation is now warmer and more tactile than the earlier high-contrast system. The design rejects the clichés of both finance software and AI products. It is not a corporate banking portal, not a spreadsheet with a fresh coat of paint, and not a chat window that happens to do bookkeeping.",
+    "keyCharacteristics": [
+      "Locked Soft preset: the active visual system is the soft preset for both light and dark modes.",
+      "Warm tinted neutrals: backgrounds carry a whisper of warm-neutral hue.",
+      "Tactile components: buttons have internal gradient and glow; cards always have borders and shadows.",
+      "Internal glows, not outer auras: glow and gradient effects live inside components.",
+      "Type-driven hierarchy: one type family (Inter Variable) carries every role.",
+      "Mobile-native spacing: touch targets and bottom-sheet thinking are designed for the phone first."
+    ],
+    "rules": [
+      {
+        "name": "The Soft-Default Rule",
+        "body": "The soft preset is the only active visual preset. Preset configs for sharp, glow, and midnight remain in code for future use but must not be surfaced to users.",
+        "section": "colors"
+      },
+      {
+        "name": "The Green Sparingly Rule",
+        "body": "Soft Sage appears on no more than 10% of any given screen. Its rarity is what makes it signal action.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm-Not-Cream Rule",
+        "body": "Backgrounds are warm-tinted neutrals, not pure white or beige cream. The warmth is subtle (OKLCH chroma < 0.02) and consistent across surfaces.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Inter Variable carries every typographic role. No secondary display font, no mono for decoration, no mixing of similar sans-serifs.",
+        "section": "typography"
+      },
+      {
+        "name": "The Fixed Step Rule",
+        "body": "Type sizes are fixed rem values, not fluid clamps. Product UI is viewed at consistent device sizes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Internal-Glow Rule",
+        "body": "Glow effects are inset or carried by internal gradients. Never cast a colored outer glow as a decorative atmosphere.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Shadow-As-Response Rule",
+        "body": "Shadows appear as a response to elevation or interaction, not as a default texture. Flat at rest, lifted on demand.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the active visual preset locked to soft for both light and dark modes.",
+      "Do use Soft Sage only for primary actions, active navigation, focus rings, and the most important status indicators.",
+      "Do give every card a border and a shadow.",
+      "Do make primary buttons borderless (border-0) with an internal gradient fill and internal glow on hover.",
+      "Do design every screen so it works without voice or chat — traditional forms and buttons are the baseline.",
+      "Do show currency explicitly next to every monetary value; never rely on context alone.",
+      "Do respect prefers-reduced-motion by disabling non-essential transitions and animations.",
+      "Do cap body prose at 65–75ch for readability.",
+      "Do make the selected sidebar item visually distinct from hover, using primary fill, gradient overlay, and a harder shadow on selected-hover."
+    ],
+    "donts": [
+      "Don't expose preset switching in the UI; the PresetSwitcher component is currently unused.",
+      "Don't use a chat-only AI widget pattern; every voice/text feature must also be reachable through forms and buttons.",
+      "Don't use side-stripe borders greater than 1px as colored accents on cards or list items.",
+      "Don't use gradient text, glassmorphism as a default, or decorative blur for atmosphere.",
+      "Don't rely on color alone to communicate status, budget health, or required fields.",
+      "Don't cast colored outer glows as decorative shadows.",
+      "Don't let hover on a selected item look identical to hover on an unselected item.",
+      "Don't ship components with missing hover, focus, active, disabled, or loading states."
+    ]
+  }
+}

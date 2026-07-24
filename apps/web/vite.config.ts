@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
     envDir: path.resolve(__dirname, '../..'),
     server: {
       port: 5173,
+      allowedHosts: ['.ngrok.app', '.ngrok-free.app', '.ngrok.io'],
       proxy: {
         '/api': {
           target: apiUrl,

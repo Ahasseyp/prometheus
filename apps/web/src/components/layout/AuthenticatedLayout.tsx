@@ -81,7 +81,7 @@ export function AuthenticatedLayout() {
       <AppSidebar user={user} household={household} />
       <SidebarInset className="max-md:pb-20">
         {/* Mobile header */}
-        <header className="flex items-center justify-between border-b px-4 py-3 md:hidden">
+        <header className="flex shrink-0 items-center justify-between border-b px-4 py-3 md:hidden">
           <Link
             to="/"
             className="flex items-center gap-2 text-sm font-semibold"
@@ -98,7 +98,7 @@ export function AuthenticatedLayout() {
         </header>
 
         {/* Desktop header */}
-        <header className="hidden items-center gap-4 border-b px-4 py-3 md:flex">
+        <header className="hidden shrink-0 items-center gap-4 border-b px-4 py-3 md:flex">
           <SidebarTrigger />
           <h1 className="flex-1 text-base font-semibold">{pageTitle}</h1>
           <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export function AuthenticatedLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </main>
       </SidebarInset>

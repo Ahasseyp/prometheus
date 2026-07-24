@@ -10,13 +10,12 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar.js';
+import { AppSidebarMenuButton } from '@/components/molecules/AppSidebarMenuButton/AppSidebarMenuButton.js';
 import { UserMenu } from './UserMenu.js';
 import { type MeOutput } from '@/features/auth/gateways/auth.js';
 import { type HouseholdMeOutput } from '@/features/household/gateways/household.js';
-import { cn } from '@/lib/utils.js';
 
 type AppSidebarProps = {
   user: MeOutput;
@@ -61,18 +60,15 @@ export function AppSidebar({ user, household }: AppSidebarProps) {
 
                 return (
                   <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
+                    <AppSidebarMenuButton
                       isActive={isActive}
                       aria-current={isActive ? 'page' : undefined}
                       tooltip={item.label}
                       onClick={() => navigate({ to: item.to })}
-                      className={cn(
-                        'data-active:bg-primary data-active:text-primary-foreground data-active:hover:bg-primary/90'
-                      )}
                     >
                       <Icon className="size-4" />
                       <span>{item.label}</span>
-                    </SidebarMenuButton>
+                    </AppSidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}

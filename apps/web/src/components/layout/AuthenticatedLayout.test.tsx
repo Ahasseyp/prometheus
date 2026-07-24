@@ -11,6 +11,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 
+import { PresetProvider } from '@/components/preset-provider.js';
 import { ThemeProvider } from '@/components/theme-provider.js';
 import { TooltipProvider } from '@/components/ui/tooltip.js';
 import { AccountsPage } from '@/pages/accounts.js';
@@ -133,11 +134,13 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
 
   const result = render(
     <QueryClientWrapper>
-      <ThemeProvider>
-        <TooltipProvider>
-          <RouterProvider router={router} />
-        </TooltipProvider>
-      </ThemeProvider>
+      <PresetProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <RouterProvider router={router} />
+          </TooltipProvider>
+        </ThemeProvider>
+      </PresetProvider>
     </QueryClientWrapper>
   );
 

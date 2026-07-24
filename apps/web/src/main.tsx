@@ -5,6 +5,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { ThemeProvider } from '@/components/theme-provider.js';
 import { QueryProvider } from '@/providers/query-provider.js';
 import { TooltipProvider } from '@/components/ui/tooltip.js';
+import { PresetProvider } from '@/components/preset-provider.js';
 
 import { router } from './router.js';
 import './index.css';
@@ -18,11 +19,13 @@ if (rootElement === null) {
 createRoot(rootElement).render(
   <StrictMode>
     <QueryProvider>
-      <ThemeProvider>
-        <TooltipProvider>
-          <RouterProvider router={router} />
-        </TooltipProvider>
-      </ThemeProvider>
+      <PresetProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <RouterProvider router={router} />
+          </TooltipProvider>
+        </ThemeProvider>
+      </PresetProvider>
     </QueryProvider>
   </StrictMode>
 );

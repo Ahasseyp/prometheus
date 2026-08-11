@@ -1,5 +1,5 @@
 export { createMoney } from './money.js';
-export { isCurrencyCode } from './currencies.js';
+export { currencyFor, isCurrencyCode } from './currencies.js';
 export type { CurrencyCode } from './currencies.js';
 export type { Money, MoneyError, Result, MoneyFactor } from './types.js';
 export { makeHouseholdId, makeHouseholdMembershipId, makeUserId } from './ids.js';

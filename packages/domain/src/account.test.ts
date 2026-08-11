@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createAccount, AccountType } from './account.js';
 import { makeAccountId, makeHouseholdId } from './ids.js';
+import { expectError, expectValue } from './testing/expect-value.js';
 
 describe('createAccount', () => {
   const validParams = {
@@ -12,64 +13,46 @@ describe('createAccount', () => {
   };
 
   it('creates a valid checking account', () => {
-    const result = createAccount(validParams);
+    const account = expectValue(createAccount(validParams));
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    expect(result.value.id).toBe(validParams.id);
-    expect(result.value.householdId).toBe(validParams.householdId);
-    expect(result.value.name).toBe('My Checking');
-    expect(result.value.type).toBe(AccountType.Checking);
-    expect(result.value.currency).toBe('USD');
-    expect(result.value.createdAt).toBeInstanceOf(Date);
-    expect(result.value.updatedAt).toBeInstanceOf(Date);
+    expect(account.id).toBe(validParams.id);
+    expect(account.householdId).toBe(validParams.householdId);
+    expect(account.name).toBe('My Checking');
+    expect(account.type).toBe(AccountType.Checking);
+    expect(account.currency).toBe('USD');
+    expect(account.createdAt).toBeInstanceOf(Date);
+    expect(account.updatedAt).toBeInstanceOf(Date);
   });
 
   it('trims the account name', () => {
-    const result = createAccount({ ...validParams, name: '  My Checking  ' });
+    const account = expectValue(createAccount({ ...validParams, name: '  My Checking  ' }));
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    expect(result.value.name).toBe('My Checking');
+    expect(account.name).toBe('My Checking');
   });
 
   it('accepts every supported account type', () => {
     const types = Object.values(AccountType);
     for (const type of types) {
-      const result = createAccount({ ...validParams, type });
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.value.type).toBe(type);
-      }
+      const account = expectValue(createAccount({ ...validParams, type }));
+      expect(account.type).toBe(type);
     }
   });
 
   it('rejects an empty name', () => {
-    const result = createAccount({ ...validParams, name: '   ' });
+    const error = expectError(createAccount({ ...validParams, name: '   ' }));
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toEqual({ type: 'empty-name' });
-    }
+    expect(error).toEqual({ type: 'empty-name' });
   });
 
   it('rejects an unsupported account type', () => {
-    const result = createAccount({ ...validParams, type: 'mortgage' });
+    const error = expectError(createAccount({ ...validParams, type: 'mortgage' }));
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toEqual({ type: 'invalid-type', typeValue: 'mortgage' });
-    }
+    expect(error).toEqual({ type: 'invalid-type', typeValue: 'mortgage' });
   });
 
   it('rejects an unsupported currency', () => {
-    const result = createAccount({ ...validParams, currency: 'XYZ' });
+    const error = expectError(createAccount({ ...validParams, currency: 'XYZ' }));
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toEqual({ type: 'invalid-currency', currency: 'XYZ' });
-    }
+    expect(error).toEqual({ type: 'invalid-currency', currency: 'XYZ' });
   });
 });

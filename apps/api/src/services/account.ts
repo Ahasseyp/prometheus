@@ -62,9 +62,10 @@ export function mapDomainAccountType(type: DomainAccountType): Account['type'] {
 }
 
 function computeAccountBalance(): string {
-  // v1 does not yet have a transaction ledger. Once transactions are
+  // v1 does not yet have a transaction ledger (#24). Once transactions are
   // introduced, this should sum the ledger for the account. For now every
-  // account starts with a zero balance.
+  // account starts with a zero balance, which matches the spec fallback for
+  // accounts with no transactions.
   return '0';
 }
 

@@ -93,11 +93,11 @@ export function OverviewPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline">
-            <Receipt className="mr-2 size-4" />
+            <Receipt className="size-4" />
             Add transaction
           </Button>
           <Button size="sm">
-            <Plus className="mr-2 size-4" />
+            <Plus className="size-4" />
             Ask assistant
           </Button>
         </div>

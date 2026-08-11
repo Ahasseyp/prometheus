@@ -43,6 +43,30 @@ model Household {
   updatedAt         DateTime @default(now()) @updatedAt
 
   memberships HouseholdMembership[]
+  accounts    Account[]
+}
+
+model Account {
+  id          String      @id @default(uuid()) @db.Uuid
+  householdId String      @db.Uuid
+  name        String
+  type        AccountType
+  currency    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  CASH
+  INVESTMENT
+  LOAN
 }
 
 // A household may have at most one OWNER, and in v1 a user may be the OWNER of

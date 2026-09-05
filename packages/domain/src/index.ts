@@ -1,5 +1,5 @@
 export { createMoney } from './money.js';
-export { isCurrencyCode } from './currencies.js';
+export { currencyFor, isCurrencyCode } from './currencies.js';
 export type { CurrencyCode } from './currencies.js';
 export type { Money, MoneyError, Result, MoneyFactor } from './types.js';
 export { makeHouseholdId, makeHouseholdMembershipId, makeUserId } from './ids.js';
@@ -10,5 +10,9 @@ export { createHousehold } from './household.js';
 export type { Household, HouseholdError } from './household.js';
 export { createHouseholdMembership, HouseholdMembershipRole } from './household-membership.js';
 export type { HouseholdMembership, HouseholdMembershipError } from './household-membership.js';
+export { createAccount, AccountType } from './account.js';
+export type { Account, AccountError } from './account.js';
+export { makeAccountId } from './ids.js';
+export type { AccountId } from './ids.js';
 export { passwordSchema } from './password.js';
 export type { Password } from './password.js';

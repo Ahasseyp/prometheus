@@ -23,6 +23,7 @@ import { createQueryClientWrapper } from '@/test/providers.js';
 import { server } from '@/test/server.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockCreateHouseholdResponse, mockHouseholdMeResponse } from '@/test/household-helpers.js';
+import { mockAccountListResponse } from '@/test/account-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -67,6 +68,7 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
 
   mockMeResponse(user);
   mockHouseholdMeResponse(householdResponse);
+  mockAccountListResponse([]);
 
   const history = createMemoryHistory({ initialEntries });
 

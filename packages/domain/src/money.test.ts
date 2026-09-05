@@ -1,16 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createMoney } from './money.js';
-import type { MoneyError } from './types.js';
+import { expectValue } from './testing/expect-value.js';
 
 const usd = (decimal: string) => createMoney(decimal, 'USD');
 const eur = (decimal: string) => createMoney(decimal, 'EUR');
-
-const expectValue = <T>(result: { ok: true; value: T } | { ok: false; error: MoneyError }): T => {
-  if (!result.ok) {
-    throw new Error(`Expected success but got error: ${result.error.type}`);
-  }
-  return result.value;
-};
 
 describe('Money creation', () => {
   it('creates money from a decimal string and exposes its currency', () => {

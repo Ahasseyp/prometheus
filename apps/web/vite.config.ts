@@ -33,8 +33,10 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         },
+        // No service worker in dev: it precaches index.html and keeps serving
+        // the stale copy after edits, surviving normal cache clears.
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
       }),
     ],

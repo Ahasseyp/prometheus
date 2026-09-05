@@ -1,3 +1,5 @@
+import { AccountsOverview } from '@/features/accounts/components/AccountsOverview/AccountsOverview.js';
+
 export function OverviewPage() {
-  return <h1 className="sr-only">Overview</h1>;
+  return <AccountsOverview />;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { isCurrencyCode } from '@prometheus/domain';
 import { z } from 'zod';
@@ -92,7 +92,7 @@ export function CreateHouseholdForm({ onSuccess }: CreateHouseholdFormProps) {
     );
   }
 
-  function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleFormSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
     form.handleSubmit();

@@ -1,13 +1,19 @@
 import {
   ArrowLeftRight,
   LayoutDashboard,
+  Monitor,
+  Moon,
   PiggyBank,
   Plus,
   Sparkles,
+  Sun,
   Target,
   Wallet,
 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+
+import { type Theme } from '@/components/theme-context.js';
+import { useTheme } from '@/hooks/use-theme.js';
 
 import { Command } from '@/components/ui/command.js';
 
@@ -18,6 +24,7 @@ type AssistantDialogProps = {
 
 export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
   const navigate = useNavigate({ from: '/' });
+  const { setTheme } = useTheme();
 
   const run = (action: () => void) => {
     action();
@@ -26,6 +33,10 @@ export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
 
   const navigateTo = (to: string) => {
     run(() => navigate({ to }));
+  };
+
+  const changeTheme = (value: Theme) => {
+    run(() => setTheme(value));
   };
 
   return (
@@ -68,6 +79,21 @@ export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
           <Command.Item onSelect={() => navigateTo('/goals')}>
             <Target className="mr-2 size-4" />
             Goals
+          </Command.Item>
+        </Command.Group>
+        <Command.Separator />
+        <Command.Group heading="Theme">
+          <Command.Item onSelect={() => changeTheme('light')}>
+            <Sun className="mr-2 size-4" />
+            Light
+          </Command.Item>
+          <Command.Item onSelect={() => changeTheme('dark')}>
+            <Moon className="mr-2 size-4" />
+            Dark
+          </Command.Item>
+          <Command.Item onSelect={() => changeTheme('system')}>
+            <Monitor className="mr-2 size-4" />
+            System
           </Command.Item>
         </Command.Group>
       </Command.List>

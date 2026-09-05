@@ -11,6 +11,9 @@ export type HouseholdId = Brand<string, 'HouseholdId'>;
 /** A UUID that identifies a HouseholdMembership. */
 export type HouseholdMembershipId = Brand<string, 'HouseholdMembershipId'>;
 
+/** A UUID that identifies an Account. */
+export type AccountId = Brand<string, 'AccountId'>;
+
 export function makeUserId(value: string): UserId {
   return value as UserId;
 }
@@ -21,4 +24,8 @@ export function makeHouseholdId(value: string): HouseholdId {
 
 export function makeHouseholdMembershipId(value: string): HouseholdMembershipId {
   return value as HouseholdMembershipId;
+}
+
+export function makeAccountId(value: string): AccountId {
+  return value as AccountId;
 }

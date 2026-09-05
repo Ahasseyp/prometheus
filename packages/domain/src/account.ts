@@ -20,8 +20,8 @@ function isAccountType(value: string): value is AccountType {
 
 /**
  * A financial container owned by a Household, such as a checking account,
- * credit card, savings account, wallet, investment, or loan. Each Account has
- * exactly one Account Currency.
+ * credit card, savings account, cash holdings, investment, or loan. Each
+ * Account has exactly one Account Currency.
  */
 export type Account = {
   readonly id: AccountId;

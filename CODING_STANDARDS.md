@@ -58,7 +58,7 @@ Package names use the `@prometheus/` scope.
   <Alert>
     <Alert.Title>...</Alert.Title>
     <Alert.Description>...</Alert.Description>
-  </Alert>
+  </Alert>;
   ```
   Do not re-add flat named exports (`AlertTitle`, `DialogContent`, ...) for sub-components. Exceptions that stay as separate named exports: hooks (`useSidebar`, `useComboboxAnchor`), variant helpers (`buttonVariants`), and app-level providers (`SidebarProvider`, `TooltipProvider`). Single-component primitives (`Button`, `Input`, `Label`, ...) keep their plain export.
 - **Document hand-rolled exceptions.** Only build a custom primitive when the shadcn registry does not provide the needed component or when the required customization is significant enough that installing and overriding would be more work. Leave a short comment explaining why, or record it in `docs/adr/` if the decision has broader impact.

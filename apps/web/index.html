@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#09090b" />
+    <script>
+      // Applies the persisted theme before first paint to avoid a light flash
+      // in dark mode. Mirrors ThemeProvider (storageKey 'prometheus-theme').
+      (function () {
+        var theme = localStorage.getItem('prometheus-theme');
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.classList.add(theme);
+        // Paints a dark default canvas before any CSS has loaded.
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
     <title>Prometheus</title>
   </head>
   <body>

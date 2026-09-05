@@ -1,15 +1,7 @@
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button.js';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.js';
+import { Dialog } from '@/components/ui/dialog.js';
 import { Spinner } from '@/components/ui/spinner.js';
 import { FormError } from '@/components/form/FormError.js';
 import { useDeleteAccount, type Account } from '@/features/accounts/gateways/accounts.js';
@@ -52,14 +44,14 @@ export function DeleteAccountDialog({ account, onClose }: DeleteAccountDialogPro
 
   return (
     <Dialog open={true} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete {account.name}?</DialogTitle>
-          <DialogDescription>This can't be undone.</DialogDescription>
-        </DialogHeader>
+      <Dialog.Content>
+        <Dialog.Header>
+          <Dialog.Title>Delete {account.name}?</Dialog.Title>
+          <Dialog.Description>This can't be undone.</Dialog.Description>
+        </Dialog.Header>
         {error && <FormError message={error} />}
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <Dialog.Footer>
+          <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
           <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
             {isPending ? (
               <>
@@ -70,8 +62,8 @@ export function DeleteAccountDialog({ account, onClose }: DeleteAccountDialogPro
               'Delete account'
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </Dialog.Footer>
+      </Dialog.Content>
     </Dialog>
   );
 }

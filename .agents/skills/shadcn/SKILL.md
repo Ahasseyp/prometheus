@@ -19,6 +19,8 @@ A framework for building ui, components and design systems. Components are added
 
 The JSON above contains the project config and installed components. Use `npx shadcn@latest docs <component>` to get documentation and example URLs for any component.
 
+> **PROJECT OVERRIDE — compound exports.** This repo's `apps/web/src/components/ui/` files do NOT use the flat named exports shown in shadcn docs and in the rule files below. Each multi-component file exports a single compound component via `Object.assign` (see `CODING_STANDARDS.md` → "UI components"). Read flat names in the examples as dotted properties: `DialogTitle` → `Dialog.Title`, `CardHeader` → `Card.Header`, `InputGroupInput` → `InputGroup.Input`, `FieldGroup` → `Field.Group`, etc. Import only the root (`import { Dialog } from '@/components/ui/dialog.js'`). Newly added components (`pnpm shadcn add ...`) must be converted to this pattern. Exceptions staying as named exports: hooks, variant helpers, and providers (`SidebarProvider`, `TooltipProvider`).
+
 ## Principles
 
 1. **Use existing components first.** Use `npx shadcn@latest search` to check registries before writing custom UI. Check community registries too.

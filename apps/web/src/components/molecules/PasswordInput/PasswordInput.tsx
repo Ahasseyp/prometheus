@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group.js';
+import { InputGroup } from '@/components/ui/input-group.js';
 
 export type PasswordInputProps = Omit<React.ComponentProps<'input'>, 'type'>;
 
@@ -15,9 +10,9 @@ export function PasswordInput({ disabled, ...props }: PasswordInputProps) {
 
   return (
     <InputGroup>
-      <InputGroupInput type={showPassword ? 'text' : 'password'} disabled={disabled} {...props} />
-      <InputGroupAddon align="inline-end">
-        <InputGroupButton
+      <InputGroup.Input type={showPassword ? 'text' : 'password'} disabled={disabled} {...props} />
+      <InputGroup.Addon align="inline-end">
+        <InputGroup.Button
           type="button"
           size="icon-xs"
           variant="ghost"
@@ -27,8 +22,8 @@ export function PasswordInput({ disabled, ...props }: PasswordInputProps) {
           aria-pressed={showPassword}
         >
           {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-        </InputGroupButton>
-      </InputGroupAddon>
+        </InputGroup.Button>
+      </InputGroup.Addon>
     </InputGroup>
   );
 }

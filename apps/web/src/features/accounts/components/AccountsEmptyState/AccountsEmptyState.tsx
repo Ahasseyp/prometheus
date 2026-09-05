@@ -1,14 +1,7 @@
 import { Plus, Wallet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.js';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty.js';
+import { Empty } from '@/components/ui/empty.js';
 import { ButtonLink } from '@/components/molecules/ButtonLink/ButtonLink.js';
 
 export interface AccountsEmptyStateProps {
@@ -18,17 +11,17 @@ export interface AccountsEmptyStateProps {
 export function AccountsEmptyState({ onAddAccount }: AccountsEmptyStateProps) {
   return (
     <Empty>
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
+      <Empty.Header>
+        <Empty.Media variant="icon">
           <Wallet aria-hidden="true" />
-        </EmptyMedia>
-        <EmptyTitle>Add your first account</EmptyTitle>
-        <EmptyDescription>
+        </Empty.Media>
+        <Empty.Title>Add your first account</Empty.Title>
+        <Empty.Description>
           Accounts are where your money lives — checking, savings, credit cards, cash and more. Add
           one to start tracking balances.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
+        </Empty.Description>
+      </Empty.Header>
+      <Empty.Content>
         {onAddAccount ? (
           <Button onClick={onAddAccount}>
             <Plus data-icon="inline-start" />
@@ -40,7 +33,7 @@ export function AccountsEmptyState({ onAddAccount }: AccountsEmptyStateProps) {
             Add an account
           </ButtonLink>
         )}
-      </EmptyContent>
+      </Empty.Content>
     </Empty>
   );
 }

@@ -15,15 +15,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { type Theme } from '@/components/theme-context.js';
 import { useTheme } from '@/hooks/use-theme.js';
 
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '@/components/ui/command.js';
+import { Command } from '@/components/ui/command.js';
 
 type AssistantDialogProps = {
   open: boolean;
@@ -48,63 +40,63 @@ export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="add, ask, check, do…" />
-      <CommandList>
-        <CommandEmpty>No commands found.</CommandEmpty>
-        <CommandGroup heading="Suggestions">
-          <CommandItem onSelect={() => run(() => {})}>
+    <Command.Dialog open={open} onOpenChange={onOpenChange}>
+      <Command.Input placeholder="add, ask, check, do…" />
+      <Command.List>
+        <Command.Empty>No commands found.</Command.Empty>
+        <Command.Group heading="Suggestions">
+          <Command.Item onSelect={() => run(() => {})}>
             <Plus className="mr-2 size-4" />
             Add a transaction
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => {})}>
+          </Command.Item>
+          <Command.Item onSelect={() => run(() => {})}>
             <Sparkles className="mr-2 size-4" />
             Ask about your spending
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => {})}>
+          </Command.Item>
+          <Command.Item onSelect={() => run(() => {})}>
             <PiggyBank className="mr-2 size-4" />
             Check budgets
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Navigate">
-          <CommandItem onSelect={() => navigateTo('/')}>
+          </Command.Item>
+        </Command.Group>
+        <Command.Separator />
+        <Command.Group heading="Navigate">
+          <Command.Item onSelect={() => navigateTo('/')}>
             <LayoutDashboard className="mr-2 size-4" />
             Overview
-          </CommandItem>
-          <CommandItem onSelect={() => navigateTo('/accounts')}>
+          </Command.Item>
+          <Command.Item onSelect={() => navigateTo('/accounts')}>
             <Wallet className="mr-2 size-4" />
             Accounts
-          </CommandItem>
-          <CommandItem onSelect={() => navigateTo('/transactions')}>
+          </Command.Item>
+          <Command.Item onSelect={() => navigateTo('/transactions')}>
             <ArrowLeftRight className="mr-2 size-4" />
             Transactions
-          </CommandItem>
-          <CommandItem onSelect={() => navigateTo('/budgets')}>
+          </Command.Item>
+          <Command.Item onSelect={() => navigateTo('/budgets')}>
             <PiggyBank className="mr-2 size-4" />
             Budgets
-          </CommandItem>
-          <CommandItem onSelect={() => navigateTo('/goals')}>
+          </Command.Item>
+          <Command.Item onSelect={() => navigateTo('/goals')}>
             <Target className="mr-2 size-4" />
             Goals
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Theme">
-          <CommandItem onSelect={() => changeTheme('light')}>
+          </Command.Item>
+        </Command.Group>
+        <Command.Separator />
+        <Command.Group heading="Theme">
+          <Command.Item onSelect={() => changeTheme('light')}>
             <Sun className="mr-2 size-4" />
             Light
-          </CommandItem>
-          <CommandItem onSelect={() => changeTheme('dark')}>
+          </Command.Item>
+          <Command.Item onSelect={() => changeTheme('dark')}>
             <Moon className="mr-2 size-4" />
             Dark
-          </CommandItem>
-          <CommandItem onSelect={() => changeTheme('system')}>
+          </Command.Item>
+          <Command.Item onSelect={() => changeTheme('system')}>
             <Monitor className="mr-2 size-4" />
             System
-          </CommandItem>
-        </CommandGroup>
-      </CommandList>
-    </CommandDialog>
+          </Command.Item>
+        </Command.Group>
+      </Command.List>
+    </Command.Dialog>
   );
 }

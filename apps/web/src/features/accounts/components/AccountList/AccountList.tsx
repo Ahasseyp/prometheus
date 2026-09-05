@@ -1,6 +1,6 @@
 import { AlertCircle } from 'lucide-react';
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert.js';
+import { Alert } from '@/components/ui/alert.js';
 import { Button } from '@/components/ui/button.js';
 import { AccountListSkeleton } from '@/features/accounts/components/AccountListSkeleton/AccountListSkeleton.js';
 import { AccountRow } from '@/features/accounts/components/AccountRow/AccountRow.js';
@@ -36,13 +36,13 @@ export function AccountList({
     return (
       <Alert variant="destructive">
         <AlertCircle aria-hidden="true" />
-        <AlertTitle>We couldn't load your accounts</AlertTitle>
-        <AlertDescription>Check your connection and try again.</AlertDescription>
-        <AlertAction>
+        <Alert.Title>We couldn't load your accounts</Alert.Title>
+        <Alert.Description>Check your connection and try again.</Alert.Description>
+        <Alert.Action>
           <Button variant="outline" size="sm" onClick={onRetry}>
             Try again
           </Button>
-        </AlertAction>
+        </Alert.Action>
       </Alert>
     );
   }

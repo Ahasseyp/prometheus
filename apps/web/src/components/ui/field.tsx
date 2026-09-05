@@ -64,7 +64,7 @@ const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:tex
   },
 });
 
-function Field({
+function FieldRoot({
   className,
   orientation = 'vertical',
   ...props
@@ -208,15 +208,14 @@ function FieldError({
   );
 }
 
-export {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-  FieldContent,
-  FieldTitle,
-};
+export const Field = Object.assign(FieldRoot, {
+  Set: FieldSet,
+  Legend: FieldLegend,
+  Group: FieldGroup,
+  Content: FieldContent,
+  Label: FieldLabel,
+  Title: FieldTitle,
+  Description: FieldDescription,
+  Error: FieldError,
+  Separator: FieldSeparator,
+});

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button.js';
 import { Input } from '@/components/ui/input.js';
 import { Textarea } from '@/components/ui/textarea.js';
 
-function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
+function InputGroupRoot({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="input-group"
@@ -134,11 +134,10 @@ function InputGroupTextarea({ className, ...props }: React.ComponentProps<'texta
   );
 }
 
-export {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupText,
-  InputGroupInput,
-  InputGroupTextarea,
-};
+export const InputGroup = Object.assign(InputGroupRoot, {
+  Addon: InputGroupAddon,
+  Button: InputGroupButton,
+  Text: InputGroupText,
+  Input: InputGroupInput,
+  Textarea: InputGroupTextarea,
+});

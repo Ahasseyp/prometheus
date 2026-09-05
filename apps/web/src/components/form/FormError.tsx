@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 
-import { Alert, AlertDescription } from '@/components/ui/alert.js';
+import { Alert } from '@/components/ui/alert.js';
 
 export interface FormErrorProps {
   message: string;
@@ -23,7 +23,7 @@ export function FormError({ message }: FormErrorProps) {
       className="items-start"
     >
       <AlertCircle className="mt-0.5 shrink-0" aria-hidden="true" />
-      <AlertDescription>{message}</AlertDescription>
+      <Alert.Description>{message}</Alert.Description>
     </Alert>
   );
 }

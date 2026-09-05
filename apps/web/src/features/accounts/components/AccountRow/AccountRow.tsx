@@ -1,13 +1,7 @@
 import { EllipsisVertical, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.js';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.js';
+import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 
 import { ACCOUNT_TYPE_META } from '@/features/accounts/lib/account-types.js';
 import { signedMinorUnits } from '@/features/accounts/lib/account-totals.js';
@@ -52,25 +46,25 @@ export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
         </p>
         {showActions && (
           <DropdownMenu>
-            <DropdownMenuTrigger
+            <DropdownMenu.Trigger
               render={
                 <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${account.name}`} />
               }
             >
               <EllipsisVertical aria-hidden="true" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => onEdit(account)}>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end">
+              <DropdownMenu.Group>
+                <DropdownMenu.Item onClick={() => onEdit(account)}>
                   <Pencil aria-hidden="true" />
                   Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={() => onDelete(account)}>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item variant="destructive" onClick={() => onDelete(account)}>
                   <Trash2 aria-hidden="true" />
                   Delete
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
+                </DropdownMenu.Item>
+              </DropdownMenu.Group>
+            </DropdownMenu.Content>
           </DropdownMenu>
         )}
       </div>

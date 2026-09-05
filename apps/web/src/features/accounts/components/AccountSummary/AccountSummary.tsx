@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
+import { Card } from '@/components/ui/card.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
 import { sumAccountTotals } from '@/features/accounts/lib/account-totals.js';
 import { formatMinorUnits } from '@/features/accounts/lib/format-money.js';
@@ -29,7 +29,7 @@ function SummaryTitle({ isLoading, totals }: { isLoading: boolean; totals: Curre
     return <Skeleton className="h-9 w-32" />;
   }
   if (totals.length === 0) {
-    return <CardTitle className="text-3xl font-semibold">—</CardTitle>;
+    return <Card.Title className="text-3xl font-semibold">—</Card.Title>;
   }
   return (
     <div className="flex flex-col gap-1 pt-1">
@@ -65,13 +65,13 @@ export function AccountSummary({ accounts, isLoading = false }: AccountSummaryPr
 
   return (
     <Card className="bg-gradient-card glow-internal">
-      <CardHeader>
-        <CardDescription>Total balance</CardDescription>
+      <Card.Header>
+        <Card.Description>Total balance</Card.Description>
         <SummaryTitle isLoading={isLoading} totals={totals} />
-      </CardHeader>
-      <CardContent>
+      </Card.Header>
+      <Card.Content>
         <SummaryFooter isLoading={isLoading} accounts={accounts} totals={totals} />
-      </CardContent>
+      </Card.Content>
     </Card>
   );
 }

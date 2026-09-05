@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.js';
-import { Card, CardContent } from '@/components/ui/card.js';
+import { Card } from '@/components/ui/card.js';
 import { AccountFormDialog } from '@/features/accounts/components/AccountFormDialog/AccountFormDialog.js';
 import { AccountList } from '@/features/accounts/components/AccountList/AccountList.js';
 import { DeleteAccountDialog } from '@/features/accounts/components/DeleteAccountDialog/DeleteAccountDialog.js';
@@ -39,7 +39,7 @@ export function AccountsManager() {
       </header>
 
       <Card>
-        <CardContent className="flex flex-col gap-3">
+        <Card.Content className="flex flex-col gap-3">
           <AccountList
             accounts={accounts}
             isLoading={isPending}
@@ -49,7 +49,7 @@ export function AccountsManager() {
             onDelete={setDeletingAccount}
             emptyAction={openCreateForm}
           />
-        </CardContent>
+        </Card.Content>
       </Card>
 
       <AccountFormDialog open={formOpen} onOpenChange={setFormOpen} account={editingAccount} />

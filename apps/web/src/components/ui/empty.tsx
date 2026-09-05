@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils.js';
 
-function Empty({ className, ...props }: React.ComponentProps<'div'>) {
+function EmptyRoot({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="empty"
@@ -91,4 +91,10 @@ function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia };
+export const Empty = Object.assign(EmptyRoot, {
+  Header: EmptyHeader,
+  Title: EmptyTitle,
+  Description: EmptyDescription,
+  Content: EmptyContent,
+  Media: EmptyMedia,
+});

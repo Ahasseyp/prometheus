@@ -1,13 +1,6 @@
 import { Wallet } from 'lucide-react';
 
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card.js';
+import { Card } from '@/components/ui/card.js';
 import { ButtonLink } from '@/components/molecules/ButtonLink/ButtonLink.js';
 import { AccountList } from '@/features/accounts/components/AccountList/AccountList.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
@@ -27,19 +20,19 @@ export function AccountsOverviewCard({
 }: AccountsOverviewCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardAction>
+      <Card.Header>
+        <Card.Action>
           <ButtonLink to="/accounts" variant="ghost" size="sm">
             View all
           </ButtonLink>
-        </CardAction>
+        </Card.Action>
         <div className="flex items-center gap-2">
           <Wallet className="size-4 text-muted-foreground" aria-hidden="true" />
-          <CardTitle>Accounts</CardTitle>
+          <Card.Title>Accounts</Card.Title>
         </div>
-        <CardDescription>Your accounts and balances</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+        <Card.Description>Your accounts and balances</Card.Description>
+      </Card.Header>
+      <Card.Content className="flex flex-col gap-3">
         <AccountList
           accounts={accounts}
           isLoading={isLoading}
@@ -47,7 +40,7 @@ export function AccountsOverviewCard({
           onRetry={onRetry}
           skeletonRows={2}
         />
-      </CardContent>
+      </Card.Content>
     </Card>
   );
 }

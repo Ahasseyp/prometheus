@@ -5,7 +5,7 @@ import { Avatar as AvatarPrimitive } from '@base-ui/react/avatar';
 
 import { cn } from '@/lib/utils.js';
 
-function Avatar({
+function AvatarRoot({
   className,
   size = 'default',
   ...props
@@ -90,4 +90,10 @@ function AvatarGroupCount({ className, ...props }: React.ComponentProps<'div'>) 
   );
 }
 
-export { Avatar, AvatarImage, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarBadge };
+export const Avatar = Object.assign(AvatarRoot, {
+  Image: AvatarImage,
+  Fallback: AvatarFallback,
+  Group: AvatarGroup,
+  GroupCount: AvatarGroupCount,
+  Badge: AvatarBadge,
+});

@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 
-import { CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card.js';
+import { Card } from '@/components/ui/card.js';
 import { TextLink } from '@/components/molecules/TextLink/TextLink.js';
 import { AuthCardShell } from '@/features/auth/components/AuthCardShell/AuthCardShell.js';
 import { AuthHeading } from '@/features/auth/components/AuthHeading/AuthHeading.js';
@@ -22,20 +22,20 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
 
   return (
     <AuthCardShell>
-      <CardHeader>
+      <Card.Header>
         <AuthHeading>Sign in to your account</AuthHeading>
-        <CardDescription>Welcome back to Prometheus.</CardDescription>
-      </CardHeader>
-      <CardContent>
+        <Card.Description>Welcome back to Prometheus.</Card.Description>
+      </Card.Header>
+      <Card.Content>
         <LoginForm onSuccess={handleLoginSuccess} />
-      </CardContent>
-      <CardFooter>
+      </Card.Content>
+      <Card.Footer>
         {registrationEnabled && (
           <p className="text-sm text-muted-foreground">
             Don't have an account? <TextLink to="/register">Create one</TextLink>
           </p>
         )}
-      </CardFooter>
+      </Card.Footer>
     </AuthCardShell>
   );
 }

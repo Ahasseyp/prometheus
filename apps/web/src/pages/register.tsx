@@ -1,12 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 
-import {
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card.js';
+import { Card } from '@/components/ui/card.js';
 import { ButtonLink } from '@/components/molecules/ButtonLink/ButtonLink.js';
 import { TextLink } from '@/components/molecules/TextLink/TextLink.js';
 import { AuthCardShell } from '@/features/auth/components/AuthCardShell/AuthCardShell.js';
@@ -31,35 +25,35 @@ export function RegisterPage({ isEnabled, onSuccess }: RegisterPageProps) {
   if (!registrationEnabled) {
     return (
       <AuthCardShell>
-        <CardHeader>
-          <CardTitle>Registration unavailable</CardTitle>
-          <CardDescription>
+        <Card.Header>
+          <Card.Title>Registration unavailable</Card.Title>
+          <Card.Description>
             New account creation is currently disabled on this server.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
+          </Card.Description>
+        </Card.Header>
+        <Card.Footer>
           <ButtonLink to="/login" variant="ghost" className="px-0">
             Sign in
           </ButtonLink>
-        </CardFooter>
+        </Card.Footer>
       </AuthCardShell>
     );
   }
 
   return (
     <AuthCardShell>
-      <CardHeader>
+      <Card.Header>
         <AuthHeading>Create your account</AuthHeading>
-        <CardDescription>Start tracking your money with Prometheus.</CardDescription>
-      </CardHeader>
-      <CardContent>
+        <Card.Description>Start tracking your money with Prometheus.</Card.Description>
+      </Card.Header>
+      <Card.Content>
         <RegisterForm onSuccess={handleRegisterSuccess} />
-      </CardContent>
-      <CardFooter>
+      </Card.Content>
+      <Card.Footer>
         <p className="text-sm text-muted-foreground">
           Already have an account? <TextLink to="/login">Sign in</TextLink>
         </p>
-      </CardFooter>
+      </Card.Footer>
     </AuthCardShell>
   );
 }

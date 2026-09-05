@@ -5,24 +5,10 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button.js';
 import { Spinner } from '@/components/ui/spinner.js';
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox.js';
-import { FieldGroup } from '@/components/ui/field.js';
+import { Combobox } from '@/components/ui/combobox.js';
+import { Field } from '@/components/ui/field.js';
 import { Input } from '@/components/ui/input.js';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select.js';
+import { Select } from '@/components/ui/select.js';
 import { FormError } from '@/components/form/FormError.js';
 import { FormField } from '@/components/form/FormField.js';
 import {
@@ -171,7 +157,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
     <form onSubmit={handleFormSubmit} className="flex flex-col gap-5" noValidate>
       {formError && <FormError message={formError} />}
 
-      <FieldGroup>
+      <Field.Group>
         <FormField form={form} name="name" label="Account name" disabled={isPending}>
           {(fieldProps) => (
             <Input
@@ -190,27 +176,27 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
               onValueChange={handleSelectChange(fieldProps.onChange)}
               disabled={fieldProps.disabled}
             >
-              <SelectTrigger
+              <Select.Trigger
                 id={fieldProps.id}
                 aria-invalid={fieldProps['aria-invalid']}
                 onBlur={fieldProps.onBlur}
                 className="w-full"
               >
-                <SelectValue placeholder="Select an account type">
+                <Select.Value placeholder="Select an account type">
                   {fieldProps.value
                     ? ACCOUNT_TYPE_META[fieldProps.value as AccountType].label
                     : null}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
+                </Select.Value>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Group>
                   {ACCOUNT_TYPE_OPTIONS.map((type) => (
-                    <SelectItem key={type} value={type}>
+                    <Select.Item key={type} value={type}>
                       {ACCOUNT_TYPE_META[type].label}
-                    </SelectItem>
+                    </Select.Item>
                   ))}
-                </SelectGroup>
-              </SelectContent>
+                </Select.Group>
+              </Select.Content>
             </Select>
           )}
         </FormField>
@@ -240,29 +226,29 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
                 disabled={fieldProps.disabled}
                 autoHighlight
               >
-                <ComboboxInput
+                <Combobox.Input
                   id={fieldProps.id}
                   name={fieldProps.name}
                   placeholder="Select a currency"
                   onBlur={fieldProps.onBlur}
                   aria-invalid={fieldProps['aria-invalid']}
                 />
-                <ComboboxContent>
-                  <ComboboxList>
-                    <ComboboxCollection>
+                <Combobox.Content>
+                  <Combobox.List>
+                    <Combobox.Collection>
                       {(option) => (
-                        <ComboboxItem key={option.value} value={option}>
+                        <Combobox.Item key={option.value} value={option}>
                           {option.label}
-                        </ComboboxItem>
+                        </Combobox.Item>
                       )}
-                    </ComboboxCollection>
-                  </ComboboxList>
-                </ComboboxContent>
+                    </Combobox.Collection>
+                  </Combobox.List>
+                </Combobox.Content>
               </Combobox>
             );
           }}
         </FormField>
-      </FieldGroup>
+      </Field.Group>
 
       <Button type="submit" disabled={isPending}>
         {isPending && <Spinner data-icon="inline-start" />}

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils.js';
 
-function Card({
+function CardRoot({
   className,
   size = 'default',
   ...props
@@ -85,4 +85,11 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent };
+export const Card = Object.assign(CardRoot, {
+  Header: CardHeader,
+  Footer: CardFooter,
+  Title: CardTitle,
+  Action: CardAction,
+  Description: CardDescription,
+  Content: CardContent,
+});

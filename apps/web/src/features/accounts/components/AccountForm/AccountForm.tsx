@@ -54,19 +54,14 @@ type FormState = z.infer<typeof accountFormSchema>;
 
 export interface AccountFormProps {
   account?: Account;
-  /**
-   * Currency may only change while the account has no transactions (issue #23
-   * rule). No transaction feature exists yet, so callers never pass this today
-   * and the field stays editable; the prop is the seam for locking it later.
-   * See docs/adr/0002-account-currency-lock-seam.md.
-   */
-  hasTransactions?: boolean;
   onSuccess?: () => void;
 }
 
-export function AccountForm({ account, hasTransactions = false, onSuccess }: AccountFormProps) {
+export function AccountForm({ account, onSuccess }: AccountFormProps) {
   const isEditing = account !== undefined;
-  const isCurrencyLocked = isEditing && hasTransactions;
+  // Account Currency is fixed after creation (ADR-0002, amended): the update
+  // API no longer accepts currency, so the field is always locked in edit mode.
+  const isCurrencyLocked = isEditing;
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const isPending = createAccount.isPending || updateAccount.isPending;
@@ -138,7 +133,7 @@ export function AccountForm({ account, hasTransactions = false, onSuccess }: Acc
 
     if (isEditing) {
       updateAccount.mutate(
-        { id: account.id, name, type: value.type, currency: value.currency },
+        { id: account.id, name, type: value.type },
         { onSuccess: () => onSuccess?.(), onError: handleMutationError }
       );
       return;
@@ -156,11 +151,15 @@ export function AccountForm({ account, hasTransactions = false, onSuccess }: Acc
     form.handleSubmit();
   }
 
+  const accountCurrency = account?.currency;
+  const initialCurrency =
+    accountCurrency != null && isCurrencyCode(accountCurrency) ? accountCurrency : defaultCurrency;
+
   const form = useForm({
     defaultValues: {
       name: account?.name ?? '',
       type: account?.type ?? AccountType.Checking,
-      currency: (account?.currency as CurrencyCode | undefined) ?? defaultCurrency,
+      currency: initialCurrency,
     } satisfies FormState,
     validators: {
       onSubmit: accountFormSchema,

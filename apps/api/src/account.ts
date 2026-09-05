@@ -46,7 +46,8 @@ const updateAccountInputSchema = z.object({
   id: z.string().uuid(),
   name: accountNameSchema.optional(),
   type: accountTypeSchema.optional(),
-  currency: currencySchema.optional(),
+  // Account Currency is fixed after creation (ADR-0002); the update path
+  // deliberately omits it until a guarded currency-change flow exists.
 });
 
 function getHouseholdId(ctx: { user: { household: { id: string } | null } }): string {

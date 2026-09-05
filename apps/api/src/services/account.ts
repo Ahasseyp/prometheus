@@ -3,11 +3,11 @@ import crypto from 'node:crypto';
 import {
   createAccount as createAccountEntity,
   AccountType,
-  isCurrencyCode,
   makeAccountId,
   makeHouseholdId,
 } from '@prometheus/domain';
 import type { AccountType as DomainAccountType } from '@prometheus/domain';
+import { Prisma } from '@prisma/client';
 import type { Account } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
@@ -21,7 +21,6 @@ export type CreateAccountInput = {
 export type UpdateAccountInput = {
   name?: string;
   type?: DomainAccountType;
-  currency?: string;
 };
 
 export type AccountWithBalance = {
@@ -34,6 +33,12 @@ export type AccountWithBalance = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+// The tRPC layer validates input before these services run, so reaching one of
+// these means a caller bypassed the schema — hence "unexpected".
+function unexpectedValidationError(reason: string): Error {
+  return new Error(`Unexpected account validation failure: ${reason}`);
+}
 
 const prismaAccountTypeMap: Record<Account['type'], DomainAccountType> = {
   CHECKING: AccountType.Checking,
@@ -95,9 +100,7 @@ export async function createAccount(
   });
 
   if (!entityResult.ok) {
-    // The API layer already validates name, type, and currency, so reaching
-    // this branch means a caller bypassed the tRPC input schema.
-    throw new Error(`Unexpected account validation failure: ${entityResult.error.type}`);
+    throw unexpectedValidationError(entityResult.error.type);
   }
 
   const validatedAccount = entityResult.value;
@@ -146,17 +149,12 @@ export async function updateAccount(
   householdId: string,
   input: UpdateAccountInput
 ): Promise<AccountWithBalance | null> {
-  const existing = await findAccountById(accountId, householdId);
-  if (existing === null) {
-    return null;
-  }
-
-  const updateData: Partial<Pick<Account, 'name' | 'type' | 'currency'>> = {};
+  const updateData: Partial<Pick<Account, 'name' | 'type'>> = {};
 
   if (input.name !== undefined) {
     const trimmedName = input.name.trim();
     if (trimmedName === '') {
-      throw new Error('Unexpected account validation failure: empty-name');
+      throw unexpectedValidationError('empty-name');
     }
     updateData.name = trimmedName;
   }
@@ -165,34 +163,34 @@ export async function updateAccount(
     updateData.type = mapDomainAccountType(input.type);
   }
 
-  if (input.currency !== undefined) {
-    if (!isCurrencyCode(input.currency)) {
-      // The API layer already validates currency, so reaching this branch
-      // means a caller bypassed the tRPC input schema.
-      throw new Error(`Unexpected account validation failure: invalid-currency`);
-    }
-    updateData.currency = input.currency;
-  }
-
   const prisma = getPrisma();
-  const account = await prisma.account.update({
-    where: { id: accountId },
-    data: updateData,
-  });
-
-  return mapAccountToWithBalance(account);
+  try {
+    // Household scoping lives in the write itself, not a pre-check, so the
+    // scope check and the mutation are atomic.
+    const account = await prisma.account.update({
+      where: { id: accountId, householdId },
+      data: updateData,
+    });
+    return mapAccountToWithBalance(account);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function deleteAccount(accountId: string, householdId: string): Promise<boolean> {
-  const existing = await findAccountById(accountId, householdId);
-  if (existing === null) {
-    return false;
-  }
-
   const prisma = getPrisma();
-  await prisma.account.delete({
-    where: { id: accountId },
-  });
-
-  return true;
+  try {
+    await prisma.account.delete({
+      where: { id: accountId, householdId },
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return false;
+    }
+    throw error;
+  }
 }

@@ -113,13 +113,13 @@ describe('account service', () => {
     const updated = await updateAccount(account.id, householdId(), {
       name: 'After',
       type: AccountType.Investment,
-      currency: 'EUR',
     });
 
     expect(updated).not.toBeNull();
     expect(updated?.name).toBe('After');
     expect(updated?.type).toBe(AccountType.Investment);
-    expect(updated?.currency).toBe('EUR');
+    // Account Currency is fixed after creation (ADR-0002).
+    expect(updated?.currency).toBe('USD');
   });
 
   it('returns null when updating an account outside the household', async () => {

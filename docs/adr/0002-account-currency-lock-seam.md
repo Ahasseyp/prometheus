@@ -1,8 +1,8 @@
-# Account currency is locked in edit mode once transactions exist
+# Account currency is fixed after creation
 
 ## Status
 
-Accepted
+Amended (currency fully locked on update; see Consequences)
 
 ## Context
 
@@ -12,12 +12,12 @@ At the time of implementing #23 there is no transaction feature yet, so we canno
 
 ## Decision
 
-`AccountForm` accepts an optional `hasTransactions?: boolean` prop. When the prop is `true` (or when editing an account and transactions exist), the currency field is disabled and a description explains why. When the prop is omitted/false, the currency field remains editable so users can correct a mistake before any transactions are recorded.
+Originally: `AccountForm` accepts an optional `hasTransactions?: boolean` prop as a seam — when true, the currency field is disabled; until transactions exist the field stays editable.
 
-This prop is a deliberate seam: the transaction feature will pass the real flag once it exists. Until then, callers do not pass it and the field stays editable.
+Amended during the #23 review: the "fixed currency" rule is a domain invariant, and leaving the update API open violated the spec. The update procedure (`updateAccountInputSchema` / `updateAccount`) no longer accepts `currency`, and `AccountForm` locks the currency field whenever editing. The `hasTransactions` seam was removed.
 
 ## Consequences
 
-- The form already knows where to enforce the rule, so the transaction feature will not need to refactor the form.
-- The current UI does not lock currency in edit mode, which is acceptable only while no transactions exist.
-- Once transactions are implemented, every edit-mode caller must query whether the account has transactions and pass `hasTransactions={true}` when it does.
+- Currency cannot change after creation, enforced at the API rather than only in the UI.
+- Correcting a mistaken currency requires deleting and recreating the account — acceptable while no transactions exist.
+- If a currency-change flow is ever needed (e.g. for accounts with no transactions), it must be added deliberately as a new guarded path.

@@ -153,12 +153,12 @@ describe.sequential('account procedures', () => {
       id: created.id,
       name: 'New Name',
       type: AccountType.Savings,
-      currency: 'EUR',
     });
 
     expect(updated.name).toBe('New Name');
     expect(updated.type).toBe(AccountType.Savings);
-    expect(updated.currency).toBe('EUR');
+    // Account Currency is fixed after creation (ADR-0002).
+    expect(updated.currency).toBe('USD');
   });
 
   it('deletes an account', async () => {

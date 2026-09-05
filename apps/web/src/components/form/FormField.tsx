@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Field as TanStackField } from '@tanstack/react-form';
 import type { AnyFieldApi, AnyFormApi } from '@tanstack/react-form';
 
-import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field.js';
+import { Field } from '@/components/ui/field.js';
 
 type FieldInputProps = {
   id: string;
@@ -47,7 +47,7 @@ export function FormField({
 
         return (
           <Field data-invalid={isInvalid} data-disabled={disabled}>
-            <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+            <Field.Label htmlFor={field.name}>{label}</Field.Label>
             {children({
               id: field.name,
               name: field.name,
@@ -58,9 +58,9 @@ export function FormField({
               disabled,
             })}
             {isInvalid ? (
-              <FieldError errors={getFieldErrorMessages(field.state.meta.errors)} />
+              <Field.Error errors={getFieldErrorMessages(field.state.meta.errors)} />
             ) : (
-              description && <FieldDescription>{description}</FieldDescription>
+              description && <Field.Description>{description}</Field.Description>
             )}
           </Field>
         );

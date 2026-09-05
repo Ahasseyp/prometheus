@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils.js';
 
-function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
+function KbdRoot({ className, ...props }: React.ComponentProps<'kbd'>) {
   return (
     <kbd
       data-slot="kbd"
@@ -23,4 +23,6 @@ function KbdGroup({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Kbd, KbdGroup };
+export const Kbd = Object.assign(KbdRoot, {
+  Group: KbdGroup,
+});

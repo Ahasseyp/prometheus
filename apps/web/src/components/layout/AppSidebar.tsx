@@ -1,17 +1,7 @@
 import { ArrowLeftRight, LayoutDashboard, PiggyBank, Target, Wallet } from 'lucide-react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-} from '@/components/ui/sidebar.js';
+import { Sidebar } from '@/components/ui/sidebar.js';
 import { AppSidebarMenuButton } from '@/components/molecules/AppSidebarMenuButton/AppSidebarMenuButton.js';
 import { UserMenu } from './UserMenu.js';
 import { type MeOutput } from '@/features/auth/gateways/auth.js';
@@ -36,7 +26,7 @@ export function AppSidebar({ user, household }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" variant="inset" aria-label="Main navigation">
-      <SidebarHeader>
+      <Sidebar.Header>
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-foreground">
             <span className="font-heading text-sm font-semibold">P</span>
@@ -48,18 +38,18 @@ export function AppSidebar({ user, household }: AppSidebarProps) {
             </span>
           </div>
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Finance</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+      </Sidebar.Header>
+      <Sidebar.Content>
+        <Sidebar.Group>
+          <Sidebar.GroupLabel>Finance</Sidebar.GroupLabel>
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.to;
 
                 return (
-                  <SidebarMenuItem key={item.to}>
+                  <Sidebar.MenuItem key={item.to}>
                     <AppSidebarMenuButton
                       isActive={isActive}
                       aria-current={isActive ? 'page' : undefined}
@@ -69,16 +59,16 @@ export function AppSidebar({ user, household }: AppSidebarProps) {
                       <Icon className="size-4" />
                       <span>{item.label}</span>
                     </AppSidebarMenuButton>
-                  </SidebarMenuItem>
+                  </Sidebar.MenuItem>
                 );
               })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        </Sidebar.Group>
+      </Sidebar.Content>
+      <Sidebar.Footer>
         <UserMenu user={user} />
-      </SidebarFooter>
+      </Sidebar.Footer>
     </Sidebar>
   );
 }

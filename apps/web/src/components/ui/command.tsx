@@ -2,17 +2,11 @@ import * as React from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
 
 import { cn } from '@/lib/utils.js';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.js';
-import { InputGroup, InputGroupAddon } from '@/components/ui/input-group.js';
+import { Dialog } from '@/components/ui/dialog.js';
+import { InputGroup } from '@/components/ui/input-group.js';
 import { SearchIcon, CheckIcon } from 'lucide-react';
 
-function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
+function CommandRoot({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
       data-slot="command"
@@ -41,18 +35,18 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
-      <DialogContent
+      <Dialog.Header className="sr-only">
+        <Dialog.Title>{title}</Dialog.Title>
+        <Dialog.Description>{description}</Dialog.Description>
+      </Dialog.Header>
+      <Dialog.Content
         className={cn('top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0', className)}
         showCloseButton={showCloseButton}
       >
-        <Command className="size-full rounded-none! bg-transparent p-0 shadow-none">
+        <CommandRoot className="size-full rounded-none! bg-transparent p-0 shadow-none">
           {children}
-        </Command>
-      </DialogContent>
+        </CommandRoot>
+      </Dialog.Content>
     </Dialog>
   );
 }
@@ -72,9 +66,9 @@ function CommandInput({
           )}
           {...props}
         />
-        <InputGroupAddon>
+        <InputGroup.Addon>
           <SearchIcon className="size-4 shrink-0 opacity-50" />
-        </InputGroupAddon>
+        </InputGroup.Addon>
       </InputGroup>
     </div>
   );
@@ -168,14 +162,13 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) 
   );
 }
 
-export {
-  Command,
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandShortcut,
-  CommandSeparator,
-};
+export const Command = Object.assign(CommandRoot, {
+  Dialog: CommandDialog,
+  Input: CommandInput,
+  List: CommandList,
+  Empty: CommandEmpty,
+  Group: CommandGroup,
+  Item: CommandItem,
+  Shortcut: CommandShortcut,
+  Separator: CommandSeparator,
+});

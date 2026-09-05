@@ -19,7 +19,7 @@ const alertVariants = cva(
   }
 );
 
-function Alert({
+function AlertRoot({
   className,
   variant,
   ...props
@@ -66,4 +66,8 @@ function AlertAction({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Alert, AlertTitle, AlertDescription, AlertAction };
+export const Alert = Object.assign(AlertRoot, {
+  Title: AlertTitle,
+  Description: AlertDescription,
+  Action: AlertAction,
+});

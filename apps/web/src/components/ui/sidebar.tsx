@@ -10,15 +10,9 @@ import { cn } from '@/lib/utils.js';
 import { Button } from '@/components/ui/button.js';
 import { Input } from '@/components/ui/input.js';
 import { Separator } from '@/components/ui/separator.js';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet.js';
+import { Sheet } from '@/components/ui/sheet.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.js';
+import { Tooltip } from '@/components/ui/tooltip.js';
 import { PanelLeftIcon } from 'lucide-react';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
@@ -158,7 +152,7 @@ function SidebarProvider({
   );
 }
 
-function Sidebar({
+function SidebarRoot({
   side = 'left',
   variant = 'sidebar',
   collapsible = 'offcanvas',
@@ -191,7 +185,7 @@ function Sidebar({
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
+        <Sheet.Content
           dir={dir}
           data-sidebar="sidebar"
           data-slot="sidebar"
@@ -204,12 +198,12 @@ function Sidebar({
           }
           side={side}
         >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-          </SheetHeader>
+          <Sheet.Header className="sr-only">
+            <Sheet.Title>Sidebar</Sheet.Title>
+            <Sheet.Description>Displays the mobile sidebar.</Sheet.Description>
+          </Sheet.Header>
           <div className="flex h-full w-full flex-col">{children}</div>
-        </SheetContent>
+        </Sheet.Content>
       </Sheet>
     );
   }
@@ -507,7 +501,7 @@ function SidebarMenuButton({
 }: useRender.ComponentProps<'button'> &
   React.ComponentProps<'button'> & {
     isActive?: boolean;
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+    tooltip?: string | React.ComponentProps<typeof Tooltip.Content>;
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const { isMobile, state } = useSidebar();
   const comp = useRender({
@@ -518,7 +512,7 @@ function SidebarMenuButton({
       },
       props
     ),
-    render: !tooltip ? render : <TooltipTrigger render={render} />,
+    render: !tooltip ? render : <Tooltip.Trigger render={render} />,
     state: {
       slot: 'sidebar-menu-button',
       sidebar: 'menu-button',
@@ -540,7 +534,7 @@ function SidebarMenuButton({
   return (
     <Tooltip>
       {comp}
-      <TooltipContent
+      <Tooltip.Content
         side="right"
         align="center"
         hidden={state !== 'collapsed' || isMobile}
@@ -684,29 +678,28 @@ function SidebarMenuSubButton({
   });
 }
 
-export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInput,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
-  useSidebar,
-};
+export const Sidebar = Object.assign(SidebarRoot, {
+  Content: SidebarContent,
+  Footer: SidebarFooter,
+  Group: SidebarGroup,
+  GroupAction: SidebarGroupAction,
+  GroupContent: SidebarGroupContent,
+  GroupLabel: SidebarGroupLabel,
+  Header: SidebarHeader,
+  Input: SidebarInput,
+  Inset: SidebarInset,
+  Menu: SidebarMenu,
+  MenuAction: SidebarMenuAction,
+  MenuBadge: SidebarMenuBadge,
+  MenuButton: SidebarMenuButton,
+  MenuItem: SidebarMenuItem,
+  MenuSkeleton: SidebarMenuSkeleton,
+  MenuSub: SidebarMenuSub,
+  MenuSubButton: SidebarMenuSubButton,
+  MenuSubItem: SidebarMenuSubItem,
+  Rail: SidebarRail,
+  Separator: SidebarSeparator,
+  Trigger: SidebarTrigger,
+});
+
+export { SidebarProvider, useSidebar };

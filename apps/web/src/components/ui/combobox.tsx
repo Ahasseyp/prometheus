@@ -3,15 +3,10 @@ import { Combobox as ComboboxPrimitive } from '@base-ui/react';
 import { ChevronDownIcon, XIcon, CheckIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.js';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group.js';
+import { InputGroup } from '@/components/ui/input-group.js';
 import { cn } from '@/lib/utils.js';
 
-const Combobox = ComboboxPrimitive.Root;
+const ComboboxRoot = ComboboxPrimitive.Root;
 
 function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
   return <ComboboxPrimitive.Value data-slot="combobox-value" {...props} />;
@@ -34,7 +29,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
-      render={<InputGroupButton variant="ghost" size="icon-xs" />}
+      render={<InputGroup.Button variant="ghost" size="icon-xs" />}
       className={cn(className)}
       {...props}
     >
@@ -56,10 +51,10 @@ function ComboboxInput({
 }) {
   return (
     <InputGroup className={cn('w-auto', className)}>
-      <ComboboxPrimitive.Input render={<InputGroupInput disabled={disabled} />} {...props} />
-      <InputGroupAddon align="inline-end">
+      <ComboboxPrimitive.Input render={<InputGroup.Input disabled={disabled} />} {...props} />
+      <InputGroup.Addon align="inline-end">
         {showTrigger && (
-          <InputGroupButton
+          <InputGroup.Button
             size="icon-xs"
             variant="ghost"
             render={<ComboboxTrigger />}
@@ -69,7 +64,7 @@ function ComboboxInput({
           />
         )}
         {showClear && <ComboboxClear disabled={disabled} />}
-      </InputGroupAddon>
+      </InputGroup.Addon>
       {children}
     </InputGroup>
   );
@@ -254,21 +249,21 @@ function useComboboxAnchor() {
   return React.useRef<HTMLDivElement | null>(null);
 }
 
-export {
-  Combobox,
-  ComboboxInput,
-  ComboboxContent,
-  ComboboxList,
-  ComboboxItem,
-  ComboboxGroup,
-  ComboboxLabel,
-  ComboboxCollection,
-  ComboboxEmpty,
-  ComboboxSeparator,
-  ComboboxChips,
-  ComboboxChip,
-  ComboboxChipsInput,
-  ComboboxTrigger,
-  ComboboxValue,
-  useComboboxAnchor,
-};
+export const Combobox = Object.assign(ComboboxRoot, {
+  Input: ComboboxInput,
+  Content: ComboboxContent,
+  List: ComboboxList,
+  Item: ComboboxItem,
+  Group: ComboboxGroup,
+  Label: ComboboxLabel,
+  Collection: ComboboxCollection,
+  Empty: ComboboxEmpty,
+  Separator: ComboboxSeparator,
+  Chips: ComboboxChips,
+  Chip: ComboboxChip,
+  ChipsInput: ComboboxChipsInput,
+  Trigger: ComboboxTrigger,
+  Value: ComboboxValue,
+});
+
+export { useComboboxAnchor };

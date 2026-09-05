@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { SidebarMenuButton } from '@/components/ui/sidebar.js';
+import { Sidebar } from '@/components/ui/sidebar.js';
 import { cn } from '@/lib/utils.js';
 
-type AppSidebarMenuButtonProps = React.ComponentProps<typeof SidebarMenuButton>;
+type AppSidebarMenuButtonProps = React.ComponentProps<typeof Sidebar.MenuButton>;
 
 export function AppSidebarMenuButton({ className, children, ...props }: AppSidebarMenuButtonProps) {
   return (
-    <SidebarMenuButton
+    <Sidebar.MenuButton
       className={cn(
         'relative overflow-hidden',
         'data-active:bg-primary data-active:text-primary-foreground',
@@ -19,6 +19,6 @@ export function AppSidebarMenuButton({ className, children, ...props }: AppSideb
       {...props}
     >
       {children}
-    </SidebarMenuButton>
+    </Sidebar.MenuButton>
   );
 }

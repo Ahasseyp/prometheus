@@ -3,7 +3,7 @@ import { useForm } from '@tanstack/react-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button.js';
-import { FieldGroup } from '@/components/ui/field.js';
+import { Field } from '@/components/ui/field.js';
 import { Spinner } from '@/components/ui/spinner.js';
 import { Input } from '@/components/ui/input.js';
 import { PasswordInput } from '@/components/molecules/PasswordInput/PasswordInput.js';
@@ -83,7 +83,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     >
       {formError && <FormError message={formError} />}
 
-      <FieldGroup>
+      <Field.Group>
         <FormField form={form} name="email" label="Email" disabled={isPending}>
           {(fieldProps) => (
             <Input
@@ -111,7 +111,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             />
           )}
         </FormField>
-      </FieldGroup>
+      </Field.Group>
 
       <Button type="submit" disabled={isPending}>
         {isPending ? (

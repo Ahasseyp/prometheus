@@ -1,19 +1,9 @@
 import { LogOut, Monitor, Moon, Sun, User } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar.js';
+import { Avatar } from '@/components/ui/avatar.js';
 import { Button } from '@/components/ui/button.js';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.js';
+import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 import { useTheme } from '@/hooks/use-theme.js';
 import { getInitials } from '@/lib/initials.js';
 import { type MeOutput, useLogout } from '@/features/auth/gateways/auth.js';
@@ -43,7 +33,7 @@ export function UserMenu({ user, className, compact = false }: UserMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
+      <DropdownMenu.Trigger
         render={
           compact ? (
             <Button
@@ -53,7 +43,7 @@ export function UserMenu({ user, className, compact = false }: UserMenuProps) {
               aria-label={`User menu for ${displayName}`}
             >
               <Avatar>
-                <AvatarFallback className="text-foreground">{initials}</AvatarFallback>
+                <Avatar.Fallback className="text-foreground">{initials}</Avatar.Fallback>
               </Avatar>
             </Button>
           ) : (
@@ -67,48 +57,48 @@ export function UserMenu({ user, className, compact = false }: UserMenuProps) {
               aria-label={`User menu for ${displayName}`}
             >
               <Avatar>
-                <AvatarFallback className="text-foreground">{initials}</AvatarFallback>
+                <Avatar.Fallback className="text-foreground">{initials}</Avatar.Fallback>
               </Avatar>
               <span className="truncate group-data-[collapsible=icon]:hidden">{displayName}</span>
             </Button>
           )
         }
       />
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
-          <DropdownMenuItem disabled aria-disabled="true">
+      <DropdownMenu.Content align="end" className="w-56">
+        <DropdownMenu.Group>
+          <DropdownMenu.Label>{displayName}</DropdownMenu.Label>
+          <DropdownMenu.Item disabled aria-disabled="true">
             <User className="mr-2 size-4" />
             Settings
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
+          </DropdownMenu.Item>
+        </DropdownMenu.Group>
+        <DropdownMenu.Separator />
+        <DropdownMenu.Group>
+          <DropdownMenu.Label>Theme</DropdownMenu.Label>
+          <DropdownMenu.RadioGroup
             value={theme}
             onValueChange={(value) => setTheme(value as typeof theme)}
           >
-            <DropdownMenuRadioItem value="light">
+            <DropdownMenu.RadioItem value="light">
               <Sun className="mr-2 size-4" />
               Light
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="dark">
+            </DropdownMenu.RadioItem>
+            <DropdownMenu.RadioItem value="dark">
               <Moon className="mr-2 size-4" />
               Dark
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="system">
+            </DropdownMenu.RadioItem>
+            <DropdownMenu.RadioItem value="system">
               <Monitor className="mr-2 size-4" />
               System
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" disabled={isPending} onClick={handleLogout}>
+            </DropdownMenu.RadioItem>
+          </DropdownMenu.RadioGroup>
+        </DropdownMenu.Group>
+        <DropdownMenu.Separator />
+        <DropdownMenu.Item variant="destructive" disabled={isPending} onClick={handleLogout}>
           <LogOut className="mr-2 size-4" />
           Log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
     </DropdownMenu>
   );
 }

@@ -5,15 +5,8 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button.js';
 import { Spinner } from '@/components/ui/spinner.js';
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox.js';
-import { FieldGroup } from '@/components/ui/field.js';
+import { Combobox } from '@/components/ui/combobox.js';
+import { Field } from '@/components/ui/field.js';
 import { Input } from '@/components/ui/input.js';
 import { FormError } from '@/components/form/FormError.js';
 import { FormField } from '@/components/form/FormField.js';
@@ -134,7 +127,7 @@ export function CreateHouseholdForm({ onSuccess }: CreateHouseholdFormProps) {
     <form onSubmit={handleFormSubmit} className="flex flex-col gap-5" noValidate>
       {formError && <FormError message={formError} />}
 
-      <FieldGroup>
+      <Field.Group>
         <FormField form={form} name="name" label="Household name" disabled={isPending}>
           {(fieldProps) => (
             <Input
@@ -167,29 +160,29 @@ export function CreateHouseholdForm({ onSuccess }: CreateHouseholdFormProps) {
                 disabled={fieldProps.disabled}
                 autoHighlight
               >
-                <ComboboxInput
+                <Combobox.Input
                   id={fieldProps.id}
                   name={fieldProps.name}
                   placeholder="Select a currency"
                   onBlur={fieldProps.onBlur}
                   aria-invalid={fieldProps['aria-invalid']}
                 />
-                <ComboboxContent>
-                  <ComboboxList>
-                    <ComboboxCollection>
+                <Combobox.Content>
+                  <Combobox.List>
+                    <Combobox.Collection>
                       {(option) => (
-                        <ComboboxItem key={option.value} value={option}>
+                        <Combobox.Item key={option.value} value={option}>
                           {option.label}
-                        </ComboboxItem>
+                        </Combobox.Item>
                       )}
-                    </ComboboxCollection>
-                  </ComboboxList>
-                </ComboboxContent>
+                    </Combobox.Collection>
+                  </Combobox.List>
+                </Combobox.Content>
               </Combobox>
             );
           }}
         </FormField>
-      </FieldGroup>
+      </Field.Group>
 
       <Button type="submit" disabled={isPending}>
         {isPending ? (

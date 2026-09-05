@@ -45,7 +45,22 @@ Package names use the `@prometheus/` scope.
 
 - **Install from shadcn/ui first.** When adding a new primitive, prefer `pnpm shadcn add <component>` (or `pnpm dlx shadcn@latest add <component>`) over hand-rolling it from Base UI primitives. This keeps styling, accessibility, and API consistency with the rest of the design system.
 - **Follow the shadcn skill conventions.** The project skill at `.agents/skills/shadcn/SKILL.md` is the canonical reference for composing, styling, and updating shadcn components. Review it (and its linked rule files) before adding or modifying UI primitives.
-- **Prefer composition over custom markup.** Use existing shadcn components (`Alert`, `Empty`, `Badge`, `Separator`, `Skeleton`, etc.) and compound APIs (`SelectGroup`, `DialogTitle`, `CardHeader`, etc.) instead of hand-rolled `div`s.
+- **Prefer composition over custom markup.** Use existing shadcn components (`Alert`, `Empty`, `Badge`, `Separator`, `Skeleton`, etc.) and their compound APIs (`Dialog.Title`, `Card.Header`, `Field.Error`, etc.) instead of hand-rolled `div`s.
+- **Multi-part primitives use a single compound export.** Each multi-component file in `src/components/ui/` exports one component via `Object.assign`, with sub-components attached as prefix-stripped properties. Consumers import only the root and use dotted access:
+  ```tsx
+  export const Alert = Object.assign(AlertRoot, {
+    Title: AlertTitle,
+    Description: AlertDescription,
+    Action: AlertAction,
+  });
+
+  // consumer
+  <Alert>
+    <Alert.Title>...</Alert.Title>
+    <Alert.Description>...</Alert.Description>
+  </Alert>
+  ```
+  Do not re-add flat named exports (`AlertTitle`, `DialogContent`, ...) for sub-components. Exceptions that stay as separate named exports: hooks (`useSidebar`, `useComboboxAnchor`), variant helpers (`buttonVariants`), and app-level providers (`SidebarProvider`, `TooltipProvider`). Single-component primitives (`Button`, `Input`, `Label`, ...) keep their plain export.
 - **Document hand-rolled exceptions.** Only build a custom primitive when the shadcn registry does not provide the needed component or when the required customization is significant enough that installing and overriding would be more work. Leave a short comment explaining why, or record it in `docs/adr/` if the decision has broader impact.
 
 ## Domain language

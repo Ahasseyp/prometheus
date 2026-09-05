@@ -89,14 +89,17 @@ describe('AccountsManager', () => {
     renderAccountsManager();
 
     const pageHeader = screen.getByRole('heading', { name: 'Accounts' }).closest('header');
+    if (pageHeader == null) {
+      throw new Error('Accounts page header not found');
+    }
 
     expect(
-      within(pageHeader!).queryByRole('button', { name: /add account/i })
+      within(pageHeader).queryByRole('button', { name: /add account/i })
     ).not.toBeInTheDocument();
 
     expect(await screen.findByText('Add your first account')).toBeInTheDocument();
     expect(
-      within(pageHeader!).queryByRole('button', { name: /add account/i })
+      within(pageHeader).queryByRole('button', { name: /add account/i })
     ).not.toBeInTheDocument();
   });
 

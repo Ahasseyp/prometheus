@@ -8,31 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.js';
-import { AccountType } from '@prometheus/domain';
 
 import { ACCOUNT_TYPE_META } from '@/features/accounts/lib/account-types.js';
-import { formatMoney } from '@/features/accounts/lib/format-money.js';
+import { signedMinorUnits } from '@/features/accounts/lib/account-totals.js';
+import { formatMinorUnits } from '@/features/accounts/lib/format-money.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { cn } from '@/lib/utils.js';
-
-function negateBalance(balance: string): string {
-  const trimmed = balance.trim();
-  const isZero = /^-?0+(\.0+)?$/.test(trimmed);
-  if (isZero) {
-    return trimmed;
-  }
-  if (trimmed.startsWith('-')) {
-    return trimmed.slice(1);
-  }
-  return `-${trimmed}`;
-}
-
-function getDisplayBalance(account: Account): string {
-  if (account.type === AccountType.Loan) {
-    return negateBalance(account.balance);
-  }
-  return account.balance;
-}
 
 export interface AccountRowProps {
   account: Account;
@@ -43,8 +24,8 @@ export interface AccountRowProps {
 export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
   const meta = ACCOUNT_TYPE_META[account.type];
   const Icon = meta.icon;
-  const displayBalance = getDisplayBalance(account);
-  const isNegative = displayBalance.startsWith('-');
+  const signedBalance = signedMinorUnits(account);
+  const isNegative = signedBalance < 0n;
   const showActions = onEdit !== undefined && onDelete !== undefined;
 
   return (
@@ -67,7 +48,7 @@ export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
             isNegative ? 'text-destructive' : 'text-foreground'
           )}
         >
-          {formatMoney(displayBalance, account.currency)}
+          {formatMinorUnits(signedBalance, account.currency)}
         </p>
         {showActions && (
           <DropdownMenu>

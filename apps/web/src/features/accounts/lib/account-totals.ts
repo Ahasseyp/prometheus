@@ -22,12 +22,15 @@ export function toMinorUnits(balance: string, exponent: number): bigint {
   return decimalStringToMinorUnits(balance, exponent);
 }
 
-function getSignedMinorUnits(account: AccountBalanceInput): bigint {
+/**
+ * Returns an account's balance in signed minor units. Loans are debts: they
+ * reduce net worth, so their balance is negated (issue #23). This is the single
+ * home for the loan sign convention — display and totals both derive from it.
+ */
+export function signedMinorUnits(account: AccountBalanceInput): bigint {
   const exponent = getCurrencyExponent(account.currency);
   const minorUnits = toMinorUnits(account.balance, exponent);
 
-  // Loans are debts: they reduce net worth, so their balance is subtracted
-  // from totals (issue #23).
   return account.type === AccountType.Loan ? -minorUnits : minorUnits;
 }
 
@@ -45,9 +48,9 @@ export function sumAccountTotals(accounts: AccountBalanceInput[]): CurrencyTotal
   const totalsByCurrency = new Map<string, bigint>();
 
   for (const account of accounts) {
-    const signedMinorUnits = getSignedMinorUnits(account);
+    const signed = signedMinorUnits(account);
     const currentTotal = totalsByCurrency.get(account.currency) ?? 0n;
-    totalsByCurrency.set(account.currency, currentTotal + signedMinorUnits);
+    totalsByCurrency.set(account.currency, currentTotal + signed);
   }
 
   return [...totalsByCurrency.entries()].map(([currency, minorUnits]) => ({

@@ -28,23 +28,32 @@ export function AccountList({
   skeletonRows,
   emptyAction,
 }: AccountListProps) {
+  if (isLoading) {
+    return <AccountListSkeleton rows={skeletonRows} />;
+  }
+
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>We couldn't load your accounts</AlertTitle>
+        <AlertDescription>Check your connection and try again.</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Try again
+          </Button>
+        </AlertAction>
+      </Alert>
+    );
+  }
+
+  if (accounts === undefined || accounts.length === 0) {
+    return <AccountsEmptyState onAddAccount={emptyAction} />;
+  }
+
   return (
     <>
-      {isLoading && <AccountListSkeleton rows={skeletonRows} />}
-      {isError && (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>We couldn't load your accounts</AlertTitle>
-          <AlertDescription>Check your connection and try again.</AlertDescription>
-          <AlertAction>
-            <Button variant="outline" size="sm" onClick={onRetry}>
-              Try again
-            </Button>
-          </AlertAction>
-        </Alert>
-      )}
-      {accounts && accounts.length === 0 && <AccountsEmptyState onAddAccount={emptyAction} />}
-      {accounts?.map((account) => (
+      {accounts.map((account) => (
         <AccountRow key={account.id} account={account} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </>

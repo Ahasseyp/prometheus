@@ -7,6 +7,7 @@ import {
   Plus,
   Sparkles,
   Sun,
+  Tags,
   Target,
   Wallet,
 } from 'lucide-react';
@@ -72,6 +73,10 @@ export function AssistantDialog({ open, onOpenChange, onAddTransaction }: Assist
           <Command.Item onSelect={() => navigateTo('/transactions')}>
             <ArrowLeftRight className="mr-2 size-4" />
             Transactions
+          </Command.Item>
+          <Command.Item onSelect={() => navigateTo('/categories')}>
+            <Tags className="mr-2 size-4" />
+            Categories
           </Command.Item>
           <Command.Item onSelect={() => navigateTo('/budgets')}>
             <PiggyBank className="mr-2 size-4" />

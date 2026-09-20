@@ -5,6 +5,7 @@ import { LoginPage } from './pages/login.js';
 import { OverviewPage } from './pages/overview.js';
 import { AccountsPage } from './pages/accounts.js';
 import { TransactionsPage } from './pages/transactions.js';
+import { CategoriesPage } from './pages/categories.js';
 import { BudgetsPage } from './pages/budgets.js';
 import { GoalsPage } from './pages/goals.js';
 import { RegisterPage } from './pages/register.js';
@@ -40,6 +41,13 @@ const transactionsRoute = createRoute({
   staticData: { title: 'Transactions' },
 });
 
+const categoriesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/categories',
+  component: CategoriesPage,
+  staticData: { title: 'Categories' },
+});
+
 const budgetsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/budgets',
@@ -71,6 +79,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     accountsRoute,
     transactionsRoute,
+    categoriesRoute,
     budgetsRoute,
     goalsRoute,
   ]),

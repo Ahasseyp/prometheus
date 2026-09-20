@@ -1,4 +1,4 @@
-import { ArrowLeftRight, LayoutDashboard, PiggyBank, Target, Wallet } from 'lucide-react';
+import { ArrowLeftRight, LayoutDashboard, PiggyBank, Tags, Target, Wallet } from 'lucide-react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 
 import { Sidebar } from '@/components/ui/sidebar.js';
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/accounts', label: 'Accounts', icon: Wallet },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/budgets', label: 'Budgets', icon: PiggyBank },
   { to: '/goals', label: 'Goals', icon: Target },
 ];

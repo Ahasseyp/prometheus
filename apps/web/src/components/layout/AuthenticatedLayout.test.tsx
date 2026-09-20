@@ -19,6 +19,7 @@ import { BudgetsPage } from '@/pages/budgets.js';
 import { GoalsPage } from '@/pages/goals.js';
 import { OverviewPage } from '@/pages/overview.js';
 import { TransactionsPage } from '@/pages/transactions.js';
+import { CategoriesPage } from '@/pages/categories.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 import { server } from '@/test/server.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
@@ -103,6 +104,13 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
     staticData: { title: 'Transactions' },
   });
 
+  const categoriesRoute = createRoute({
+    getParentRoute: () => authenticatedRoute,
+    path: '/categories',
+    component: CategoriesPage,
+    staticData: { title: 'Categories' },
+  });
+
   const budgetsRoute = createRoute({
     getParentRoute: () => authenticatedRoute,
     path: '/budgets',
@@ -123,6 +131,7 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
         indexRoute,
         accountsRoute,
         transactionsRoute,
+        categoriesRoute,
         budgetsRoute,
         goalsRoute,
       ]),
@@ -201,6 +210,18 @@ describe('AuthenticatedLayout', () => {
 
     const activeLink = screen.getByRole('link', { name: /budgets/i });
     expect(activeLink).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('renders the categories page from the sidebar navigation', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/categories'] });
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('heading', { level: 1, name: /categories/i }).length
+      ).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByText('CategoriesManager — stub (props: none)')).toBeInTheDocument();
   });
 
   it('opens the assistant dialog from the header button and closes with Escape', async () => {

@@ -81,3 +81,13 @@ and reset the dependent field when it changes
   assert the mutation request payload by spying on `window.fetch`.
 - Cover: happy path (payload + `onSuccess`), filtered options, cross-field
   reset, and the mutation-error path.
+
+## Global entry points
+
+When a dialog must open from outside its feature page (e.g., the ⌘K command
+palette's "Add a transaction"), the owning layout renders its own dialog
+instance at the layout level — `AuthenticatedLayout` owns a
+`TransactionFormDialog` alongside `AssistantDialog` and passes an
+`onAddTransaction` callback into the palette. Feature pages keep their own
+instance for their local buttons; only one instance can be open at a time,
+and all instances share the same gateways and invalidation.

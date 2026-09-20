@@ -7,7 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton.js';
 import { Sidebar, SidebarProvider } from '@/components/ui/sidebar.js';
 import { useLogout } from '@/features/auth/gateways/auth.js';
 import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdState.js';
+import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { CreateHouseholdCard } from '@/features/household/components/CreateHouseholdCard/CreateHouseholdCard.js';
+import { TransactionFormDialog } from '@/features/transactions/components/TransactionFormDialog/TransactionFormDialog.js';
 
 import { AppSidebar } from './AppSidebar.js';
 import { AssistantDialog } from './AssistantDialog.js';
@@ -38,6 +40,8 @@ export function AuthenticatedLayout() {
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const navigate = useNavigate({ from: '/' });
   const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const [addTransactionOpen, setAddTransactionOpen] = React.useState(false);
+  const { data: accounts } = useAccounts();
   const pageTitle = useRouteTitle();
 
   React.useEffect(() => {
@@ -119,7 +123,16 @@ export function AuthenticatedLayout() {
         </main>
       </Sidebar.Inset>
       <MobileNav onOpenAssistant={() => setAssistantOpen(true)} />
-      <AssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} />
+      <AssistantDialog
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+        onAddTransaction={() => setAddTransactionOpen(true)}
+      />
+      <TransactionFormDialog
+        open={addTransactionOpen}
+        onOpenChange={setAddTransactionOpen}
+        accounts={accounts}
+      />
     </SidebarProvider>
   );
 }

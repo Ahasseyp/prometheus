@@ -20,9 +20,10 @@ import { Command } from '@/components/ui/command.js';
 type AssistantDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddTransaction: () => void;
 };
 
-export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
+export function AssistantDialog({ open, onOpenChange, onAddTransaction }: AssistantDialogProps) {
   const navigate = useNavigate({ from: '/' });
   const { setTheme } = useTheme();
 
@@ -45,7 +46,7 @@ export function AssistantDialog({ open, onOpenChange }: AssistantDialogProps) {
       <Command.List>
         <Command.Empty>No commands found.</Command.Empty>
         <Command.Group heading="Suggestions">
-          <Command.Item onSelect={() => run(() => {})}>
+          <Command.Item onSelect={() => run(onAddTransaction)}>
             <Plus className="mr-2 size-4" />
             Add a transaction
           </Command.Item>

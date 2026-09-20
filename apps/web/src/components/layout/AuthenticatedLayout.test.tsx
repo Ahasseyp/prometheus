@@ -245,6 +245,19 @@ describe('AuthenticatedLayout', () => {
     });
   });
 
+  it('opens the add-transaction dialog from the assistant', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    await user.click(await screen.findByText('Add a transaction'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
+    });
+  });
+
   it('renders the household creation card inline when the user has no household', async () => {
     const { router } = await renderAuthenticatedLayout({
       initialEntries: ['/'],

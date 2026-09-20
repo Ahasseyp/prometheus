@@ -142,7 +142,11 @@ _Avoid_: Conversion rate, FX rate
 
 **Money**:
 A quantity of value in a specific Currency, used for transactions, balances, budgets, and goals.
-_Avoid_: Amount, balance, value
+_Avoid_: balance, value
+
+**Amount**:
+The numeric magnitude of a Money — how much, without the Currency. Money is the concept; Amount is its number.
+_Avoid_: Sum, total
 
 **Balance**:
 The current value of an Account, derived from its transaction ledger and kept in sync via a cached value for fast reads. For a loan, the balance is the amount still owed.

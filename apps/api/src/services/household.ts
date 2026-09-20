@@ -10,6 +10,7 @@ import type { HouseholdMembershipRole as HouseholdMembershipRoleType } from '@pr
 import { Prisma } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
+import { seedSystemCategories } from './category.js';
 
 export type CreateHouseholdInput = {
   name: string;
@@ -113,6 +114,10 @@ export async function createHousehold(
           },
         },
       });
+
+      // New Households start with the standard System Categories (issue #24);
+      // seeding shares this transaction so the two never drift apart.
+      await seedSystemCategories(household.id, tx);
 
       return {
         ok: true,

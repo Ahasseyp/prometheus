@@ -3,8 +3,10 @@ import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
 import { accountRouter } from './account.js';
 import { authRouter } from './auth.js';
+import { categoryRouter } from './category.js';
 import { householdRouter } from './household.js';
 import { registrationRouter } from './registration.js';
+import { transactionRouter } from './transaction.js';
 
 export const appRouter = router({
   // Verifies both that the server is up and that PostgreSQL is reachable.
@@ -19,8 +21,10 @@ export const appRouter = router({
 
   account: accountRouter,
   auth: authRouter,
+  category: categoryRouter,
   household: householdRouter,
   registration: registrationRouter,
+  transaction: transactionRouter,
 });
 
 export type AppRouter = typeof appRouter;

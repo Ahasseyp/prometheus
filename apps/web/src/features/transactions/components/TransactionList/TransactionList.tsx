@@ -2,16 +2,16 @@ import { AlertCircle } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert.js';
 import { Button } from '@/components/ui/button.js';
-import type { Account } from '@/features/accounts/gateways/accounts.js';
-import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import { Table } from '@/components/ui/table.js';
 
+import type { Transaction } from '@/features/transactions/gateways/transactions.js';
 import { TransactionListSkeleton } from '@/features/transactions/components/TransactionListSkeleton/TransactionListSkeleton.js';
 import { TransactionRow } from '@/features/transactions/components/TransactionRow/TransactionRow.js';
+import { TransactionTableHead } from '@/features/transactions/components/TransactionTableHead/TransactionTableHead.js';
 import { TransactionsEmptyState } from '@/features/transactions/components/TransactionsEmptyState/TransactionsEmptyState.js';
 
 export interface TransactionListProps {
   transactions?: Transaction[];
-  accounts?: Account[];
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -21,7 +21,6 @@ export interface TransactionListProps {
 
 export function TransactionList({
   transactions,
-  accounts,
   isLoading,
   isError,
   onRetry,
@@ -51,17 +50,14 @@ export function TransactionList({
     return <TransactionsEmptyState filtered={isFiltered} />;
   }
 
-  const accountById = new Map(accounts?.map((account) => [account.id, account]));
-
   return (
-    <>
-      {transactions.map((transaction) => (
-        <TransactionRow
-          key={transaction.id}
-          transaction={transaction}
-          account={accountById.get(transaction.accountId)}
-        />
-      ))}
-    </>
+    <Table>
+      <TransactionTableHead />
+      <Table.Body>
+        {transactions.map((transaction) => (
+          <TransactionRow key={transaction.id} transaction={transaction} />
+        ))}
+      </Table.Body>
+    </Table>
   );
 }

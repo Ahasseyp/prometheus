@@ -46,8 +46,8 @@ export function DateRangePicker({
         <CalendarIcon data-icon="inline-start" />
         {label ?? <span>{placeholder}</span>}
       </Popover.Trigger>
-      <Popover.Content className="w-auto p-0">
-        <Calendar mode="range" selected={value} onSelect={onChange} />
+      <Popover.Content className="w-auto p-0" align="start">
+        <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} />
       </Popover.Content>
     </Popover>
   );

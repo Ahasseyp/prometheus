@@ -13,6 +13,9 @@ export type TransactionFixture = {
   description: string;
   createdAt: string;
   updatedAt: string;
+  accountName: string;
+  accountCurrency: string;
+  categoryName: string;
 };
 
 export function makeTransaction(overrides: Partial<TransactionFixture> = {}): TransactionFixture {
@@ -27,6 +30,9 @@ export function makeTransaction(overrides: Partial<TransactionFixture> = {}): Tr
     description: 'Groceries',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    accountName: 'Everyday Checking',
+    accountCurrency: 'USD',
+    categoryName: 'Groceries',
     ...overrides,
   };
 }

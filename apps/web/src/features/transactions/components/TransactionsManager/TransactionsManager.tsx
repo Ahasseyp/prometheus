@@ -26,10 +26,9 @@ export function TransactionsManager() {
       <TransactionFilters accounts={accounts} value={filters} onChange={setFilters} />
 
       <Card>
-        <Card.Content className="flex flex-col gap-3">
+        <Card.Content flush>
           <TransactionList
             transactions={transactions}
-            accounts={accounts}
             isLoading={isPending}
             isError={isError}
             onRetry={() => void refetch()}

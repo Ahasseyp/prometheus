@@ -42,7 +42,7 @@ export function TransactionFilters({ accounts, value, onChange }: TransactionFil
     <div className="flex flex-wrap items-center gap-3">
       <Select
         value={value.accountId ?? ''}
-        onValueChange={(accountId) =>
+        onValueChange={(accountId: string | null) =>
           onChange({
             ...value,
             accountId: accountId == null || accountId === '' ? undefined : accountId,

@@ -12,7 +12,7 @@ function CardRoot({
       data-slot="card"
       data-size={size}
       className={cn(
-        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl border border-border bg-card py-(--card-spacing) text-sm text-card-foreground shadow-[var(--shadow-card)] [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
+        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl border border-border bg-card py-(--card-spacing) text-sm text-card-foreground shadow-(--shadow-card) [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
         className
       )}
       {...props}
@@ -66,9 +66,18 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
+function CardContent({
+  className,
+  flush = false,
+  ...props
+}: React.ComponentProps<'div'> & { flush?: boolean }) {
   return (
-    <div data-slot="card-content" className={cn('px-(--card-spacing)', className)} {...props} />
+    <div
+      data-slot="card-content"
+      data-flush={flush || undefined}
+      className={cn('px-(--card-spacing)', flush && '-my-(--card-spacing) px-0', className)}
+      {...props}
+    />
   );
 }
 

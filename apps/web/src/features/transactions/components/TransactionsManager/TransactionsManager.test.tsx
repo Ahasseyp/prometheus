@@ -34,7 +34,7 @@ const savingsAccount = makeAccount({
 const groceries = makeTransaction({
   id: 'f6a7b8c9-d0e1-2345-fabc-456789012345',
   accountId: checkingAccount.id,
-  description: 'Groceries',
+  description: 'Weekly shop',
 });
 
 const deposit = makeTransaction({
@@ -59,7 +59,7 @@ describe('TransactionsManager', () => {
     mockTransactionListResponse([groceries, deposit]);
     renderManager();
 
-    expect(await screen.findByText('Groceries')).toBeInTheDocument();
+    expect(await screen.findByText('Weekly shop')).toBeInTheDocument();
     expect(screen.getByText('Paycheck')).toBeInTheDocument();
   });
 

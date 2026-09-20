@@ -1,23 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { makeAccount } from '@/test/account-helpers.js';
 import {
   makeTransaction,
   mockTransactionListError,
   mockTransactionListResponse,
 } from '@/test/transaction-helpers.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
-import type { Account } from '@/features/accounts/gateways/accounts.js';
 
 import type { Transaction } from '../../gateways/transactions.js';
 import { TransactionList } from './TransactionList.js';
-
-const checkingAccount = makeAccount({
-  id: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
-  name: 'Everyday Checking',
-  currency: 'USD',
-}) as unknown as Account;
 
 function renderList(overrides: Partial<Parameters<typeof TransactionList>[0]> = {}) {
   return render(
@@ -33,17 +25,22 @@ function renderList(overrides: Partial<Parameters<typeof TransactionList>[0]> = 
 }
 
 describe('TransactionList', () => {
-  it('renders transaction rows with description, date, account, and signed amount', () => {
+  it('renders transaction rows with description, date, category, account, and signed amount', () => {
     mockTransactionListResponse([]);
     renderList({
       transactions: [
-        makeTransaction({ description: 'Groceries', amount: '12.50' }) as unknown as Transaction,
+        makeTransaction({
+          description: 'Weekly shop',
+          amount: '12.50',
+          accountName: 'Everyday Checking',
+          categoryName: 'Groceries',
+        }) as unknown as Transaction,
       ],
-      accounts: [checkingAccount],
     });
 
-    expect(screen.getByText('Groceries')).toBeInTheDocument();
-    expect(screen.getByText(/Everyday Checking/)).toBeInTheDocument();
+    expect(screen.getByText('Weekly shop')).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Groceries' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Everyday Checking' })).toBeInTheDocument();
     const amount = screen.getByText(/12\.50/);
     expect(amount.textContent).toMatch(/-|−/);
   });
@@ -54,7 +51,6 @@ describe('TransactionList', () => {
       transactions: [
         makeTransaction({ type: 'income', amount: '2500.00' }) as unknown as Transaction,
       ],
-      accounts: [checkingAccount],
     });
 
     const amount = screen.getByText(/2,500\.00/);

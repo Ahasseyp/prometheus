@@ -45,6 +45,17 @@ describe('TransactionList', () => {
     expect(amount.textContent).toMatch(/-|−/);
   });
 
+  it('falls back to the category name when there is no description', () => {
+    mockTransactionListResponse([]);
+    renderList({
+      transactions: [
+        makeTransaction({ description: '', categoryName: 'Groceries' }) as unknown as Transaction,
+      ],
+    });
+
+    expect(screen.getAllByText('Groceries').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('shows income amounts without a minus sign', () => {
     mockTransactionListResponse([]);
     renderList({

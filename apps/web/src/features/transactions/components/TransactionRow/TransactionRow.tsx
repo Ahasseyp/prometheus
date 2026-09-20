@@ -29,7 +29,7 @@ export function TransactionRow({ transaction }: TransactionRowProps) {
         <span className="flex items-center gap-2">
           <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <span className="truncate font-medium">
-            {transaction.description || 'Untitled transaction'}
+            {transaction.description || transaction.categoryName}
           </span>
         </span>
       </Table.Cell>

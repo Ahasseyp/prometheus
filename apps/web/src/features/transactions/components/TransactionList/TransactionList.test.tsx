@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   makeTransaction,
@@ -10,6 +10,19 @@ import { createQueryClientWrapper } from '@/test/providers.js';
 
 import type { Transaction } from '../../gateways/transactions.js';
 import { TransactionList } from './TransactionList.js';
+
+function createMatchMedia(matches: boolean) {
+  return (query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  });
+}
 
 function renderList(overrides: Partial<Parameters<typeof TransactionList>[0]> = {}) {
   return render(
@@ -25,6 +38,9 @@ function renderList(overrides: Partial<Parameters<typeof TransactionList>[0]> = 
 }
 
 describe('TransactionList', () => {
+  beforeEach(() => {
+    window.matchMedia = createMatchMedia(false);
+  });
   it('renders transaction rows with description, date, category, account, and signed amount', () => {
     mockTransactionListResponse([]);
     renderList({

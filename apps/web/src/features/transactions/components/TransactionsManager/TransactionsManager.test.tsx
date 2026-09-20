@@ -131,4 +131,22 @@ describe('TransactionsManager', () => {
 
     expect(await screen.findByText('Delete Weekly shop?')).toBeInTheDocument();
   });
+
+  it('shows cards and opens the action sheet on mobile', async () => {
+    window.innerWidth = 500;
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount]);
+    mockTransactionListResponse([groceries]);
+    mockCategoryListResponse([]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: /Weekly shop/ }));
+
+    expect(await screen.findByRole('heading', { name: 'Weekly shop' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(await screen.findByText('Edit transaction')).toBeInTheDocument();
+    window.innerWidth = 1024;
+  });
 });

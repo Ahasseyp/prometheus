@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { DeleteTransactionDialog } from '@/features/transactions/components/DeleteTransactionDialog/DeleteTransactionDialog.js';
+import { TransactionActionSheet } from '@/features/transactions/components/TransactionActionSheet/TransactionActionSheet.js';
 import { TransactionFilters } from '@/features/transactions/components/TransactionFilters/TransactionFilters.js';
 import { TransactionFormDialog } from '@/features/transactions/components/TransactionFormDialog/TransactionFormDialog.js';
 import { TransactionList } from '@/features/transactions/components/TransactionList/TransactionList.js';
@@ -21,6 +22,7 @@ export function TransactionsManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
   const isFiltered =
     filters.accountId !== undefined || filters.from !== undefined || filters.to !== undefined;
 
@@ -57,6 +59,7 @@ export function TransactionsManager() {
             emptyAction={openCreateForm}
             onEdit={openEditForm}
             onDelete={setDeletingTransaction}
+            onSelect={setActiveTransaction}
           />
         </Card.Content>
       </Card>
@@ -70,6 +73,12 @@ export function TransactionsManager() {
       <DeleteTransactionDialog
         transaction={deletingTransaction}
         onClose={() => setDeletingTransaction(null)}
+      />
+      <TransactionActionSheet
+        transaction={activeTransaction}
+        onClose={() => setActiveTransaction(null)}
+        onEdit={openEditForm}
+        onDelete={setDeletingTransaction}
       />
     </div>
   );

@@ -32,6 +32,9 @@ const transactionResponseSchema = z.object({
   description: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  accountName: z.string(),
+  accountCurrency: z.string(),
+  categoryName: z.string(),
 });
 
 const createTransactionInputSchema = z.object({

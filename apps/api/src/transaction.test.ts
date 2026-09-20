@@ -408,6 +408,11 @@ describe.sequential('transaction procedures', () => {
     const checkingOnly = await client.transaction.list.query({ accountId: checking.id });
     expect(checkingOnly).toHaveLength(2);
     expect(checkingOnly.every((t) => t.accountId === checking.id)).toBe(true);
+    expect(checkingOnly[0]).toMatchObject({
+      accountName: 'Checking',
+      accountCurrency: 'USD',
+      categoryName: 'Groceries',
+    });
 
     const februaryOnly = await client.transaction.list.query({
       from: new Date('2026-02-01T00:00:00.000Z'),

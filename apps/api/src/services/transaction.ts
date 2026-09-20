@@ -12,7 +12,7 @@ import {
 } from '@prometheus/domain';
 import type { TransactionType as DomainTransactionType } from '@prometheus/domain';
 import { Prisma } from '@prisma/client';
-import type { Account, Transaction } from '@prisma/client';
+import type { Account, Category, Transaction } from '@prisma/client';
 
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
@@ -53,6 +53,9 @@ export type TransactionRecord = {
   description: string;
   createdAt: Date;
   updatedAt: Date;
+  accountName: string;
+  accountCurrency: string;
+  categoryName: string;
 };
 
 export type TransactionErrorCode =
@@ -73,9 +76,9 @@ function unexpectedValidationError(reason: string): Error {
   return new Error(`Unexpected transaction validation failure: ${reason}`);
 }
 
-type TransactionWithAccount = Transaction & { account: Account };
+type TransactionWithRelations = Transaction & { account: Account; category: Category };
 
-function mapTransactionToRecord(transaction: TransactionWithAccount): TransactionRecord {
+function mapTransactionToRecord(transaction: TransactionWithRelations): TransactionRecord {
   const currency = transaction.account.currency;
   if (!isCurrencyCode(currency)) {
     throw unexpectedValidationError(`unsupported-currency:${currency}`);
@@ -91,6 +94,9 @@ function mapTransactionToRecord(transaction: TransactionWithAccount): Transactio
     description: transaction.description,
     createdAt: transaction.createdAt,
     updatedAt: transaction.updatedAt,
+    accountName: transaction.account.name,
+    accountCurrency: transaction.account.currency,
+    categoryName: transaction.category.name,
   };
 }
 
@@ -203,7 +209,7 @@ export async function createTransaction(
       date: validatedTransaction.date,
       description: validatedTransaction.description,
     },
-    include: { account: true },
+    include: { account: true, category: true },
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };
@@ -228,7 +234,7 @@ export async function listTransactionsForHousehold(
       ...(filters.accountId !== undefined ? { accountId: filters.accountId } : {}),
       ...(filters.from !== undefined || filters.to !== undefined ? { date: dateFilter } : {}),
     },
-    include: { account: true },
+    include: { account: true, category: true },
     orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
   });
 
@@ -242,7 +248,7 @@ export async function findTransactionById(
   const prisma = getPrisma();
   const transaction = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true },
+    include: { account: true, category: true },
   });
 
   if (transaction === null) {
@@ -260,7 +266,7 @@ export async function updateTransaction(
   const prisma = getPrisma();
   const existing = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true },
+    include: { account: true, category: true },
   });
 
   if (existing === null) {
@@ -329,7 +335,7 @@ export async function updateTransaction(
   const transaction = await prisma.transaction.update({
     where: { id: existing.id },
     data: updateData,
-    include: { account: true },
+    include: { account: true, category: true },
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };

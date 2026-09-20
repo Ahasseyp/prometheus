@@ -1,12 +1,17 @@
-import { Receipt } from 'lucide-react';
+import { Plus, Receipt } from 'lucide-react';
 
+import { Button } from '@/components/ui/button.js';
 import { Empty } from '@/components/ui/empty.js';
 
 export interface TransactionsEmptyStateProps {
   filtered: boolean;
+  onAddTransaction?: () => void;
 }
 
-export function TransactionsEmptyState({ filtered }: TransactionsEmptyStateProps) {
+export function TransactionsEmptyState({
+  filtered,
+  onAddTransaction,
+}: TransactionsEmptyStateProps) {
   return (
     <Empty>
       <Empty.Header>
@@ -17,9 +22,17 @@ export function TransactionsEmptyState({ filtered }: TransactionsEmptyStateProps
         <Empty.Description>
           {filtered
             ? 'Try widening the date range or choosing a different account.'
-            : 'Income and expenses you record will show up here.'}
+            : 'Record an income or expense to start tracking your money.'}
         </Empty.Description>
       </Empty.Header>
+      {!filtered && onAddTransaction && (
+        <Empty.Content>
+          <Button onClick={onAddTransaction}>
+            <Plus data-icon="inline-start" />
+            Add transaction
+          </Button>
+        </Empty.Content>
+      )}
     </Empty>
   );
 }

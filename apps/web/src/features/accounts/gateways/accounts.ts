@@ -10,7 +10,7 @@ type CreateAccountInput = inferRouterInputs<AppRouter>['account']['create'];
 type UpdateAccountInput = inferRouterInputs<AppRouter>['account']['update'];
 type DeleteAccountInput = inferRouterInputs<AppRouter>['account']['delete'];
 
-const accountsListQueryKey = ['accounts', 'list'];
+export const accountsListQueryKey = ['accounts', 'list'];
 
 export function useAccounts() {
   return useQuery({

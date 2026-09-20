@@ -48,3 +48,22 @@ export function mockTransactionListResponse(data: unknown) {
 export function mockTransactionListError() {
   server.use(http.get('/api/trpc/transaction.list', () => HttpResponse.error()));
 }
+
+export function mockCreateTransactionResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/transaction.create', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockCreateTransactionError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/transaction.create', () => {
+      return HttpResponse.json(
+        { error: { message, code: -32600, data: { code: 'BAD_REQUEST', httpStatus: 400 } } },
+        { status: 400 }
+      );
+    })
+  );
+}

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
 import { makeTransaction, mockTransactionListResponse } from '@/test/transaction-helpers.js';
+import { mockCategoryListResponse } from '@/test/category-helpers.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 
 import { TransactionsManager } from './TransactionsManager.js';
@@ -88,5 +89,19 @@ describe('TransactionsManager', () => {
       expect(filtered[0]).toContain(encodeURIComponent(checkingAccount.id));
     });
     window.fetch = originalFetch;
+  });
+
+  it('offers the household accounts in the add-transaction form', async () => {
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount, savingsAccount]);
+    mockTransactionListResponse([]);
+    mockCategoryListResponse([]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Add transaction' }));
+    await user.click(screen.getByRole('combobox', { name: 'Account' }));
+
+    expect(await screen.findByRole('option', { name: 'Everyday Checking' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Vacation Savings' })).toBeInTheDocument();
   });
 });

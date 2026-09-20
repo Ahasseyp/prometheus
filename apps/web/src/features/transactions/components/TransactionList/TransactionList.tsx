@@ -17,6 +17,7 @@ export interface TransactionListProps {
   onRetry: () => void;
   isFiltered: boolean;
   skeletonRows?: number;
+  emptyAction?: () => void;
 }
 
 export function TransactionList({
@@ -26,6 +27,7 @@ export function TransactionList({
   onRetry,
   isFiltered,
   skeletonRows,
+  emptyAction,
 }: TransactionListProps) {
   if (isLoading) {
     return <TransactionListSkeleton rows={skeletonRows} />;
@@ -47,7 +49,7 @@ export function TransactionList({
   }
 
   if (transactions === undefined || transactions.length === 0) {
-    return <TransactionsEmptyState filtered={isFiltered} />;
+    return <TransactionsEmptyState filtered={isFiltered} onAddTransaction={emptyAction} />;
   }
 
   return (

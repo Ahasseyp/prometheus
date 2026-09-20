@@ -18,6 +18,8 @@ export interface TransactionListProps {
   isFiltered: boolean;
   skeletonRows?: number;
   emptyAction?: () => void;
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (transaction: Transaction) => void;
 }
 
 export function TransactionList({
@@ -28,6 +30,8 @@ export function TransactionList({
   isFiltered,
   skeletonRows,
   emptyAction,
+  onEdit,
+  onDelete,
 }: TransactionListProps) {
   if (isLoading) {
     return <TransactionListSkeleton rows={skeletonRows} />;
@@ -57,7 +61,12 @@ export function TransactionList({
       <TransactionTableHead />
       <Table.Body>
         {transactions.map((transaction) => (
-          <TransactionRow key={transaction.id} transaction={transaction} />
+          <TransactionRow
+            key={transaction.id}
+            transaction={transaction}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         ))}
       </Table.Body>
     </Table>

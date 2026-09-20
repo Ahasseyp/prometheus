@@ -104,4 +104,31 @@ describe('TransactionsManager', () => {
     expect(await screen.findByRole('option', { name: 'Everyday Checking' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Vacation Savings' })).toBeInTheDocument();
   });
+
+  it('opens the edit dialog from the row actions menu', async () => {
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount]);
+    mockTransactionListResponse([groceries]);
+    mockCategoryListResponse([]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Weekly shop' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+
+    expect(await screen.findByText('Edit transaction')).toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toHaveValue('12.50');
+  });
+
+  it('opens the delete dialog from the row actions menu', async () => {
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount]);
+    mockTransactionListResponse([groceries]);
+    mockCategoryListResponse([]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Weekly shop' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+
+    expect(await screen.findByText('Delete Weekly shop?')).toBeInTheDocument();
+  });
 });

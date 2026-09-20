@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@prometheus/api/router';
 
@@ -8,6 +9,8 @@ import { accountsListQueryKey } from '@/features/accounts/gateways/accounts.js';
 export type TransactionListOutput = inferRouterOutputs<AppRouter>['transaction']['list'];
 export type Transaction = TransactionListOutput[number];
 type CreateTransactionInput = inferRouterInputs<AppRouter>['transaction']['create'];
+type UpdateTransactionInput = inferRouterInputs<AppRouter>['transaction']['update'];
+type DeleteTransactionInput = inferRouterInputs<AppRouter>['transaction']['delete'];
 
 export interface TransactionFilters {
   accountId?: string;
@@ -35,10 +38,38 @@ export function useCreateTransaction() {
   return useMutation({
     mutationFn: (input: CreateTransactionInput) => trpc.transaction.create.mutate(input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: transactionsListQueryKey });
-      // Balances are derived from the ledger server-side, so the overview's
-      // account amounts change when a transaction is recorded.
-      void queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
+      void invalidateTransactionData(queryClient);
     },
   });
+}
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateTransactionInput) => trpc.transaction.update.mutate(input),
+    onSuccess: () => {
+      void invalidateTransactionData(queryClient);
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: DeleteTransactionInput) => trpc.transaction.delete.mutate(input),
+    onSuccess: () => {
+      void invalidateTransactionData(queryClient);
+    },
+  });
+}
+
+// Transactions change the transactions list and the account balances shown on
+// the overview page (derived from the ledger server-side).
+function invalidateTransactionData(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: transactionsListQueryKey }),
+    queryClient.invalidateQueries({ queryKey: accountsListQueryKey }),
+  ]);
 }

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@prometheus/api/router';
 
@@ -25,7 +26,7 @@ export function useCreateAccount() {
   return useMutation({
     mutationFn: (input: CreateAccountInput) => trpc.account.create.mutate(input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
+      void invalidateAccounts(queryClient);
     },
   });
 }
@@ -36,7 +37,7 @@ export function useUpdateAccount() {
   return useMutation({
     mutationFn: (input: UpdateAccountInput) => trpc.account.update.mutate(input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
+      void invalidateAccounts(queryClient);
     },
   });
 }
@@ -47,7 +48,11 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: (input: DeleteAccountInput) => trpc.account.delete.mutate(input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
+      void invalidateAccounts(queryClient);
     },
   });
+}
+
+function invalidateAccounts(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
 }

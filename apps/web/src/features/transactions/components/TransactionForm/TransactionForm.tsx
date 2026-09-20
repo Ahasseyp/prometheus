@@ -19,6 +19,7 @@ import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { useCategories } from '@/features/categories/gateways/categories.js';
 import {
   useCreateTransaction,
+  useUpdateTransaction,
   type Transaction,
 } from '@/features/transactions/gateways/transactions.js';
 import { getTransactionMutationErrorMessage } from '@/features/transactions/lib/transaction-errors.js';
@@ -60,7 +61,8 @@ const TYPE_LABELS: Record<TransactionType, string> = {
 export function TransactionForm({ accounts, transaction, onSuccess }: TransactionFormProps) {
   const isEditing = transaction !== undefined;
   const createTransaction = useCreateTransaction();
-  const isPending = createTransaction.isPending;
+  const updateTransaction = useUpdateTransaction();
+  const isPending = createTransaction.isPending || updateTransaction.isPending;
   const [formError, setFormError] = useState<string | null>(null);
   const { data: categories } = useCategories();
 
@@ -111,6 +113,7 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
   function clearFormError() {
     setFormError(null);
     createTransaction.reset();
+    updateTransaction.reset();
   }
 
   function withClearedError<T>(handler: (value: T) => void): (value: T) => void {
@@ -147,6 +150,25 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
 
   function handleSubmit({ value }: { value: FormState }) {
     const description = value.description.trim();
+    const date = new Date(`${value.date}T00:00:00`);
+
+    if (isEditing) {
+      // Description is always sent on update so clearing the field clears it
+      // server-side; on create an empty description stays unset.
+      updateTransaction.mutate(
+        {
+          id: transaction.id,
+          type: value.type,
+          amount: value.amount.trim(),
+          accountId: value.accountId,
+          categoryId: value.categoryId,
+          date,
+          description,
+        },
+        { onSuccess: () => onSuccess?.(), onError: handleMutationError }
+      );
+      return;
+    }
 
     createTransaction.mutate(
       {
@@ -154,7 +176,7 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
         amount: value.amount.trim(),
         accountId: value.accountId,
         categoryId: value.categoryId,
-        date: new Date(`${value.date}T00:00:00`),
+        date,
         description: description === '' ? undefined : description,
       },
       { onSuccess: () => onSuccess?.(), onError: handleMutationError }

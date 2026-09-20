@@ -9,6 +9,9 @@ export function TransactionTableHead() {
         <Table.Head>Category</Table.Head>
         <Table.Head>Account</Table.Head>
         <Table.Head className="text-right">Amount</Table.Head>
+        <Table.Head className="w-0">
+          <span className="sr-only">Actions</span>
+        </Table.Head>
       </Table.Row>
     </Table.Header>
   );

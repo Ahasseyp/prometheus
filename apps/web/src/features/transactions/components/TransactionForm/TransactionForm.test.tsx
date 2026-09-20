@@ -7,8 +7,10 @@ import {
   makeTransaction,
   mockCreateTransactionError,
   mockCreateTransactionResponse,
+  mockUpdateTransactionResponse,
 } from '@/test/transaction-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
+import type { Transaction } from '../../gateways/transactions.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 
@@ -129,5 +131,48 @@ describe('TransactionForm', () => {
     expect(
       await screen.findByText('Enter a positive amount valid for the account’s currency.')
     ).toBeInTheDocument();
+  });
+
+  it('submits an update with the transaction id when editing', async () => {
+    const user = userEvent.setup();
+    const existing = makeTransaction({
+      id: 'f6a7b8c9-d0e1-2345-fabc-456789012345',
+      type: 'expense',
+      amount: '12.50',
+      accountId: checkingAccount.id,
+      description: 'Weekly shop',
+    }) as unknown as Transaction;
+    mockCategoryListResponse([groceries]);
+    mockUpdateTransactionResponse(existing);
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    const onSuccess = vi.fn();
+
+    render(
+      <TransactionForm accounts={[checkingAccount]} transaction={existing} onSuccess={onSuccess} />,
+      { wrapper: createQueryClientWrapper() }
+    );
+
+    expect(screen.getByRole('button', { name: 'Expense' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Amount')).toHaveValue('12.50');
+    expect(screen.getByLabelText('Description')).toHaveValue('Weekly shop');
+
+    await user.clear(screen.getByLabelText('Amount'));
+    await user.type(screen.getByLabelText('Amount'), '20.00');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+
+    const updateCall = fetchSpy.mock.calls.find(([url]) =>
+      String(url).includes('transaction.update')
+    );
+    expect(updateCall).toBeDefined();
+    const updatePayload = JSON.parse(String(updateCall![1]?.body));
+    expect(updatePayload).toMatchObject({
+      id: existing.id,
+      amount: '20.00',
+      accountId: checkingAccount.id,
+      categoryId: existing.categoryId,
+    });
+    fetchSpy.mockRestore();
   });
 });

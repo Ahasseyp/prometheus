@@ -4,11 +4,13 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
+import { DeleteTransactionDialog } from '@/features/transactions/components/DeleteTransactionDialog/DeleteTransactionDialog.js';
 import { TransactionFilters } from '@/features/transactions/components/TransactionFilters/TransactionFilters.js';
 import { TransactionFormDialog } from '@/features/transactions/components/TransactionFormDialog/TransactionFormDialog.js';
 import { TransactionList } from '@/features/transactions/components/TransactionList/TransactionList.js';
 import {
   useTransactions,
+  type Transaction,
   type TransactionFilters as Filters,
 } from '@/features/transactions/gateways/transactions.js';
 
@@ -17,14 +19,26 @@ export function TransactionsManager() {
   const [filters, setFilters] = useState<Filters>({});
   const { data: transactions, isPending, isError, refetch } = useTransactions(filters);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const isFiltered =
     filters.accountId !== undefined || filters.from !== undefined || filters.to !== undefined;
+
+  function openCreateForm() {
+    setEditingTransaction(undefined);
+    setFormOpen(true);
+  }
+
+  function openEditForm(transaction: Transaction) {
+    setEditingTransaction(transaction);
+    setFormOpen(true);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-        <Button onClick={() => setFormOpen(true)}>
+        <Button onClick={openCreateForm}>
           <Plus data-icon="inline-start" />
           Add transaction
         </Button>
@@ -40,12 +54,23 @@ export function TransactionsManager() {
             isError={isError}
             onRetry={() => void refetch()}
             isFiltered={isFiltered}
-            emptyAction={() => setFormOpen(true)}
+            emptyAction={openCreateForm}
+            onEdit={openEditForm}
+            onDelete={setDeletingTransaction}
           />
         </Card.Content>
       </Card>
 
-      <TransactionFormDialog open={formOpen} onOpenChange={setFormOpen} accounts={accounts} />
+      <TransactionFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        accounts={accounts}
+        transaction={editingTransaction}
+      />
+      <DeleteTransactionDialog
+        transaction={deletingTransaction}
+        onClose={() => setDeletingTransaction(null)}
+      />
     </div>
   );
 }

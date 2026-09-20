@@ -67,3 +67,19 @@ export function mockCreateTransactionError(message = 'Something went wrong.') {
     })
   );
 }
+
+export function mockUpdateTransactionResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/transaction.update', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockDeleteTransactionResponse(data: unknown = { ok: true }) {
+  server.use(
+    http.post('/api/trpc/transaction.delete', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}

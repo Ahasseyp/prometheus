@@ -28,6 +28,9 @@ export function TransactionListSkeleton({ rows = 5 }: TransactionListSkeletonPro
             <Table.Cell className="text-right">
               <Skeleton className="ml-auto h-4 w-20" />
             </Table.Cell>
+            <Table.Cell>
+              <Skeleton className="ml-auto size-8" />
+            </Table.Cell>
           </Table.Row>
         ))}
       </Table.Body>

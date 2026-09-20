@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Transaction
+method: GET
+url: '{{base_url}}/api/trpc/transaction.get'
+order: 3000
+queryParams:
+  - key: input
+    value: '{"id":"{{transaction_id}}"}'
+    description: 'Transaction UUID'

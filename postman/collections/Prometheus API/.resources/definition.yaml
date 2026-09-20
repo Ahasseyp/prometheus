@@ -1,0 +1,6 @@
+$kind: collection
+name: Prometheus API
+description: 'tRPC API for Prometheus — a personal finance tracking app. Authentication uses a session_token cookie set automatically on login/register.'
+variables:
+  - key: base_url
+    value: 'http://localhost:3000'

@@ -1,0 +1,4 @@
+$kind: collection
+name: Accounts
+description: 'CRUD operations for financial accounts within a household.'
+order: 5000

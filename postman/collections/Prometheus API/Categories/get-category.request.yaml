@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Category
+method: GET
+url: '{{base_url}}/api/trpc/category.get'
+order: 3000
+queryParams:
+  - key: input
+    value: '{"id":"{{category_id}}"}'
+    description: 'Category UUID'

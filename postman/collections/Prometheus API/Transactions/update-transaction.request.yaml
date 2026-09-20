@@ -1,0 +1,17 @@
+$kind: http-request
+name: Update Transaction
+method: POST
+url: '{{base_url}}/api/trpc/transaction.update'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{transaction_id}}",
+      "amount": "55.00",
+      "description": "Updated description",
+      "date": "2024-01-16T00:00:00.000Z"
+    }

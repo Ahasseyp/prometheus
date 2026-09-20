@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Account
+method: GET
+url: '{{base_url}}/api/trpc/account.get'
+order: 3000
+queryParams:
+  - key: input
+    value: '{"id":"{{account_id}}"}'
+    description: 'Account UUID'

@@ -22,8 +22,8 @@ export type MoneyFactor = string | bigint;
 
 /**
  * A quantity of Money in a specific Currency. All arithmetic is exact
- * integer math; same-currency operations are the default and cross-currency
- * conversion is out of scope.
+ * integer math; same-currency operations are methods and cross-currency
+ * conversion uses convertMoney with an explicit Exchange Rate.
  */
 export type Money = {
   /** The ISO 4217 currency code this Money is denominated in. */

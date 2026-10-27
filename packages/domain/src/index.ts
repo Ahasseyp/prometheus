@@ -1,4 +1,4 @@
-export { createMoney, createMoneyFromMinorUnits } from './money.js';
+export { convertMoney, createMoney, createMoneyFromMinorUnits } from './money.js';
 export { currencyFor, isCurrencyCode } from './currencies.js';
 export type { CurrencyCode } from './currencies.js';
 export type { Money, MoneyError, Result, MoneyFactor } from './types.js';

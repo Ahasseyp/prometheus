@@ -222,3 +222,28 @@ export function createMoneyFromMinorUnits(
   const dineroObject = createDineroFromMinorUnits(minorUnits, currency, currency.exponent);
   return { ok: true, value: wrapDinero(dineroObject, currencyCode) };
 }
+
+export function convertMoney(
+  money: Money,
+  exchangeRate: MoneyFactor,
+  targetCurrencyCode: CurrencyCode
+): Result<Money> {
+  const targetCurrency = currencyFor(targetCurrencyCode);
+  if (targetCurrency == null) {
+    return { ok: false, error: { type: 'unsupported-currency', currency: targetCurrencyCode } };
+  }
+
+  const scaledRateResult = parseFactor(exchangeRate);
+  if (!scaledRateResult.ok) {
+    return scaledRateResult;
+  }
+
+  const multiplied = dineroMultiply(unwrap(money), scaledRateResult.value);
+  const rounded = transformScale(multiplied, targetCurrency.exponent, halfUp);
+  const converted = dinero({
+    amount: toSnapshot(rounded).amount,
+    currency: targetCurrency,
+    scale: targetCurrency.exponent,
+  });
+  return { ok: true, value: wrapDinero(converted, targetCurrencyCode) };
+}

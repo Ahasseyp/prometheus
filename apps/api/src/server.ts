@@ -8,6 +8,7 @@ import express from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { z } from 'zod';
 
+import { startExchangeRateRefreshSchedule } from './exchange-rates/scheduler.js';
 import { appRouter } from './router.js';
 import { createContext } from './trpc.js';
 
@@ -70,4 +71,5 @@ if (isMainModule) {
   app.listen(port, () => {
     console.log(`API server ready at http://localhost:${port}`);
   });
+  startExchangeRateRefreshSchedule();
 }

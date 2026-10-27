@@ -30,6 +30,9 @@ const transactionResponseSchema = z.object({
   amount: z.string(),
   date: z.date(),
   description: z.string(),
+  reportingCurrency: z.string().nullable(),
+  exchangeRate: z.string().nullable(),
+  exchangeRateOverridden: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
   accountName: z.string(),
@@ -71,6 +74,10 @@ const transactionErrorMappings: Record<
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
 > = {
   'invalid-data': { code: 'BAD_REQUEST', message: 'The transaction data is invalid.' },
+  'exchange-rate-unavailable': {
+    code: 'BAD_REQUEST',
+    message: 'An Exchange Rate is unavailable for this Account Currency and transaction date.',
+  },
   'account-not-found': { code: 'NOT_FOUND', message: 'Account not found.' },
   'category-not-found': { code: 'NOT_FOUND', message: 'Category not found.' },
   'type-mismatch': {

@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
+import { getPrisma } from './prisma.js';
 import { createCookieJarFetch } from './test/cookies.js';
 import { cleanupTestData, makeTestEmail, startTestServer } from './test/server.js';
 import { AccountType, TransactionType } from '@prometheus/domain';
@@ -46,6 +47,9 @@ describe.sequential('transaction procedures', () => {
     } else {
       process.env.ALLOW_REGISTRATION = originalAllowRegistration;
     }
+    await getPrisma().exchangeRate.deleteMany({
+      where: { baseCurrency: 'MXN', quoteCurrency: 'USD' },
+    });
     await cleanupTestData({ userIds: createdUserIds, householdIds: createdHouseholdIds });
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
@@ -115,7 +119,102 @@ describe.sequential('transaction procedures', () => {
     expect(transaction.categoryId).toBe(groceries.id);
     expect(transaction.description).toBe('Weekly groceries');
     expect(transaction.householdId).toBe(context.household.id);
+    expect(transaction.reportingCurrency).toBe('USD');
+    expect(transaction.exchangeRate).toBe('1');
+    expect(transaction.exchangeRateOverridden).toBe(false);
     expect(new Date(transaction.date).toISOString()).toBe('2026-08-15T00:00:00.000Z');
+  });
+
+  it('stores the transaction-date exchange rate for a cross-currency transaction', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('txn-create-cross-currency'),
+      'Secure-password-15'
+    );
+    if (context === null) return;
+
+    const account = await client.account.create.mutate({
+      name: 'Cash MXN',
+      type: AccountType.Cash,
+      currency: 'MXN',
+    });
+    const groceries = await findSystemCategory('Groceries');
+    const transactionDate = new Date('2026-08-15T00:00:00.000Z');
+    await getPrisma().exchangeRate.create({
+      data: {
+        baseCurrency: 'MXN',
+        quoteCurrency: 'USD',
+        date: transactionDate,
+        rate: '0.054',
+        provider: 'test',
+      },
+    });
+
+    const transaction = await client.transaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '100',
+      accountId: account.id,
+      categoryId: groceries.id,
+      date: transactionDate,
+    });
+
+    expect(transaction.reportingCurrency).toBe('USD');
+    expect(transaction.exchangeRate).toBe('0.054');
+    expect(transaction.exchangeRateOverridden).toBe(false);
+
+    const nextDate = new Date('2026-08-16T00:00:00.000Z');
+    await getPrisma().exchangeRate.create({
+      data: {
+        baseCurrency: 'MXN',
+        quoteCurrency: 'USD',
+        date: nextDate,
+        rate: '0.055',
+        provider: 'test',
+      },
+    });
+    const updated = await client.transaction.update.mutate({
+      id: transaction.id,
+      date: nextDate,
+    });
+
+    expect(updated.exchangeRate).toBe('0.055');
+  });
+
+  it('rejects a cross-currency transaction when no exchange rate is available', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('txn-create-no-rate'),
+      'Secure-password-16'
+    );
+    if (context === null) return;
+
+    const account = await client.account.create.mutate({
+      name: 'GBP Account',
+      type: AccountType.Checking,
+      currency: 'GBP',
+    });
+    const groceries = await findSystemCategory('Groceries');
+    const serverFetch = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string | URL | Request, init?: RequestInit) =>
+        String(input).startsWith('http://')
+          ? serverFetch(input, init)
+          : Promise.reject(new Error('Provider unavailable'))
+      )
+    );
+
+    try {
+      await expect(
+        client.transaction.create.mutate({
+          type: TransactionType.Expense,
+          amount: '100',
+          accountId: account.id,
+          categoryId: groceries.id,
+          date: new Date('2026-08-17T00:00:00.000Z'),
+        })
+      ).rejects.toThrow('An Exchange Rate is unavailable');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('creates an income transaction and reflects it in the account balance', async () => {

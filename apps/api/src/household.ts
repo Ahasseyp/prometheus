@@ -4,9 +4,10 @@ import { HouseholdMembershipRole, isCurrencyCode } from '@prometheus/domain';
 import {
   createHousehold,
   findActiveHouseholdForUser,
+  updateHouseholdReportingCurrency,
   USER_ALREADY_HAS_HOUSEHOLD_ERROR,
 } from './services/household.js';
-import { protectedProcedure, router } from './trpc.js';
+import { getHouseholdId, protectedProcedure, router } from './trpc.js';
 
 const createHouseholdInputSchema = z.object({
   name: z.string().refine((value) => value.trim().length > 0, {
@@ -52,6 +53,18 @@ export const householdRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await createHousehold(input, ctx.user.id);
       return result;
+    }),
+
+  updateReportingCurrency: protectedProcedure
+    .input(createHouseholdInputSchema.pick({ reportingCurrency: true }))
+    .output(householdContextSchema)
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'a reporting currency');
+      const household = await updateHouseholdReportingCurrency(
+        input.reportingCurrency,
+        householdId
+      );
+      return { ...household, role: ctx.user.household!.role };
     }),
 
   me: protectedProcedure.output(meOutputSchema).query(async ({ ctx }) => {

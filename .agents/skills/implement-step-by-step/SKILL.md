@@ -21,15 +21,27 @@ Mark which slices carry a testable **seam** (per `/tdd`) and name the seam. Seam
 For UI work with new components, the plan follows this shape:
 
 - **Slice 1 is the wiring slice.** Create the entry component at its final path with its real props interface but a visible stub render (a dashed box showing the component name and received props), and consume it in the real view. This slice reviews placement, naming, and data flow.
-- **Later slices implement components top-down.** Entry component first — its children still render as stubs — then down the tree, one component per slice. Every slice is visible when it lands because its parent is already real.
+- **Slice 2 is the layout scaffold** (multi-region UIs only — skip it when the feature is a single region). Replace the entry component's single stub with the real layout frame: panes, scroll containers, pinned regions, responsive visibility. Render each region as a labeled stub via a local throwaway `Stub` helper in the entry component file — dashed border, muted label showing the future component's name, `className` passthrough for placement. This slice reviews the layout contract (what scrolls, what stays pinned, what collapses and when) in the browser before any real component exists.
+- **Later slices implement components top-down.** Replace the scaffold's stubs one component per slice, down the tree. Every slice is visible when it lands because its surrounding frame is already real.
 
 For UI work that changes existing behavior (not new components), the same principle applies: land the visible change first (e.g. the new footer, button, or state rendered from existing data with stub handlers), then land the data layer (gateway, hook) together with the wiring that makes it real. The slice that hooks things up must be the slice where the behavior becomes manually testable end to end.
 
-Present the plan and wait. Adjust and re-present until the user approves. Write no code before the plan is approved.
+Once the initial decisions are settled, do not present the plan in chat for approval — persist it immediately (next step) and let the user review the written file. Write no code before the plan is approved.
 
-## 2. Persist the plan
+## 2. Persist the plan, then review
 
-Write the approved plan to `.scratch/<feature>-slices.md` with per-slice status (`pending` / `approved` / `committed`). Update it at every gate — it is the resume point if the session is compacted or restarted.
+As soon as the initial decisions are fine-tuned, write the plan to `.scratch/<feature>-slices.md`, following the format in [EXAMPLE.md](./EXAMPLE.md). Then ask the user whether anything should be modified. Adjust and rewrite the file until the user approves it — the scratch file, not a chat message, is the plan under review at all times.
+
+The plan format:
+
+- **Header** — GitHub issue link, branch, one-line feature summary.
+- **Scope** — a few bullets bounding the work (in/out).
+- **Decisions** — optional; only decisions that change implementation. Omit the section when there are none.
+- **Status table** — every slice with its one-line goal and status (`pending` / `approved` / `committed`); each slice heading also carries its status.
+- **Slices** — one-line goal, a few bullets of what changes, a `Verify:` line (how to see it), `Seam:` only when a seam exists.
+- **Plan change log** — dated, user-signed-off changes to the plan. Do not restate this protocol in the plan.
+
+Update the status table at every gate — it is the resume point if the session is compacted or restarted.
 
 ## 3. Execute the current slice
 

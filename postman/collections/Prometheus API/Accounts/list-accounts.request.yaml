@@ -1,0 +1,5 @@
+$kind: http-request
+name: List Accounts
+method: GET
+url: '{{base_url}}/api/trpc/account.list'
+order: 2000

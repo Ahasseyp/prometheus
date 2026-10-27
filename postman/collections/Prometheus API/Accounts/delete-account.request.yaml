@@ -1,0 +1,14 @@
+$kind: http-request
+name: Delete Account
+method: POST
+url: '{{base_url}}/api/trpc/account.delete'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{account_id}}"
+    }

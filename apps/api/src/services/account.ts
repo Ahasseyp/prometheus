@@ -2,11 +2,13 @@ import crypto from 'node:crypto';
 
 import {
   createAccount as createAccountEntity,
+  createMoneyFromMinorUnits,
+  isCurrencyCode,
   AccountType,
   makeAccountId,
   makeHouseholdId,
 } from '@prometheus/domain';
-import type { AccountType as DomainAccountType } from '@prometheus/domain';
+import type { AccountType as DomainAccountType, Money } from '@prometheus/domain';
 import { Prisma } from '@prisma/client';
 import type { Account } from '@prisma/client';
 
@@ -66,22 +68,76 @@ export function mapDomainAccountType(type: DomainAccountType): Account['type'] {
   return domainAccountTypeMap[type];
 }
 
-function computeAccountBalance(): string {
-  // v1 does not yet have a transaction ledger (#24). Once transactions are
-  // introduced, this should sum the ledger for the account. For now every
-  // account starts with a zero balance, which matches the spec fallback for
-  // accounts with no transactions.
-  return '0';
+function createMoneyInAccountCurrency(
+  minorUnits: bigint,
+  account: Pick<Account, 'currency'>
+): Money {
+  if (!isCurrencyCode(account.currency)) {
+    throw unexpectedValidationError(`unsupported-currency:${account.currency}`);
+  }
+  const moneyResult = createMoneyFromMinorUnits(minorUnits, account.currency);
+  if (!moneyResult.ok) {
+    throw unexpectedValidationError(moneyResult.error.type);
+  }
+  return moneyResult.value;
 }
 
-function mapAccountToWithBalance(account: Account): AccountWithBalance {
+// Balance is derived from the transaction ledger: income adds, expense
+// subtracts (issue #24). Sums are Money values in the Account Currency and
+// are only formatted to decimal strings at the response boundary.
+async function sumAccountBalances(
+  accounts: Array<Pick<Account, 'id' | 'currency'>>
+): Promise<Map<string, Money>> {
+  const balances = new Map<string, Money>();
+  for (const account of accounts) {
+    balances.set(account.id, createMoneyInAccountCurrency(0n, account));
+  }
+  if (accounts.length === 0) {
+    return balances;
+  }
+
+  const prisma = getPrisma();
+  const grouped = await prisma.transaction.groupBy({
+    by: ['accountId', 'type'],
+    where: { accountId: { in: accounts.map((account) => account.id) } },
+    _sum: { amount: true },
+  });
+
+  for (const row of grouped) {
+    const current = balances.get(row.accountId);
+    if (current === undefined) {
+      throw unexpectedValidationError('balance-for-unknown-account');
+    }
+    const total = createMoneyInAccountCurrency(row._sum.amount ?? 0n, {
+      currency: current.currency,
+    });
+    // Same currency within one account, so add/subtract cannot mismatch;
+    // a mismatch Result here means a data bug and must not pass silently.
+    const next = row.type === 'INCOME' ? current.add(total) : current.subtract(total);
+    if (!next.ok) {
+      throw unexpectedValidationError(next.error.type);
+    }
+    balances.set(row.accountId, next.value);
+  }
+
+  return balances;
+}
+
+function mapAccountToWithBalance(
+  account: Account,
+  balances: Map<string, Money>
+): AccountWithBalance {
+  const balance = balances.get(account.id);
+  if (balance === undefined) {
+    throw unexpectedValidationError('missing-balance');
+  }
   return {
     id: account.id,
     householdId: account.householdId,
     name: account.name,
     type: mapPrismaAccountType(account.type),
     currency: account.currency,
-    balance: computeAccountBalance(),
+    balance: balance.toDecimal(),
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
   };
@@ -115,7 +171,7 @@ export async function createAccount(
     },
   });
 
-  return mapAccountToWithBalance(account);
+  return mapAccountToWithBalance(account, await sumAccountBalances([account]));
 }
 
 export async function listAccountsForHousehold(householdId: string): Promise<AccountWithBalance[]> {
@@ -125,7 +181,8 @@ export async function listAccountsForHousehold(householdId: string): Promise<Acc
     orderBy: { createdAt: 'asc' },
   });
 
-  return accounts.map(mapAccountToWithBalance);
+  const balances = await sumAccountBalances(accounts);
+  return accounts.map((account) => mapAccountToWithBalance(account, balances));
 }
 
 export async function findAccountById(
@@ -141,7 +198,7 @@ export async function findAccountById(
     return null;
   }
 
-  return mapAccountToWithBalance(account);
+  return mapAccountToWithBalance(account, await sumAccountBalances([account]));
 }
 
 export async function updateAccount(
@@ -171,7 +228,7 @@ export async function updateAccount(
       where: { id: accountId, householdId },
       data: updateData,
     });
-    return mapAccountToWithBalance(account);
+    return mapAccountToWithBalance(account, await sumAccountBalances([account]));
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return null;

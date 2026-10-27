@@ -1,0 +1,4 @@
+$kind: collection
+name: Health
+description: Server and database health check.
+order: 1000

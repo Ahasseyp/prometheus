@@ -1,0 +1,4 @@
+$kind: collection
+name: Transactions
+description: 'CRUD operations for financial transactions within a household.'
+order: 7000

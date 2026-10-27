@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMoney } from './money.js';
+import { createMoney, createMoneyFromMinorUnits } from './money.js';
 import { expectValue } from './testing/expect-value.js';
 
 const usd = (decimal: string) => createMoney(decimal, 'USD');
@@ -35,6 +35,45 @@ describe('Money creation', () => {
   it('uses the currency scale for zero-decimal currencies', () => {
     const yen = expectValue(createMoney('100', 'JPY'));
     expect(yen.toDecimal()).toBe('100');
+  });
+});
+
+describe('Money minor units', () => {
+  it('exposes the amount in minor units', () => {
+    const money = expectValue(usd('123.45'));
+    expect(money.toMinorUnits()).toBe(12345n);
+  });
+
+  it('normalizes integer amounts to minor units', () => {
+    const money = expectValue(usd('100'));
+    expect(money.toMinorUnits()).toBe(10000n);
+  });
+
+  it('uses the currency scale for zero-decimal currencies', () => {
+    const yen = expectValue(createMoney('100', 'JPY'));
+    expect(yen.toMinorUnits()).toBe(100n);
+  });
+
+  it('preserves negative amounts', () => {
+    const money = expectValue(usd('-4.25'));
+    expect(money.toMinorUnits()).toBe(-425n);
+  });
+
+  it('reflects arithmetic results', () => {
+    const sum = expectValue(expectValue(usd('0.10')).add(expectValue(usd('0.20'))));
+    expect(sum.toMinorUnits()).toBe(30n);
+  });
+
+  it('creates money from minor units and formats it as a decimal', () => {
+    const money = expectValue(createMoneyFromMinorUnits(12345n, 'USD'));
+    expect(money.toDecimal()).toBe('123.45');
+    expect(money.toMinorUnits()).toBe(12345n);
+  });
+
+  it('round-trips through toMinorUnits', () => {
+    const money = expectValue(usd('42.50'));
+    const restored = expectValue(createMoneyFromMinorUnits(money.toMinorUnits(), 'USD'));
+    expect(restored.toDecimal()).toBe('42.50');
   });
 });
 

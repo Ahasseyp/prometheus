@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get My Household
+method: GET
+url: '{{base_url}}/api/trpc/household.me'
+order: 2000

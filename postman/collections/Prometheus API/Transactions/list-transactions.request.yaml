@@ -1,0 +1,9 @@
+$kind: http-request
+name: List Transactions
+method: GET
+url: '{{base_url}}/api/trpc/transaction.list'
+order: 2000
+queryParams:
+  - key: input
+    value: '{"accountId":"{{account_id}}","from":"2024-01-01T00:00:00.000Z","to":"2024-12-31T23:59:59.999Z"}'
+    description: 'Optional filters: accountId, from date, to date'

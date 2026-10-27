@@ -59,7 +59,7 @@ describe('account service', () => {
     expect(account.type).toBe(AccountType.Checking);
     expect(account.currency).toBe('USD');
     expect(account.householdId).toBe(householdId());
-    expect(account.balance).toBe('0');
+    expect(account.balance).toBe('0.00');
   });
 
   it('lists accounts only for the requested household', async () => {

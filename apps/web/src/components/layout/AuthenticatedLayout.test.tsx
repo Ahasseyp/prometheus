@@ -19,11 +19,13 @@ import { BudgetsPage } from '@/pages/budgets.js';
 import { GoalsPage } from '@/pages/goals.js';
 import { OverviewPage } from '@/pages/overview.js';
 import { TransactionsPage } from '@/pages/transactions.js';
+import { CategoriesPage } from '@/pages/categories.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 import { server } from '@/test/server.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockCreateHouseholdResponse, mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { mockAccountListResponse } from '@/test/account-helpers.js';
+import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -103,6 +105,13 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
     staticData: { title: 'Transactions' },
   });
 
+  const categoriesRoute = createRoute({
+    getParentRoute: () => authenticatedRoute,
+    path: '/categories',
+    component: CategoriesPage,
+    staticData: { title: 'Categories' },
+  });
+
   const budgetsRoute = createRoute({
     getParentRoute: () => authenticatedRoute,
     path: '/budgets',
@@ -123,6 +132,7 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
         indexRoute,
         accountsRoute,
         transactionsRoute,
+        categoriesRoute,
         budgetsRoute,
         goalsRoute,
       ]),
@@ -203,6 +213,19 @@ describe('AuthenticatedLayout', () => {
     expect(activeLink).toHaveAttribute('aria-current', 'page');
   });
 
+  it('renders the categories page from the sidebar navigation', async () => {
+    mockCategoryListResponse([makeCategory({ name: 'Groceries' })]);
+    await renderAuthenticatedLayout({ initialEntries: ['/categories'] });
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('heading', { level: 1, name: /categories/i }).length
+      ).toBeGreaterThan(0);
+    });
+
+    expect(await screen.findByText('Groceries')).toBeInTheDocument();
+  });
+
   it('opens the assistant dialog from the header button and closes with Escape', async () => {
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
@@ -242,6 +265,19 @@ describe('AuthenticatedLayout', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('opens the add-transaction dialog from the assistant', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    await user.click(await screen.findByText('Add a transaction'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
     });
   });
 

@@ -1,0 +1,14 @@
+$kind: http-request
+name: Delete Transaction
+method: POST
+url: '{{base_url}}/api/trpc/transaction.delete'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{transaction_id}}"
+    }

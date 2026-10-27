@@ -40,7 +40,10 @@ function CommandDialog({
         <Dialog.Description>{description}</Dialog.Description>
       </Dialog.Header>
       <Dialog.Content
-        className={cn('top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0', className)}
+        className={cn(
+          'top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 sm:min-w-lg sm:max-w-xl',
+          className
+        )}
         showCloseButton={showCloseButton}
       >
         <CommandRoot className="size-full rounded-none! bg-transparent p-0 shadow-none">

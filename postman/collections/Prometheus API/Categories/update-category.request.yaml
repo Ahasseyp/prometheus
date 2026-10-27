@@ -1,0 +1,15 @@
+$kind: http-request
+name: Update Category
+method: POST
+url: '{{base_url}}/api/trpc/category.update'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{category_id}}",
+      "name": "Updated Category Name"
+    }

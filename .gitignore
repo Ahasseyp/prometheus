@@ -36,3 +36,4 @@ opencode.json
 
 # Testing
 coverage/
+.scratch/

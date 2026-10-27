@@ -1,0 +1,16 @@
+$kind: http-request
+name: Update Account
+method: POST
+url: '{{base_url}}/api/trpc/account.update'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{account_id}}",
+      "name": "Updated Account Name",
+      "type": "SAVINGS"
+    }

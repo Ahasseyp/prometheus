@@ -132,6 +132,7 @@ function wrapDinero(dineroObject: Dinero<bigint>, currency: CurrencyCode): Money
   const money: Money = {
     currency,
     toDecimal: () => toDecimal(dineroObject),
+    toMinorUnits: () => toSnapshot(dineroObject).amount,
     add: (other) => applyBinaryOperation(currency, dineroObject, other, dineroAdd),
     subtract: (other) => applyBinaryOperation(currency, dineroObject, other, dineroSubtract),
     multiply: (factor) => {
@@ -204,4 +205,20 @@ export function createMoney(decimal: string, currencyCode: CurrencyCode): Result
   const dineroObject = createDineroFromMinorUnits(minorUnitsResult.value, currency, scale);
   const money = wrapDinero(dineroObject, currencyCode);
   return { ok: true, value: money };
+}
+
+/**
+ * Creates a Money value from an amount in the currency's minor units
+ * (e.g. 1234n with USD -> "12.34").
+ */
+export function createMoneyFromMinorUnits(
+  minorUnits: bigint,
+  currencyCode: CurrencyCode
+): Result<Money> {
+  const currency = currencyFor(currencyCode);
+  if (currency == null) {
+    return { ok: false, error: { type: 'unsupported-currency', currency: currencyCode } };
+  }
+  const dineroObject = createDineroFromMinorUnits(minorUnits, currency, currency.exponent);
+  return { ok: true, value: wrapDinero(dineroObject, currencyCode) };
 }

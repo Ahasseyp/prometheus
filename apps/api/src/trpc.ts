@@ -28,6 +28,40 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   });
 });
 
+export function getHouseholdId(
+  ctx: { user: { household: { id: string } | null } },
+  feature: string
+): string {
+  if (ctx.user.household === null) {
+    throw new TRPCError({
+      code: 'PRECONDITION_FAILED',
+      message: `Create a household before managing ${feature}.`,
+    });
+  }
+  return ctx.user.household.id;
+}
+
+type ServiceErrorMapping = {
+  code: 'NOT_FOUND' | 'PRECONDITION_FAILED' | 'BAD_REQUEST';
+  message: string;
+};
+
+/**
+ * Translates a service-layer error code into a TRPCError using the router's
+ * mapping table and throws it. An unmapped code surfaces as
+ * INTERNAL_SERVER_ERROR so a missed mapping is visible rather than silent.
+ */
+export function throwServiceError(
+  error: string,
+  mappings: Record<string, ServiceErrorMapping>
+): never {
+  const mapping = mappings[error];
+  if (mapping === undefined) {
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+  }
+  throw new TRPCError({ code: mapping.code, message: mapping.message });
+}
+
 export async function createContext({
   req,
   res,

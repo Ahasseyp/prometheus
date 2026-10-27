@@ -1,0 +1,14 @@
+$kind: http-request
+name: Delete Category
+method: POST
+url: '{{base_url}}/api/trpc/category.delete'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{category_id}}"
+    }

@@ -9,7 +9,7 @@ import {
   listAccountsForHousehold,
   updateAccount,
 } from './services/account.js';
-import { protectedProcedure, router } from './trpc.js';
+import { getHouseholdId, protectedProcedure, router } from './trpc.js';
 
 const accountTypeSchema = z.nativeEnum(AccountType);
 
@@ -50,16 +50,6 @@ const updateAccountInputSchema = z.object({
   // deliberately omits it until a guarded currency-change flow exists.
 });
 
-function getHouseholdId(ctx: { user: { household: { id: string } | null } }): string {
-  if (ctx.user.household === null) {
-    throw new TRPCError({
-      code: 'PRECONDITION_FAILED',
-      message: 'Create a household before managing accounts.',
-    });
-  }
-  return ctx.user.household.id;
-}
-
 function ensureAccountFound<T>(account: T | null): T {
   if (account === null) {
     throw new TRPCError({ code: 'NOT_FOUND', message: 'Account not found.' });
@@ -72,13 +62,13 @@ export const accountRouter = router({
     .input(createAccountInputSchema)
     .output(accountResponseSchema)
     .mutation(async ({ input, ctx }) => {
-      const householdId = getHouseholdId(ctx);
+      const householdId = getHouseholdId(ctx, 'accounts');
       const account = await createAccount(input, householdId);
       return account;
     }),
 
   list: protectedProcedure.output(z.array(accountResponseSchema)).query(async ({ ctx }) => {
-    const householdId = getHouseholdId(ctx);
+    const householdId = getHouseholdId(ctx, 'accounts');
     return listAccountsForHousehold(householdId);
   }),
 
@@ -86,7 +76,7 @@ export const accountRouter = router({
     .input(accountIdInputSchema)
     .output(accountResponseSchema)
     .query(async ({ input, ctx }) => {
-      const householdId = getHouseholdId(ctx);
+      const householdId = getHouseholdId(ctx, 'accounts');
       const account = await findAccountById(input.id, householdId);
       return ensureAccountFound(account);
     }),
@@ -95,7 +85,7 @@ export const accountRouter = router({
     .input(updateAccountInputSchema)
     .output(accountResponseSchema)
     .mutation(async ({ input, ctx }) => {
-      const householdId = getHouseholdId(ctx);
+      const householdId = getHouseholdId(ctx, 'accounts');
       const { id, ...updateInput } = input;
       const account = await updateAccount(id, householdId, updateInput);
       return ensureAccountFound(account);
@@ -105,7 +95,7 @@ export const accountRouter = router({
     .input(accountIdInputSchema)
     .output(z.object({ ok: z.literal(true) }))
     .mutation(async ({ input, ctx }) => {
-      const householdId = getHouseholdId(ctx);
+      const householdId = getHouseholdId(ctx, 'accounts');
       const deleted = await deleteAccount(input.id, householdId);
       if (!deleted) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Account not found.' });

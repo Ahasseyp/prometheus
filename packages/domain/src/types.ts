@@ -32,6 +32,9 @@ export type Money = {
   /** Returns the value as a decimal string formatted to the currency scale. */
   toDecimal: () => string;
 
+  /** Returns the value in the currency's minor units (e.g. cents for USD). */
+  toMinorUnits: () => bigint;
+
   /** Adds two Money values. Returns a currency-mismatch error if the currencies differ. */
   add: (other: Money) => Result<Money>;
 

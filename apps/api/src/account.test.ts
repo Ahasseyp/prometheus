@@ -94,7 +94,7 @@ describe.sequential('account procedures', () => {
     expect(account.type).toBe(AccountType.Checking);
     expect(account.currency).toBe('USD');
     expect(account.householdId).toBe(context.household.id);
-    expect(account.balance).toBe('0');
+    expect(account.balance).toBe('0.00');
   });
 
   it('lists accounts scoped to the household', async () => {

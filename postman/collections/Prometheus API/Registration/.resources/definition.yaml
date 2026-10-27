@@ -1,0 +1,4 @@
+$kind: collection
+name: Registration
+description: 'User registration. Requires ALLOW_REGISTRATION=true on the server.'
+order: 3000

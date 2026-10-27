@@ -1,0 +1,16 @@
+$kind: http-request
+name: Create Category
+method: POST
+url: '{{base_url}}/api/trpc/category.create'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Groceries",
+      "type": "EXPENSE",
+      "parentId": null
+    }

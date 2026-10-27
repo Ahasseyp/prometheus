@@ -1,7 +1,7 @@
 import { AccountType } from '@prometheus/domain';
 
-import { getCurrencyExponent } from './format-money.js';
-import { decimalStringToMinorUnits } from './money-parser.js';
+import { getCurrencyExponent } from '@/lib/format-money.js';
+import { decimalStringToMinorUnits } from '@/lib/money-parser.js';
 
 export type AccountBalanceInput = {
   balance: string;

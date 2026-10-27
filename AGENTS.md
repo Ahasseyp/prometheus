@@ -11,3 +11,7 @@ Five canonical roles mapped to the labels `needs-triage`, `needs-info`, `ready-f
 ## Domain docs
 
 Single-context repo: read `CONTEXT.md` at the root and `docs/adr/` for relevant decisions. See `docs/agents/domain.md`.
+
+## Frontend patterns
+
+Form dialogs (Dialog/Sheet + TanStack Form + zod + tRPC gateways) follow the pattern in `docs/frontend-form-dialog-pattern.md`. Canonical examples: `AccountFormDialog`, `TransactionFormDialog`.

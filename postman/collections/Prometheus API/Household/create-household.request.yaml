@@ -1,0 +1,15 @@
+$kind: http-request
+name: Create Household
+method: POST
+url: '{{base_url}}/api/trpc/household.create'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "My Household",
+      "reportingCurrency": "USD"
+    }

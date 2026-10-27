@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
 import { sumAccountTotals } from '@/features/accounts/lib/account-totals.js';
-import { formatMinorUnits } from '@/features/accounts/lib/format-money.js';
+import { formatMinorUnits } from '@/lib/format-money.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import type { CurrencyTotal } from '@/features/accounts/lib/account-totals.js';
 import { cn } from '@/lib/utils.js';

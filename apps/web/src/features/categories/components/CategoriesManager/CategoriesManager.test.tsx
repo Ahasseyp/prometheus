@@ -95,6 +95,9 @@ describe('CategoriesManager', () => {
     await user.click(await screen.findByRole('button', { name: 'Actions for Groceries' }));
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: 'Rename' })).not.toBeInTheDocument();
+    });
 
     await user.click(screen.getByRole('button', { name: 'Actions for Custom expense' }));
     expect(await screen.findByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button.js';
 import { Sheet } from '@/components/ui/sheet.js';
-import { formatMoney } from '@/features/accounts/lib/format-money.js';
+import { formatMoney } from '@/lib/format-money.js';
 
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
 

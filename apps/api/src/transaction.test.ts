@@ -490,6 +490,53 @@ describe.sequential('transaction procedures', () => {
     expect(list.every((t) => t.householdId === secondContext.household.id)).toBe(true);
   });
 
+  it('allows loan repayment but rejects create and update overpayments', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('txn-loan-1'),
+      'Secure-password-11'
+    );
+    if (context === null) return;
+
+    const loan = await client.account.create.mutate({
+      name: 'Mortgage',
+      type: AccountType.Loan,
+      currency: 'USD',
+    });
+    const salary = await findSystemCategory('Salary');
+    const groceries = await findSystemCategory('Groceries');
+
+    await client.transaction.create.mutate({
+      type: TransactionType.Income,
+      amount: '1000.00',
+      accountId: loan.id,
+      categoryId: salary.id,
+      date: new Date('2026-08-01T00:00:00.000Z'),
+    });
+    const repayment = await client.transaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '400.00',
+      accountId: loan.id,
+      categoryId: groceries.id,
+      date: new Date('2026-08-02T00:00:00.000Z'),
+    });
+
+    await expect(
+      client.transaction.create.mutate({
+        type: TransactionType.Expense,
+        amount: '600.01',
+        accountId: loan.id,
+        categoryId: groceries.id,
+        date: new Date('2026-08-03T00:00:00.000Z'),
+      })
+    ).rejects.toThrow('This transaction would overpay the loan.');
+    await expect(
+      client.transaction.update.mutate({ id: repayment.id, amount: '1000.01' })
+    ).rejects.toThrow('This transaction would overpay the loan.');
+
+    const fetched = await client.account.get.query({ id: loan.id });
+    expect(fetched.balance).toBe('600.00');
+  });
+
   it('rejects unauthenticated requests', async () => {
     const freshClient = createTRPCProxyClient<AppRouter>({
       links: [

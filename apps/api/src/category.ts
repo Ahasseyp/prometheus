@@ -62,6 +62,7 @@ function ensureCategoryFound<T>(category: T | null): T {
 }
 
 const createCategoryErrorMappings = {
+  'invalid-data': { code: 'BAD_REQUEST', message: 'The category data is invalid.' },
   'parent-not-found': { code: 'NOT_FOUND', message: 'Parent category not found.' },
   'parent-is-subcategory': {
     code: 'BAD_REQUEST',

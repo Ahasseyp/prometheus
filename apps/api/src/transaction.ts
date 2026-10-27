@@ -70,6 +70,7 @@ const transactionErrorMappings: Record<
   TransactionErrorCode,
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
 > = {
+  'invalid-data': { code: 'BAD_REQUEST', message: 'The transaction data is invalid.' },
   'account-not-found': { code: 'NOT_FOUND', message: 'Account not found.' },
   'category-not-found': { code: 'NOT_FOUND', message: 'Category not found.' },
   'type-mismatch': {
@@ -79,6 +80,10 @@ const transactionErrorMappings: Record<
   'invalid-amount': {
     code: 'BAD_REQUEST',
     message: 'Enter a positive amount valid for the account’s currency.',
+  },
+  'loan-overpayment': {
+    code: 'BAD_REQUEST',
+    message: 'This transaction would overpay the loan.',
   },
   'amount-incompatible-with-account': {
     code: 'BAD_REQUEST',

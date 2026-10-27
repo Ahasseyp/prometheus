@@ -49,7 +49,7 @@ export function TransactionsManager() {
       <TransactionFilters accounts={accounts} value={filters} onChange={setFilters} />
 
       <Card>
-        <Card.Content flush>
+        <Card.Content className="-my-(--card-spacing) px-0">
           <TransactionList
             transactions={transactions}
             isLoading={isPending}

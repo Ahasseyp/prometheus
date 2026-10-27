@@ -66,18 +66,9 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardContent({
-  className,
-  flush = false,
-  ...props
-}: React.ComponentProps<'div'> & { flush?: boolean }) {
+function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div
-      data-slot="card-content"
-      data-flush={flush || undefined}
-      className={cn('px-(--card-spacing)', flush && '-my-(--card-spacing) px-0', className)}
-      {...props}
-    />
+    <div data-slot="card-content" className={cn('px-(--card-spacing)', className)} {...props} />
   );
 }
 

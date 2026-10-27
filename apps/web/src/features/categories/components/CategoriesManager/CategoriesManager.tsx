@@ -62,7 +62,7 @@ export function CategoriesManager() {
             </Tabs.List>
           </Tabs>
         </Card.Header>
-        <Card.Content flush>
+        <Card.Content className="-my-(--card-spacing) px-0">
           <CategoryList
             categories={categoriesForType}
             isLoading={isPending}

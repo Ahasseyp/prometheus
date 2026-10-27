@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, EllipsisVertical, Pencil, Trash2 } from 'l
 import { Button } from '@/components/ui/button.js';
 import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 import { Table } from '@/components/ui/table.js';
-import { formatMoney } from '@/features/accounts/lib/format-money.js';
+import { formatMoney } from '@/lib/format-money.js';
 
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
 

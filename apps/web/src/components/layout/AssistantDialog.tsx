@@ -75,7 +75,7 @@ export function AssistantDialog({ open, onOpenChange, onAddTransaction }: Assist
             Transactions
           </Command.Item>
           <Command.Item onSelect={() => navigateTo('/categories')}>
-            <Tags className="mr-2 size-4" />
+            <Tags />
             Categories
           </Command.Item>
           <Command.Item onSelect={() => navigateTo('/budgets')}>

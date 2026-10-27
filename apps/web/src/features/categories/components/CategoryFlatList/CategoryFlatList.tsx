@@ -6,6 +6,7 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 import type { Category } from '@/features/categories/gateways/categories.js';
 import type { GroupedCategories } from '@/features/categories/lib/group-categories.js';
 import { categoryIcon } from '@/features/categories/lib/category-icons.js';
+import { cn } from '@/lib/utils.js';
 
 export interface CategoryFlatListProps {
   groups: GroupedCategories;
@@ -33,16 +34,19 @@ function CategoryRow({
 
   return (
     <li
-      className={`flex items-center gap-3 py-2.5 ${isParent ? '' : 'pl-10'}`}
+      className={cn('flex items-center gap-3 py-2.5', !isParent && 'pl-10')}
       data-testid={isParent ? 'category-parent' : 'category-sub'}
     >
       <span
-        className={`flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground ${isParent ? 'bg-muted' : 'bg-muted/60'}`}
+        className={cn(
+          'flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground',
+          isParent ? 'bg-muted' : 'bg-muted/60'
+        )}
       >
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <span className="flex min-w-0 flex-1 items-center gap-2">
-        <span className={`truncate text-sm ${isParent ? 'font-medium' : ''}`}>{category.name}</span>
+        <span className={cn('truncate text-sm', isParent && 'font-medium')}>{category.name}</span>
         {!category.isSystem && <Badge variant="secondary">Custom</Badge>}
       </span>
       {isParent && subcategoryCount !== undefined && subcategoryCount > 0 && (

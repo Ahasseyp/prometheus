@@ -63,7 +63,9 @@ export type TransactionErrorCode =
   | 'category-not-found'
   | 'type-mismatch'
   | 'invalid-amount'
-  | 'amount-incompatible-with-account';
+  | 'amount-incompatible-with-account'
+  | 'loan-overpayment'
+  | 'invalid-data';
 
 export type CreateTransactionResult =
   { ok: true; transaction: TransactionRecord } | { ok: false; error: TransactionErrorCode };
@@ -134,6 +136,33 @@ function parseAmountToMinorUnits(
   return { ok: true, minorUnits };
 }
 
+async function loanBalanceRemainsNonNegative(
+  account: Account,
+  type: Transaction['type'],
+  amount: bigint,
+  excludedTransactionId?: string
+): Promise<boolean> {
+  if (account.type !== 'LOAN') {
+    return true;
+  }
+
+  const grouped = await getPrisma().transaction.groupBy({
+    by: ['type'],
+    where: {
+      accountId: account.id,
+      ...(excludedTransactionId === undefined ? {} : { id: { not: excludedTransactionId } }),
+    },
+    _sum: { amount: true },
+  });
+  const totals = new Map(grouped.map((row) => [row.type, row._sum.amount ?? 0n]));
+  const income = totals.get('INCOME') ?? 0n;
+  const expense = totals.get('EXPENSE') ?? 0n;
+  const nextIncome = type === 'INCOME' ? income + amount : income;
+  const nextExpense = type === 'EXPENSE' ? expense + amount : expense;
+
+  return nextIncome >= nextExpense;
+}
+
 // Moving a transaction to an account in a lower-exponent currency (e.g. USD
 // 2dp -> JPY 0dp) without a new amount would silently reinterpret the stored
 // minor units. The stored value is only compatible when it has no fractional
@@ -181,6 +210,15 @@ export async function createTransaction(
     return { ok: false, error: 'invalid-amount' };
   }
 
+  const loanBalanceIsValid = await loanBalanceRemainsNonNegative(
+    account,
+    mapDomainTransactionType(input.type),
+    amountResult.minorUnits
+  );
+  if (!loanBalanceIsValid) {
+    return { ok: false, error: 'loan-overpayment' };
+  }
+
   const entityResult = createTransactionEntity({
     id: makeTransactionId(crypto.randomUUID()),
     householdId: makeHouseholdId(householdId),
@@ -193,7 +231,7 @@ export async function createTransaction(
   });
 
   if (!entityResult.ok) {
-    throw unexpectedValidationError(entityResult.error.type);
+    return { ok: false, error: 'invalid-data' };
   }
 
   const validatedTransaction = entityResult.value;
@@ -324,12 +362,24 @@ export async function updateTransaction(
   if (input.description !== undefined) {
     updateData.description = input.description;
   }
+  let targetAmount = existing.amount;
   if (input.amount !== undefined) {
     const amountResult = parseAmountToMinorUnits(input.amount, targetAccount);
     if (!amountResult.ok) {
       return { ok: false, error: 'invalid-amount' };
     }
-    updateData.amount = amountResult.minorUnits;
+    targetAmount = amountResult.minorUnits;
+    updateData.amount = targetAmount;
+  }
+
+  const loanBalanceIsValid = await loanBalanceRemainsNonNegative(
+    targetAccount,
+    targetType,
+    targetAmount,
+    existing.id
+  );
+  if (!loanBalanceIsValid) {
+    return { ok: false, error: 'loan-overpayment' };
   }
 
   const transaction = await prisma.transaction.update({

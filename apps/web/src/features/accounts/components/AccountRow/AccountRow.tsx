@@ -5,7 +5,7 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 
 import { ACCOUNT_TYPE_META } from '@/features/accounts/lib/account-types.js';
 import { signedMinorUnits } from '@/features/accounts/lib/account-totals.js';
-import { formatMinorUnits } from '@/features/accounts/lib/format-money.js';
+import { formatMinorUnits } from '@/lib/format-money.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { cn } from '@/lib/utils.js';
 

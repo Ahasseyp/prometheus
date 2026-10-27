@@ -39,7 +39,10 @@ export type CategoryRecord = {
 
 export type CreateCategoryResult =
   | { ok: true; category: CategoryRecord }
-  | { ok: false; error: 'parent-not-found' | 'parent-is-subcategory' | 'type-mismatch' };
+  | {
+      ok: false;
+      error: 'parent-not-found' | 'parent-is-subcategory' | 'type-mismatch' | 'invalid-data';
+    };
 
 export type DeleteCategoryResult =
   | { ok: true }
@@ -187,7 +190,7 @@ export async function createCategory(
   });
 
   if (!entityResult.ok) {
-    throw unexpectedValidationError(entityResult.error.type);
+    return { ok: false, error: 'invalid-data' };
   }
 
   const validatedCategory = entityResult.value;

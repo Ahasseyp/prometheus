@@ -48,6 +48,13 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 
 export const CATEGORY_ICON_KEYS: string[] = Object.keys(CATEGORY_ICONS);
 
+export function categoryIconLabel(icon: string): string {
+  return icon
+    .split('-')
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
+}
+
 export function categoryIcon(icon: string | null): LucideIcon {
   if (icon !== null && icon in CATEGORY_ICONS) {
     return CATEGORY_ICONS[icon];

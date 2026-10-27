@@ -57,20 +57,20 @@ describe('CategoriesManager', () => {
     });
   });
 
-  it('opens the create stub with the active category type', async () => {
+  it('opens the create form with parents from the active category type', async () => {
     const user = userEvent.setup();
     mockCategoryListResponse([groceries, salary]);
     renderManager();
 
     await user.click(screen.getByRole('tab', { name: 'Income' }));
     await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await user.click(await screen.findByLabelText(/parent category/i));
 
-    expect(await screen.findByRole('dialog', { name: 'Add category' })).toBeInTheDocument();
-    expect(screen.getByText('Mode: create')).toBeInTheDocument();
-    expect(screen.getByText('Type: income')).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Salary' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Groceries' })).not.toBeInTheDocument();
   });
 
-  it('opens the rename stub with the selected category', async () => {
+  it('opens the rename form with the selected category', async () => {
     const user = userEvent.setup();
     mockCategoryListResponse([groceries]);
     renderManager();
@@ -79,8 +79,7 @@ describe('CategoriesManager', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Rename' }));
 
     expect(await screen.findByRole('dialog', { name: 'Rename category' })).toBeInTheDocument();
-    expect(screen.getByText('Mode: rename')).toBeInTheDocument();
-    expect(screen.getByText('Category: Groceries')).toBeInTheDocument();
+    expect(screen.getByLabelText(/category name/i)).toHaveValue('Groceries');
   });
 
   it('offers delete only for custom categories', async () => {

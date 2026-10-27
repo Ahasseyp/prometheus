@@ -36,3 +36,30 @@ export function mockCategoryListResponse(data: unknown) {
     })
   );
 }
+
+export function mockCreateCategoryResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/category.create', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockCreateCategoryError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/category.create', () => {
+      return HttpResponse.json(
+        { error: { message, code: -32600, data: { code: 'BAD_REQUEST', httpStatus: 400 } } },
+        { status: 400 }
+      );
+    })
+  );
+}
+
+export function mockUpdateCategoryResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/category.update', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}

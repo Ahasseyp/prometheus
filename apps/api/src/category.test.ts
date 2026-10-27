@@ -100,9 +100,11 @@ describe.sequential('category procedures', () => {
 
     const utilities = categories.find((c) => c.name === 'Utilities');
     expect(utilities?.type).toBe(TransactionType.Expense);
+    expect(utilities?.icon).toBe('lightbulb');
     const electricity = categories.find((c) => c.name === 'Electricity');
     expect(electricity?.parentId).toBe(utilities?.id);
     expect(electricity?.type).toBe(TransactionType.Expense);
+    expect(electricity?.icon).toBe('zap');
   });
 
   it('creates, renames, and deletes a Custom Category', async () => {
@@ -115,12 +117,20 @@ describe.sequential('category procedures', () => {
     const created = await client.category.create.mutate({
       name: 'Pets',
       type: TransactionType.Expense,
+      icon: 'heart-pulse',
     });
     expect(created.isSystem).toBe(false);
     expect(created.parentId).toBeNull();
+    expect(created.icon).toBe('heart-pulse');
 
-    const renamed = await client.category.update.mutate({ id: created.id, name: 'Pet Care' });
+    const renamed = await client.category.update.mutate({
+      id: created.id,
+      name: 'Pet Care',
+      icon: '',
+    });
     expect(renamed.name).toBe('Pet Care');
+    // An empty icon clears it back to the default.
+    expect(renamed.icon).toBeNull();
 
     const deleted = await client.category.delete.mutate({ id: created.id });
     expect(deleted.ok).toBe(true);

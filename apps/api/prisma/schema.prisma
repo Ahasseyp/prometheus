@@ -107,6 +107,10 @@ model Category {
   type        TransactionType
   isSystem    Boolean         @default(false)
   parentId    String?         @db.Uuid
+  // Lucide icon key (kebab-case), chosen by the Household for Custom
+  // Categories and seeded for System Categories. Null means the default
+  // tag icon.
+  icon        String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @default(now()) @updatedAt
 

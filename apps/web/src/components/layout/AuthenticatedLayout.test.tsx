@@ -25,6 +25,7 @@ import { server } from '@/test/server.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockCreateHouseholdResponse, mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { mockAccountListResponse } from '@/test/account-helpers.js';
+import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -213,6 +214,7 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('renders the categories page from the sidebar navigation', async () => {
+    mockCategoryListResponse([makeCategory({ name: 'Groceries' })]);
     await renderAuthenticatedLayout({ initialEntries: ['/categories'] });
 
     await waitFor(() => {
@@ -221,7 +223,7 @@ describe('AuthenticatedLayout', () => {
       ).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText('CategoriesManager — stub (props: none)')).toBeInTheDocument();
+    expect(await screen.findByText('Groceries')).toBeInTheDocument();
   });
 
   it('opens the assistant dialog from the header button and closes with Escape', async () => {

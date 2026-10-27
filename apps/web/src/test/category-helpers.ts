@@ -6,9 +6,10 @@ export type CategoryFixture = {
   id: string;
   householdId: string;
   name: string;
-  type: string;
+  type: 'expense' | 'income';
   isSystem: boolean;
   parentId: string | null;
+  icon: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -21,6 +22,7 @@ export function makeCategory(overrides: Partial<CategoryFixture> = {}): Category
     type: 'expense',
     isSystem: true,
     parentId: null,
+    icon: 'shopping-cart',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

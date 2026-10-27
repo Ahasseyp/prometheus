@@ -17,10 +17,12 @@ export type CreateCategoryInput = {
   name: string;
   type: DomainTransactionType;
   parentId?: string;
+  icon?: string | null;
 };
 
 export type UpdateCategoryInput = {
   name?: string;
+  icon?: string | null;
 };
 
 export type CategoryRecord = {
@@ -30,6 +32,7 @@ export type CategoryRecord = {
   type: DomainTransactionType;
   isSystem: boolean;
   parentId: string | null;
+  icon: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -58,6 +61,7 @@ function mapCategoryToRecord(category: Category): CategoryRecord {
     type: mapPrismaTransactionType(category.type),
     isSystem: category.isSystem,
     parentId: category.parentId,
+    icon: category.icon,
     createdAt: category.createdAt,
     updatedAt: category.updatedAt,
   };
@@ -65,7 +69,8 @@ function mapCategoryToRecord(category: Category): CategoryRecord {
 
 type SystemCategorySeed = {
   name: string;
-  subcategories?: string[];
+  icon: string;
+  subcategories?: Array<{ name: string; icon: string }>;
 };
 
 const SYSTEM_CATEGORY_SEEDS: ReadonlyArray<{
@@ -75,23 +80,37 @@ const SYSTEM_CATEGORY_SEEDS: ReadonlyArray<{
   {
     type: TransactionType.Income,
     categories: [
-      { name: 'Salary' },
-      { name: 'Freelance' },
-      { name: 'Interest' },
-      { name: 'Other Income' },
+      { name: 'Salary', icon: 'banknote-arrow-up' },
+      { name: 'Freelance', icon: 'laptop' },
+      { name: 'Interest', icon: 'percent' },
+      { name: 'Other Income', icon: 'piggy-bank' },
     ],
   },
   {
     type: TransactionType.Expense,
     categories: [
-      { name: 'Groceries' },
-      { name: 'Rent' },
-      { name: 'Utilities', subcategories: ['Electricity', 'Internet'] },
-      { name: 'Transport', subcategories: ['Fuel', 'Public Transit'] },
-      { name: 'Dining' },
-      { name: 'Entertainment' },
-      { name: 'Health' },
-      { name: 'Other Expense' },
+      { name: 'Groceries', icon: 'shopping-cart' },
+      { name: 'Rent', icon: 'home' },
+      {
+        name: 'Utilities',
+        icon: 'lightbulb',
+        subcategories: [
+          { name: 'Electricity', icon: 'zap' },
+          { name: 'Internet', icon: 'wifi' },
+        ],
+      },
+      {
+        name: 'Transport',
+        icon: 'car',
+        subcategories: [
+          { name: 'Fuel', icon: 'fuel' },
+          { name: 'Public Transit', icon: 'bus' },
+        ],
+      },
+      { name: 'Dining', icon: 'utensils' },
+      { name: 'Entertainment', icon: 'clapperboard' },
+      { name: 'Health', icon: 'heart-pulse' },
+      { name: 'Other Expense', icon: 'banknote-arrow-down' },
     ],
   },
 ];
@@ -113,17 +132,19 @@ export async function seedSystemCategories(
           name: seed.name,
           type: mapDomainTransactionType(group.type),
           isSystem: true,
+          icon: seed.icon,
         },
       });
 
-      for (const subcategoryName of seed.subcategories ?? []) {
+      for (const subcategory of seed.subcategories ?? []) {
         await tx.category.create({
           data: {
             householdId,
-            name: subcategoryName,
+            name: subcategory.name,
             type: mapDomainTransactionType(group.type),
             isSystem: true,
             parentId: parent.id,
+            icon: subcategory.icon,
           },
         });
       }
@@ -178,6 +199,7 @@ export async function createCategory(
       type: mapDomainTransactionType(validatedCategory.type),
       isSystem: validatedCategory.isSystem,
       parentId: validatedCategory.parentId,
+      icon: input.icon ?? null,
     },
   });
 
@@ -215,7 +237,7 @@ export async function updateCategory(
   householdId: string,
   input: UpdateCategoryInput
 ): Promise<CategoryRecord | null> {
-  const updateData: Partial<Pick<Category, 'name'>> = {};
+  const updateData: Partial<Pick<Category, 'name' | 'icon'>> = {};
 
   if (input.name !== undefined) {
     const trimmedName = input.name.trim();
@@ -223,6 +245,11 @@ export async function updateCategory(
       throw unexpectedValidationError('empty-name');
     }
     updateData.name = trimmedName;
+  }
+
+  if (input.icon !== undefined) {
+    // An empty string clears the icon back to the default.
+    updateData.icon = input.icon === '' ? null : input.icon;
   }
 
   const prisma = getPrisma();

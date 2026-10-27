@@ -17,6 +17,14 @@ const categoryNameSchema = z.string().refine((value) => value.trim().length > 0,
   message: 'Enter a category name.',
 });
 
+const categoryIconSchema = z
+  .string()
+  .trim()
+  .max(64)
+  .refine((value) => value === '' || /^[a-z0-9-]+$/.test(value), {
+    message: 'Icon must be a kebab-case icon name.',
+  });
+
 const categoryResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
@@ -24,6 +32,7 @@ const categoryResponseSchema = z.object({
   type: transactionTypeSchema,
   isSystem: z.boolean(),
   parentId: z.string().uuid().nullable(),
+  icon: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -32,6 +41,7 @@ const createCategoryInputSchema = z.object({
   name: categoryNameSchema,
   type: transactionTypeSchema,
   parentId: z.string().uuid().optional(),
+  icon: categoryIconSchema.optional(),
 });
 
 const categoryIdInputSchema = z.object({
@@ -41,6 +51,7 @@ const categoryIdInputSchema = z.object({
 const updateCategoryInputSchema = z.object({
   id: z.string().uuid(),
   name: categoryNameSchema,
+  icon: categoryIconSchema.optional(),
 });
 
 function ensureCategoryFound<T>(category: T | null): T {
@@ -110,7 +121,10 @@ export const categoryRouter = router({
     .output(categoryResponseSchema)
     .mutation(async ({ input, ctx }) => {
       const householdId = getHouseholdId(ctx, 'categories');
-      const category = await updateCategory(input.id, householdId, { name: input.name });
+      const category = await updateCategory(input.id, householdId, {
+        name: input.name,
+        icon: input.icon,
+      });
       return ensureCategoryFound(category);
     }),
 

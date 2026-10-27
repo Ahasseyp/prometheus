@@ -26,6 +26,8 @@ function renderList() {
       isLoading={false}
       isError={false}
       onRetry={() => {}}
+      onRename={() => {}}
+      onDelete={() => {}}
       categories={[groceries, diningOut, salary] as Category[]}
     />,
     { wrapper: createQueryClientWrapper() }
@@ -34,23 +36,45 @@ function renderList() {
 
 describe('CategoryList', () => {
   it('shows a skeleton while loading', () => {
-    render(<CategoryList isLoading isError={false} onRetry={() => {}} />, {
-      wrapper: createQueryClientWrapper(),
-    });
+    render(
+      <CategoryList
+        isLoading
+        isError={false}
+        onRetry={() => {}}
+        onRename={() => {}}
+        onDelete={() => {}}
+      />,
+      { wrapper: createQueryClientWrapper() }
+    );
     expect(screen.getByLabelText('Loading categories')).toBeInTheDocument();
   });
 
   it('shows an error alert when loading fails', () => {
-    render(<CategoryList isLoading={false} isError onRetry={vi.fn()} />, {
-      wrapper: createQueryClientWrapper(),
-    });
+    render(
+      <CategoryList
+        isLoading={false}
+        isError
+        onRetry={vi.fn()}
+        onRename={() => {}}
+        onDelete={() => {}}
+      />,
+      { wrapper: createQueryClientWrapper() }
+    );
     expect(screen.getByText("We couldn't load your categories")).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no categories', () => {
-    render(<CategoryList isLoading={false} isError={false} onRetry={() => {}} categories={[]} />, {
-      wrapper: createQueryClientWrapper(),
-    });
+    render(
+      <CategoryList
+        isLoading={false}
+        isError={false}
+        onRetry={() => {}}
+        onRename={() => {}}
+        onDelete={() => {}}
+        categories={[]}
+      />,
+      { wrapper: createQueryClientWrapper() }
+    );
     expect(screen.getByText('No categories yet')).toBeInTheDocument();
   });
 

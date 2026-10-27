@@ -56,4 +56,48 @@ describe('CategoriesManager', () => {
       expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
     });
   });
+
+  it('opens the create stub with the active category type', async () => {
+    const user = userEvent.setup();
+    mockCategoryListResponse([groceries, salary]);
+    renderManager();
+
+    await user.click(screen.getByRole('tab', { name: 'Income' }));
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Add category' })).toBeInTheDocument();
+    expect(screen.getByText('Mode: create')).toBeInTheDocument();
+    expect(screen.getByText('Type: income')).toBeInTheDocument();
+  });
+
+  it('opens the rename stub with the selected category', async () => {
+    const user = userEvent.setup();
+    mockCategoryListResponse([groceries]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Groceries' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Rename' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Rename category' })).toBeInTheDocument();
+    expect(screen.getByText('Mode: rename')).toBeInTheDocument();
+    expect(screen.getByText('Category: Groceries')).toBeInTheDocument();
+  });
+
+  it('offers delete only for custom categories', async () => {
+    const user = userEvent.setup();
+    const customCategory = makeCategory({
+      id: 'd4e5f6a7-b8c9-0123-defa-234567890123',
+      name: 'Custom expense',
+      isSystem: false,
+    });
+    mockCategoryListResponse([groceries, customCategory]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Groceries' }));
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Custom expense' }));
+    expect(await screen.findByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
 });

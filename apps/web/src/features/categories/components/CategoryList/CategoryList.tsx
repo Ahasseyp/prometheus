@@ -14,9 +14,18 @@ export interface CategoryListProps {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  onRename: (category: Category) => void;
+  onDelete: (category: Category) => void;
 }
 
-export function CategoryList({ categories, isLoading, isError, onRetry }: CategoryListProps) {
+export function CategoryList({
+  categories,
+  isLoading,
+  isError,
+  onRetry,
+  onRename,
+  onDelete,
+}: CategoryListProps) {
   if (isLoading) {
     return <CategoryListSkeleton />;
   }
@@ -40,5 +49,11 @@ export function CategoryList({ categories, isLoading, isError, onRetry }: Catego
     return <CategoriesEmptyState />;
   }
 
-  return <CategoryFlatList groups={groupCategories(categories)} />;
+  return (
+    <CategoryFlatList
+      groups={groupCategories(categories)}
+      onRename={onRename}
+      onDelete={onDelete}
+    />
+  );
 }

@@ -63,3 +63,28 @@ export function mockUpdateCategoryResponse(data: unknown) {
     })
   );
 }
+
+export function mockDeleteCategoryResponse(data: unknown = { ok: true }) {
+  server.use(
+    http.post('/api/trpc/category.delete', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockDeleteCategoryError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/category.delete', () => {
+      return HttpResponse.json(
+        {
+          error: {
+            message,
+            code: -32600,
+            data: { code: 'PRECONDITION_FAILED', httpStatus: 412 },
+          },
+        },
+        { status: 412 }
+      );
+    })
+  );
+}

@@ -9,6 +9,7 @@ import { useCategories } from '@/features/categories/gateways/categories.js';
 import type { Category } from '@/features/categories/gateways/categories.js';
 import { CategoryFormDialog } from '@/features/categories/components/CategoryFormDialog/CategoryFormDialog.js';
 import { CategoryList } from '@/features/categories/components/CategoryList/CategoryList.js';
+import { DeleteCategoryDialog } from '@/features/categories/components/DeleteCategoryDialog/DeleteCategoryDialog.js';
 
 const CATEGORY_TYPES = ['expense', 'income'] as const;
 type CategoryType = (typeof CATEGORY_TYPES)[number];
@@ -22,6 +23,7 @@ export function CategoriesManager() {
   const [type, setType] = useState<CategoryType>('expense');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category>();
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const categoriesForType = categories?.filter((category) => category.type === type);
 
   function openCreateDialog() {
@@ -67,7 +69,7 @@ export function CategoriesManager() {
             isError={isError}
             onRetry={() => void refetch()}
             onRename={openRenameDialog}
-            onDelete={() => {}}
+            onDelete={setCategoryToDelete}
           />
         </Card.Content>
       </Card>
@@ -78,6 +80,7 @@ export function CategoriesManager() {
         category={selectedCategory}
         categories={categoriesForType ?? []}
       />
+      <DeleteCategoryDialog category={categoryToDelete} onClose={() => setCategoryToDelete(null)} />
     </div>
   );
 }

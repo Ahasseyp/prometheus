@@ -9,6 +9,7 @@ export type CategoryListOutput = inferRouterOutputs<AppRouter>['category']['list
 export type Category = CategoryListOutput[number];
 type CreateCategoryInput = inferRouterInputs<AppRouter>['category']['create'];
 type UpdateCategoryInput = inferRouterInputs<AppRouter>['category']['update'];
+type DeleteCategoryInput = inferRouterInputs<AppRouter>['category']['delete'];
 
 const categoriesListQueryKey = ['categories', 'list'];
 
@@ -33,6 +34,15 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: (input: UpdateCategoryInput) => trpc.category.update.mutate(input),
+    onSuccess: () => invalidateCategories(queryClient),
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: DeleteCategoryInput) => trpc.category.delete.mutate(input),
     onSuccess: () => invalidateCategories(queryClient),
   });
 }

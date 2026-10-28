@@ -2,6 +2,10 @@ import type { AccountId, CategoryId, HouseholdId, TransactionId } from './ids.js
 import type { Result } from './types.js';
 import { createTimestamps } from './timestamps.js';
 
+// Transfer is reserved but never persisted: a Transfer is a pair of linked
+// income/expense Transactions (see the Transaction docs below). It exists so
+// the value can never be reused for a conflicting meaning, and it maps to the
+// reserved TRANSFER value of the database enum.
 export const TransactionType = {
   Income: 'income',
   Expense: 'expense',

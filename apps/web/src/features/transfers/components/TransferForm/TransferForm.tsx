@@ -341,8 +341,8 @@ function buildDefaultValues(transfer: Transfer | undefined): TransferFormState {
   };
 }
 
-// The schema is built per render because the cross-currency Exchange Rate
-// requirement depends on the selected Accounts' Currencies.
+// The schema is rebuilt when the Account list changes because the cross-currency
+// Exchange Rate requirement depends on the selected Accounts' Currencies.
 function buildTransferFormSchema(accounts: Account[] | undefined) {
   return z
     .object({

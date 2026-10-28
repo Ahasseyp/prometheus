@@ -168,6 +168,9 @@ model Transaction {
   @@index([householdId, date])
 }
 
+// TRANSFER is reserved but never persisted: a Transfer is a pair of linked
+// INCOME/EXPENSE Transactions (see the Transfer model comment below). The
+// value exists so the enum can never be reused for a conflicting meaning.
 enum TransactionType {
   INCOME
   EXPENSE

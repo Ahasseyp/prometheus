@@ -3,7 +3,9 @@ import type { Money, Result } from '@prometheus/domain';
 
 import { getPrisma } from '../prisma.js';
 import { listAccountsForHousehold } from './account.js';
+import { findLatestExchangeRate } from './exchange-rate.js';
 
+// Persisted balances and rates must be valid Money; failures indicate data corruption.
 function expectMoney(result: Result<Money>): Money {
   if (!result.ok) {
     throw new Error(`Unexpected reporting currency conversion failure: ${result.error.type}`);
@@ -35,10 +37,7 @@ export async function getReportingSummary(householdId: string) {
     const cachedRate =
       account.currency === reportingCurrency
         ? null
-        : await prisma.exchangeRate.findFirst({
-            where: { baseCurrency: account.currency, quoteCurrency: reportingCurrency },
-            orderBy: { date: 'desc' },
-          });
+        : await findLatestExchangeRate(account.currency, reportingCurrency);
     const exchangeRate = account.currency === reportingCurrency ? '1' : cachedRate?.rate.toString();
 
     if (exchangeRate === undefined) {
@@ -48,14 +47,14 @@ export async function getReportingSummary(householdId: string) {
     }
 
     const convertedBalance = expectMoney(convertMoney(balance, exchangeRate, reportingCurrency));
-    netWorth = expectMoney(
+    const signedConvertedBalance =
       account.type === AccountType.Loan
-        ? netWorth.subtract(convertedBalance)
-        : netWorth.add(convertedBalance)
-    );
+        ? expectMoney(convertedBalance.multiply(-1n))
+        : convertedBalance;
+    netWorth = expectMoney(netWorth.add(signedConvertedBalance));
     convertedAccounts.push({
       ...account,
-      convertedBalance: convertedBalance.toDecimal(),
+      convertedBalance: signedConvertedBalance.toDecimal(),
       exchangeRate,
     });
   }

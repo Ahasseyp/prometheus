@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useForm, useStore } from '@tanstack/react-form';
-import { TransactionType } from '@prometheus/domain';
+import { isPositiveDecimal, TransactionType } from '@prometheus/domain';
 import { format } from 'date-fns';
 import { z } from 'zod';
 
@@ -43,13 +43,9 @@ const transactionFormSchema = z.object({
     message: 'Select a date.',
   }),
   description: z.string(),
-  exchangeRate: z.string().refine(
-    (value) => {
-      const exchangeRate = Number(value);
-      return value.trim() === '' || (Number.isFinite(exchangeRate) && exchangeRate > 0);
-    },
-    { message: 'Enter a positive Exchange Rate.' }
-  ),
+  exchangeRate: z.string().refine((value) => value.trim() === '' || isPositiveDecimal(value), {
+    message: 'Enter a positive Exchange Rate.',
+  }),
 });
 
 type FormState = z.infer<typeof transactionFormSchema>;
@@ -94,11 +90,10 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
   const type = useStore(form.store, (state) => state.values.type);
   const accountId = useStore(form.store, (state) => state.values.accountId);
   const accountCurrency = accounts?.find((account) => account.id === accountId)?.currency;
-  const showExchangeRate =
-    isEditing &&
-    transaction.reportingCurrency !== null &&
-    accountCurrency !== undefined &&
-    accountCurrency !== transaction.reportingCurrency;
+  const hasReportingCurrency = transaction?.reportingCurrency != null;
+  const isCrossCurrency =
+    accountCurrency !== undefined && accountCurrency !== transaction?.reportingCurrency;
+  const showExchangeRate = isEditing && hasReportingCurrency && isCrossCurrency;
 
   // Categories are filtered to the selected transaction type; subcategories
   // are shown nested under their parent so the one-level hierarchy reads.

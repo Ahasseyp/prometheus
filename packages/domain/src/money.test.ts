@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { convertMoney, createMoney, createMoneyFromMinorUnits } from './money.js';
+import {
+  convertMoney,
+  createMoney,
+  createMoneyFromMinorUnits,
+  isPositiveDecimal,
+} from './money.js';
 import { expectValue } from './testing/expect-value.js';
 
 const usd = (decimal: string) => createMoney(decimal, 'USD');
 const eur = (decimal: string) => createMoney(decimal, 'EUR');
+
+describe('positive decimal validation', () => {
+  it.each(['1', '0.05', ' 18.45 '])('accepts %j as a plain positive decimal', (value) => {
+    expect(isPositiveDecimal(value)).toBe(true);
+  });
+
+  it.each(['0', '-1', '1e3', '0x10', '2.', '.5', 'abc', ''])('rejects %j', (value) => {
+    expect(isPositiveDecimal(value)).toBe(false);
+  });
+});
 
 describe('Money creation', () => {
   it('creates money from a decimal string and exposes its currency', () => {

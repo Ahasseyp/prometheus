@@ -8,24 +8,27 @@ export async function refreshActiveHouseholdExchangeRates(): Promise<void> {
   const households = await prisma.household.findMany({
     select: { reportingCurrency: true, accounts: { select: { currency: true } } },
   });
-  const currencyPairs = new Set<string>();
+  const currencyPairs = new Map<string, { baseCurrency: string; quoteCurrency: string }>();
   for (const household of households) {
     for (const account of household.accounts) {
       if (account.currency !== household.reportingCurrency) {
-        currencyPairs.add(`${account.currency}:${household.reportingCurrency}`);
+        const pair = {
+          baseCurrency: account.currency,
+          quoteCurrency: household.reportingCurrency,
+        };
+        currencyPairs.set(`${pair.baseCurrency}:${pair.quoteCurrency}`, pair);
       }
     }
   }
 
-  for (const pair of currencyPairs) {
-    const [baseCurrency, quoteCurrency] = pair.split(':');
-    if (baseCurrency === undefined || quoteCurrency === undefined) {
-      continue;
-    }
+  for (const pair of currencyPairs.values()) {
     try {
-      await refreshExchangeRate(baseCurrency, quoteCurrency, new Date());
+      await refreshExchangeRate(pair.baseCurrency, pair.quoteCurrency, new Date());
     } catch (error) {
-      console.error(`Failed to refresh Exchange Rate ${pair}.`, error);
+      console.error(
+        `Failed to refresh Exchange Rate ${pair.baseCurrency}:${pair.quoteCurrency}.`,
+        error
+      );
     }
   }
 }

@@ -17,7 +17,7 @@ import type { Account, Category, Transaction } from '@prisma/client';
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
 import { mapDomainTransactionType, mapPrismaTransactionType } from '../lib/transaction-type.js';
-import { refreshExchangeRate } from './exchange-rate.js';
+import { findExchangeRateOnDate, refreshExchangeRate } from './exchange-rate.js';
 
 export type CreateTransactionInput = {
   type: DomainTransactionType;
@@ -213,15 +213,11 @@ async function resolveTransactionExchangeRate(
     return { reportingCurrency: accountCurrency, exchangeRate: '1' };
   }
 
-  const cachedRate = await prisma.exchangeRate.findUnique({
-    where: {
-      baseCurrency_quoteCurrency_date: {
-        baseCurrency: accountCurrency,
-        quoteCurrency: household.reportingCurrency,
-        date,
-      },
-    },
-  });
+  const cachedRate = await findExchangeRateOnDate(
+    accountCurrency,
+    household.reportingCurrency,
+    date
+  );
   if (cachedRate !== null) {
     return {
       reportingCurrency: household.reportingCurrency,
@@ -426,6 +422,13 @@ export async function updateTransaction(
   if (input.exchangeRate !== undefined) {
     updateData.exchangeRate = input.exchangeRate;
     updateData.exchangeRateOverridden = true;
+    if (existing.reportingCurrency === null) {
+      const household = await prisma.household.findUniqueOrThrow({
+        where: { id: householdId },
+        select: { reportingCurrency: true },
+      });
+      updateData.reportingCurrency = household.reportingCurrency;
+    }
   }
   let targetAmount = existing.amount;
   if (input.amount !== undefined) {

@@ -2,6 +2,29 @@ import { fetchExchangeRateApiRate, fetchFrankfurterRate } from '../exchange-rate
 import type { ProviderRate } from '../exchange-rates/providers.js';
 import { getPrisma } from '../prisma.js';
 
+export async function findExchangeRateOnDate(
+  baseCurrency: string,
+  quoteCurrency: string,
+  date: Date
+) {
+  return getPrisma().exchangeRate.findUnique({
+    where: {
+      baseCurrency_quoteCurrency_date: { baseCurrency, quoteCurrency, date },
+    },
+  });
+}
+
+export async function findLatestExchangeRate(
+  baseCurrency: string,
+  quoteCurrency: string,
+  onOrBefore?: Date
+) {
+  return getPrisma().exchangeRate.findFirst({
+    where: { baseCurrency, quoteCurrency, date: { lte: onOrBefore } },
+    orderBy: { date: 'desc' },
+  });
+}
+
 async function fetchProviderRate(
   baseCurrency: string,
   quoteCurrency: string,
@@ -24,10 +47,7 @@ export async function refreshExchangeRate(
   try {
     providerRate = await fetchProviderRate(baseCurrency, quoteCurrency, date);
   } catch (providerError) {
-    const cachedRate = await prisma.exchangeRate.findFirst({
-      where: { baseCurrency, quoteCurrency, date: { lte: date } },
-      orderBy: { date: 'desc' },
-    });
+    const cachedRate = await findLatestExchangeRate(baseCurrency, quoteCurrency, date);
     if (cachedRate === null) {
       throw providerError;
     }

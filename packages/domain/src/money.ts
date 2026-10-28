@@ -84,6 +84,11 @@ function parseFactor(value: MoneyFactor): Result<ScaledDecimal> {
   };
 }
 
+export function isPositiveDecimal(value: string): boolean {
+  const parsed = parseFactor(value);
+  return parsed.ok && parsed.value.amount > 0n;
+}
+
 function powerOfTen(exponent: bigint): bigint {
   return 10n ** exponent;
 }

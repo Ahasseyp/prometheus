@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { TransactionType } from '@prometheus/domain';
+import { isPositiveDecimal, TransactionType } from '@prometheus/domain';
 
 import {
   createTransaction,
@@ -20,11 +20,6 @@ const transactionTypeSchema = z.nativeEnum(TransactionType);
 const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
 });
-
-function isPositiveDecimal(value: string): boolean {
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) && numericValue > 0;
-}
 
 const transactionResponseSchema = z.object({
   id: z.string().uuid(),

@@ -28,11 +28,13 @@ export function AccountRow({
   const Icon = meta.icon;
   const signedBalance = signedMinorUnits(account);
   const showConverted = reportingCurrency !== undefined;
-  const signedConvertedBalance =
-    convertedBalance != null && signedBalance < 0n && !convertedBalance.startsWith('-')
-      ? `-${convertedBalance}`
-      : convertedBalance;
-  const isNegative = showConverted ? signedConvertedBalance?.startsWith('-') : signedBalance < 0n;
+  const isConversionUnavailable = showConverted && convertedBalance == null;
+  const isNegative = showConverted ? convertedBalance?.startsWith('-') : signedBalance < 0n;
+  const displayedBalance = isConversionUnavailable
+    ? 'Rate unavailable'
+    : showConverted && convertedBalance != null
+      ? formatMoney(convertedBalance, reportingCurrency)
+      : formatMinorUnits(signedBalance, account.currency);
   const showActions = onEdit !== undefined && onDelete !== undefined;
 
   return (
@@ -55,11 +57,7 @@ export function AccountRow({
             isNegative ? 'text-destructive' : 'text-foreground'
           )}
         >
-          {showConverted
-            ? signedConvertedBalance == null
-              ? 'Rate unavailable'
-              : formatMoney(signedConvertedBalance, reportingCurrency)
-            : formatMinorUnits(signedBalance, account.currency)}
+          {displayedBalance}
         </p>
         {showActions && (
           <DropdownMenu>

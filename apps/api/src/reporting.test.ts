@@ -137,7 +137,7 @@ describe.sequential('reporting summary procedure', () => {
       expect.objectContaining({
         id: loan.id,
         balance: '200.00',
-        convertedBalance: '200.00',
+        convertedBalance: '-200.00',
         exchangeRate: '1',
       }),
     ]);

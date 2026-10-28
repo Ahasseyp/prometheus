@@ -211,6 +211,16 @@ describe.sequential('transaction procedures', () => {
     expect(movedWithOverride.exchangeRate).toBe('0.061');
     expect(movedWithOverride.exchangeRateOverridden).toBe(true);
 
+    await getPrisma().transaction.update({
+      where: { id: transaction.id },
+      data: { reportingCurrency: null, exchangeRate: null, exchangeRateOverridden: false },
+    });
+    const legacyOverride = await client.transaction.update.mutate({
+      id: transaction.id,
+      exchangeRate: '0.062',
+    });
+    expect(legacyOverride.reportingCurrency).toBe('USD');
+
     await expect(
       client.transaction.update.mutate({ id: transaction.id, exchangeRate: '0' })
     ).rejects.toThrow('Enter a positive Exchange Rate.');

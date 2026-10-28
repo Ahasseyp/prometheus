@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button.js';
 import { formatMoney } from '@/lib/format-money.js';
 
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import { getTransactionDetailLabel } from '@/features/transactions/lib/transfer-presentation.js';
 
 export interface TransactionCardProps {
   transaction: Transaction;
@@ -21,6 +22,7 @@ export function TransactionCard({ transaction, onSelect }: TransactionCardProps)
   // minus is part of the formatted value, not just the color.
   const signedAmount = isExpense ? `-${transaction.amount}` : transaction.amount;
   const label = transaction.description || transaction.categoryName;
+  const detailLabel = getTransactionDetailLabel(transaction);
 
   return (
     <li>
@@ -35,7 +37,7 @@ export function TransactionCard({ transaction, onSelect }: TransactionCardProps)
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate text-sm font-medium">{label}</span>
           <span className="truncate text-xs text-muted-foreground">
-            {transaction.categoryName} · {transaction.accountName}
+            {detailLabel} · {transaction.accountName}
           </span>
           <span className="text-xs text-muted-foreground">
             {dateFormatter.format(new Date(transaction.date))}

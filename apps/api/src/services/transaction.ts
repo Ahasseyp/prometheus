@@ -12,11 +12,12 @@ import {
 } from '@prometheus/domain';
 import type { TransactionType as DomainTransactionType } from '@prometheus/domain';
 import { Prisma } from '@prisma/client';
-import type { Account, Category, Transaction } from '@prisma/client';
+import type { Account, Category, Transaction, Transfer } from '@prisma/client';
 
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
 import { mapDomainTransactionType, mapPrismaTransactionType } from '../lib/transaction-type.js';
+import { findAccountInHousehold } from './account.js';
 import { findExchangeRateOnDate, refreshExchangeRate } from './exchange-rate.js';
 
 export type CreateTransactionInput = {
@@ -48,7 +49,7 @@ export type TransactionRecord = {
   id: string;
   householdId: string;
   accountId: string;
-  categoryId: string;
+  categoryId: string | null;
   type: DomainTransactionType;
   amount: string;
   date: Date;
@@ -60,7 +61,12 @@ export type TransactionRecord = {
   updatedAt: Date;
   accountName: string;
   accountCurrency: string;
-  categoryName: string;
+  categoryName: string | null;
+  transfer: {
+    id: string;
+    counterpartyAccountId: string;
+    counterpartyAccountName: string;
+  } | null;
 };
 
 export type TransactionErrorCode =
@@ -71,6 +77,7 @@ export type TransactionErrorCode =
   | 'amount-incompatible-with-account'
   | 'loan-overpayment'
   | 'exchange-rate-unavailable'
+  | 'transfer-linked'
   | 'invalid-data';
 
 export type CreateTransactionResult =
@@ -84,13 +91,54 @@ function unexpectedValidationError(reason: string): Error {
   return new Error(`Unexpected transaction validation failure: ${reason}`);
 }
 
-type TransactionWithRelations = Transaction & { account: Account; category: Category };
+export type TransferLink = Transfer & {
+  sourceTransaction: Transaction & { account: Account };
+  destinationTransaction: Transaction & { account: Account };
+};
 
-function mapTransactionToRecord(transaction: TransactionWithRelations): TransactionRecord {
+export type TransactionWithRelations = Transaction & {
+  account: Account;
+  category: Category | null;
+  transferSource: TransferLink[];
+  transferDestination: TransferLink[];
+};
+
+// Transfer Transactions have no Category (issue #26); transfer linkage is
+// included so reads can expose the linked pair and its counterparty Account.
+const transferLinkInclude = {
+  include: {
+    sourceTransaction: { include: { account: true } },
+    destinationTransaction: { include: { account: true } },
+  },
+} satisfies Prisma.Transaction$transferSourceArgs;
+
+export const transactionInclude = {
+  account: true,
+  category: true,
+  transferSource: transferLinkInclude,
+  transferDestination: transferLinkInclude,
+} satisfies Prisma.TransactionInclude;
+
+export function mapTransactionToRecord(transaction: TransactionWithRelations): TransactionRecord {
   const currency = transaction.account.currency;
   if (!isCurrencyCode(currency)) {
     throw unexpectedValidationError(`unsupported-currency:${currency}`);
   }
+
+  // The counterparty is the other side of the linked pair: for a source
+  // Transaction that is the destination, and vice versa.
+  const link = transaction.transferSource[0] ?? transaction.transferDestination[0];
+  let transfer: TransactionRecord['transfer'] = null;
+  if (link !== undefined) {
+    const counterparty =
+      transaction.transferSource.length > 0 ? link.destinationTransaction : link.sourceTransaction;
+    transfer = {
+      id: link.id,
+      counterpartyAccountId: counterparty.accountId,
+      counterpartyAccountName: counterparty.account.name,
+    };
+  }
+
   return {
     id: transaction.id,
     householdId: transaction.householdId,
@@ -107,13 +155,9 @@ function mapTransactionToRecord(transaction: TransactionWithRelations): Transact
     updatedAt: transaction.updatedAt,
     accountName: transaction.account.name,
     accountCurrency: transaction.account.currency,
-    categoryName: transaction.category.name,
+    categoryName: transaction.category?.name ?? null,
+    transfer,
   };
-}
-
-async function findAccountInHousehold(accountId: string, householdId: string) {
-  const prisma = getPrisma();
-  return prisma.account.findFirst({ where: { id: accountId, householdId } });
 }
 
 async function findCategoryInHousehold(categoryId: string, householdId: string) {
@@ -121,11 +165,11 @@ async function findCategoryInHousehold(categoryId: string, householdId: string) 
   return prisma.category.findFirst({ where: { id: categoryId, householdId } });
 }
 
-function parseAmountToMinorUnits(
+export function parseAmountToMinorUnits(
   amount: string,
-  account: Account
+  accountCurrency: string
 ): { ok: true; minorUnits: bigint } | { ok: false } {
-  const currency = account.currency;
+  const currency = accountCurrency;
   if (!isCurrencyCode(currency)) {
     throw unexpectedValidationError(`unsupported-currency:${currency}`);
   }
@@ -145,7 +189,7 @@ function parseAmountToMinorUnits(
   return { ok: true, minorUnits };
 }
 
-async function loanBalanceRemainsNonNegative(
+export async function loanBalanceRemainsNonNegative(
   account: Account,
   type: Transaction['type'],
   amount: bigint,
@@ -176,16 +220,16 @@ async function loanBalanceRemainsNonNegative(
 // 2dp -> JPY 0dp) without a new amount would silently reinterpret the stored
 // minor units. The stored value is only compatible when it has no fractional
 // digits below the new currency's exponent.
-function existingAmountFitsAccount(
+export function amountFitsCurrency(
   minorUnits: bigint,
-  fromAccount: Account,
-  toAccount: Account
+  fromCurrencyCode: string,
+  toCurrencyCode: string
 ): boolean {
-  if (!isCurrencyCode(fromAccount.currency) || !isCurrencyCode(toAccount.currency)) {
+  if (!isCurrencyCode(fromCurrencyCode) || !isCurrencyCode(toCurrencyCode)) {
     throw unexpectedValidationError('unsupported-currency');
   }
-  const fromCurrency = currencyFor(fromAccount.currency);
-  const toCurrency = currencyFor(toAccount.currency);
+  const fromCurrency = currencyFor(fromCurrencyCode);
+  const toCurrency = currencyFor(toCurrencyCode);
   if (fromCurrency == null || toCurrency == null) {
     throw unexpectedValidationError('unsupported-currency');
   }
@@ -196,7 +240,16 @@ function existingAmountFitsAccount(
   return minorUnits % factor === 0n;
 }
 
-async function resolveTransactionExchangeRate(
+// A Transaction that is part of a Transfer only changes through its Transfer
+// so the pair can never be edited or deleted one side at a time (issue #26).
+export function isTransferLinked(transaction: {
+  transferSource: unknown[];
+  transferDestination: unknown[];
+}): boolean {
+  return transaction.transferSource.length > 0 || transaction.transferDestination.length > 0;
+}
+
+export async function resolveTransactionExchangeRate(
   accountCurrency: string,
   householdId: string,
   date: Date
@@ -251,7 +304,7 @@ export async function createTransaction(
     return { ok: false, error: 'type-mismatch' };
   }
 
-  const amountResult = parseAmountToMinorUnits(input.amount, account);
+  const amountResult = parseAmountToMinorUnits(input.amount, account.currency);
   if (!amountResult.ok) {
     return { ok: false, error: 'invalid-amount' };
   }
@@ -304,7 +357,7 @@ export async function createTransaction(
       reportingCurrency: exchangeRate.reportingCurrency,
       exchangeRate: exchangeRate.exchangeRate,
     },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };
@@ -329,7 +382,7 @@ export async function listTransactionsForHousehold(
       ...(filters.accountId !== undefined ? { accountId: filters.accountId } : {}),
       ...(filters.from !== undefined || filters.to !== undefined ? { date: dateFilter } : {}),
     },
-    include: { account: true, category: true },
+    include: transactionInclude,
     orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
   });
 
@@ -343,7 +396,7 @@ export async function findTransactionById(
   const prisma = getPrisma();
   const transaction = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   if (transaction === null) {
@@ -361,11 +414,17 @@ export async function updateTransaction(
   const prisma = getPrisma();
   const existing = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   if (existing === null) {
     return { ok: false, error: 'not-found' };
+  }
+
+  // A linked Transaction only changes through its Transfer so the pair can
+  // never be edited one side at a time (issue #26).
+  if (isTransferLinked(existing)) {
+    return { ok: false, error: 'transfer-linked' };
   }
 
   let targetAccount = existing.account;
@@ -396,7 +455,11 @@ export async function updateTransaction(
 
   const accountChanged = input.accountId !== undefined && input.accountId !== existing.accountId;
   if (accountChanged && input.amount === undefined) {
-    const compatible = existingAmountFitsAccount(existing.amount, existing.account, targetAccount);
+    const compatible = amountFitsCurrency(
+      existing.amount,
+      existing.account.currency,
+      targetAccount.currency
+    );
     if (!compatible) {
       return { ok: false, error: 'amount-incompatible-with-account' };
     }
@@ -432,7 +495,7 @@ export async function updateTransaction(
   }
   let targetAmount = existing.amount;
   if (input.amount !== undefined) {
-    const amountResult = parseAmountToMinorUnits(input.amount, targetAccount);
+    const amountResult = parseAmountToMinorUnits(input.amount, targetAccount.currency);
     if (!amountResult.ok) {
       return { ok: false, error: 'invalid-amount' };
     }
@@ -470,26 +533,35 @@ export async function updateTransaction(
   const transaction = await prisma.transaction.update({
     where: { id: existing.id },
     data: updateData,
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };
 }
 
+export type DeleteTransactionResult =
+  { ok: true } | { ok: false; reason: 'not-found' | 'transfer-linked' };
+
 export async function deleteTransaction(
   transactionId: string,
   householdId: string
-): Promise<boolean> {
+): Promise<DeleteTransactionResult> {
   const prisma = getPrisma();
-  try {
-    await prisma.transaction.delete({
-      where: { id: transactionId, householdId },
-    });
-    return true;
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return false;
-    }
-    throw error;
+  const existing = await prisma.transaction.findFirst({
+    where: { id: transactionId, householdId },
+    include: transactionInclude,
+  });
+
+  if (existing === null) {
+    return { ok: false, reason: 'not-found' };
   }
+
+  if (isTransferLinked(existing)) {
+    return { ok: false, reason: 'transfer-linked' };
+  }
+
+  await prisma.transaction.delete({
+    where: { id: existing.id },
+  });
+  return { ok: true };
 }

@@ -56,7 +56,12 @@ export interface TransactionFormProps {
   onSuccess?: () => void;
 }
 
-const TYPE_LABELS: Record<TransactionType, string> = {
+// The form only handles income and expense; Transfers have their own flow
+// (issue #26) and are edited through the Transfer API, not this form.
+const FORM_TYPES = [TransactionType.Expense, TransactionType.Income] as const;
+type FormTransactionType = (typeof FORM_TYPES)[number];
+
+const TYPE_LABELS: Record<FormTransactionType, string> = {
   [TransactionType.Expense]: 'Expense',
   [TransactionType.Income]: 'Income',
 };
@@ -227,7 +232,7 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
               className="w-full"
               aria-label="Transaction type"
             >
-              {Object.values(TransactionType).map((typeValue) => (
+              {FORM_TYPES.map((typeValue) => (
                 <ToggleGroup.Item
                   key={typeValue}
                   value={typeValue}

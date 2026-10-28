@@ -47,8 +47,16 @@ describe.sequential('transaction procedures', () => {
     } else {
       process.env.ALLOW_REGISTRATION = originalAllowRegistration;
     }
+    // Scoped to the dates this file seeds: test files share the test database
+    // and run in parallel, so a broad MXN/USD delete would race other suites.
     await getPrisma().exchangeRate.deleteMany({
-      where: { baseCurrency: 'MXN', quoteCurrency: 'USD' },
+      where: {
+        baseCurrency: 'MXN',
+        quoteCurrency: 'USD',
+        date: {
+          in: [new Date('2026-08-15T00:00:00.000Z'), new Date('2026-08-16T00:00:00.000Z')],
+        },
+      },
     });
     await cleanupTestData({ userIds: createdUserIds, householdIds: createdHouseholdIds });
     await new Promise<void>((resolve, reject) => {

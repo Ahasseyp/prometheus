@@ -6,7 +6,7 @@ export type TransactionFixture = {
   id: string;
   householdId: string;
   accountId: string;
-  categoryId: string;
+  categoryId: string | null;
   type: string;
   amount: string;
   date: string;
@@ -15,10 +15,15 @@ export type TransactionFixture = {
   updatedAt: string;
   accountName: string;
   accountCurrency: string;
-  categoryName: string;
+  categoryName: string | null;
   reportingCurrency: string | null;
   exchangeRate: string | null;
   exchangeRateOverridden: boolean;
+  transfer: {
+    id: string;
+    counterpartyAccountId: string;
+    counterpartyAccountName: string;
+  } | null;
 };
 
 export function makeTransaction(overrides: Partial<TransactionFixture> = {}): TransactionFixture {
@@ -39,6 +44,7 @@ export function makeTransaction(overrides: Partial<TransactionFixture> = {}): Tr
     reportingCurrency: null,
     exchangeRate: null,
     exchangeRateOverridden: false,
+    transfer: null,
     ...overrides,
   };
 }

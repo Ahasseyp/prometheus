@@ -6,6 +6,7 @@ import { Table } from '@/components/ui/table.js';
 import { formatMoney } from '@/lib/format-money.js';
 
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import { getTransactionDetailLabel } from '@/features/transactions/lib/transfer-presentation.js';
 
 export interface TransactionRowProps {
   transaction: Transaction;
@@ -19,11 +20,12 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
 
 export function TransactionRow({ transaction, onEdit, onDelete }: TransactionRowProps) {
   const isExpense = transaction.type === 'expense';
-  const Icon = isExpense ? ArrowDownLeft : ArrowUpRight;
+  const Icon = isExpense ? ArrowUpRight : ArrowDownLeft;
   // The stored amount is always positive; the sign comes from the type. The
   // minus is part of the formatted value, not just the color.
   const signedAmount = isExpense ? `-${transaction.amount}` : transaction.amount;
   const label = transaction.description || transaction.categoryName;
+  const detailLabel = getTransactionDetailLabel(transaction);
   const showActions = onEdit !== undefined && onDelete !== undefined;
 
   return (
@@ -37,7 +39,7 @@ export function TransactionRow({ transaction, onEdit, onDelete }: TransactionRow
           <span className="truncate font-medium">{label}</span>
         </span>
       </Table.Cell>
-      <Table.Cell>{transaction.categoryName}</Table.Cell>
+      <Table.Cell>{detailLabel}</Table.Cell>
       <Table.Cell className="text-muted-foreground">{transaction.accountName}</Table.Cell>
       <Table.Cell className="text-right font-semibold tabular-nums">
         {formatMoney(signedAmount, transaction.accountCurrency)}

@@ -21,11 +21,11 @@ const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
 });
 
-const transactionResponseSchema = z.object({
+export const transactionResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
   accountId: z.string().uuid(),
-  categoryId: z.string().uuid(),
+  categoryId: z.string().uuid().nullable(),
   type: transactionTypeSchema,
   amount: z.string(),
   date: z.date(),
@@ -37,7 +37,14 @@ const transactionResponseSchema = z.object({
   updatedAt: z.date(),
   accountName: z.string(),
   accountCurrency: z.string(),
-  categoryName: z.string(),
+  categoryName: z.string().nullable(),
+  transfer: z
+    .object({
+      id: z.string().uuid(),
+      counterpartyAccountId: z.string().uuid(),
+      counterpartyAccountName: z.string(),
+    })
+    .nullable(),
 });
 
 const createTransactionInputSchema = z.object({
@@ -101,6 +108,10 @@ const transactionErrorMappings: Record<
     message:
       'The stored amount cannot be represented in the new account’s currency; supply a new amount.',
   },
+  'transfer-linked': {
+    code: 'BAD_REQUEST',
+    message: 'This Transaction is part of a Transfer; edit or delete the Transfer instead.',
+  },
 };
 
 export const transactionRouter = router({
@@ -157,8 +168,11 @@ export const transactionRouter = router({
     .output(z.object({ ok: z.literal(true) }))
     .mutation(async ({ input, ctx }) => {
       const householdId = getHouseholdId(ctx, 'transactions');
-      const deleted = await deleteTransaction(input.id, householdId);
-      if (!deleted) {
+      const result = await deleteTransaction(input.id, householdId);
+      if (!result.ok) {
+        if (result.reason === 'transfer-linked') {
+          throwServiceError('transfer-linked', transactionErrorMappings);
+        }
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Transaction not found.' });
       }
       return { ok: true as const };

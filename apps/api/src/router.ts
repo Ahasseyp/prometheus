@@ -9,6 +9,7 @@ import { householdRouter } from './household.js';
 import { registrationRouter } from './registration.js';
 import { reportingRouter } from './reporting.js';
 import { transactionRouter } from './transaction.js';
+import { transferRouter } from './transfer.js';
 
 export const appRouter = router({
   // Verifies both that the server is up and that PostgreSQL is reachable.
@@ -29,6 +30,7 @@ export const appRouter = router({
   registration: registrationRouter,
   reporting: reportingRouter,
   transaction: transactionRouter,
+  transfer: transferRouter,
 });
 
 export type AppRouter = typeof appRouter;

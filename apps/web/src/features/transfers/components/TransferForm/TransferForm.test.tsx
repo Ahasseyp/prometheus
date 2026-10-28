@@ -7,9 +7,13 @@ import {
   makeTransfer,
   mockCreateTransferError,
   mockCreateTransferResponse,
+  mockUpdateTransferError,
+  mockUpdateTransferResponse,
 } from '@/test/transfer-helpers.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
+import type { Transfer } from '@/features/transfers/gateways/transfers.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
+import { makeTransaction } from '@/test/transaction-helpers.js';
 
 import { TransferForm } from './TransferForm.js';
 
@@ -177,6 +181,82 @@ describe('TransferForm', () => {
 
     expect(
       await screen.findByText('The source and destination Accounts must be different.')
+    ).toBeInTheDocument();
+  });
+
+  it('prefills the form from an existing transfer and submits an update', async () => {
+    const user = userEvent.setup();
+    const transfer = makeTransfer({
+      sourceTransaction: makeTransaction({
+        accountId: checkingAccount.id,
+        accountName: 'Everyday Checking',
+        amount: '250.00',
+        description: 'Monthly savings',
+      }),
+      destinationTransaction: makeTransaction({
+        accountId: savingsAccount.id,
+        accountName: 'Savings',
+        type: 'income',
+        amount: '250.00',
+        description: 'Monthly savings',
+      }),
+    });
+    mockUpdateTransferResponse(transfer);
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    const onSuccess = vi.fn();
+    render(
+      <TransferForm
+        accounts={[checkingAccount, savingsAccount]}
+        transfer={transfer as unknown as Transfer}
+        onSuccess={onSuccess}
+      />,
+      { wrapper: createQueryClientWrapper() }
+    );
+
+    expect(screen.getByRole('button', { name: 'Save transfer' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toHaveValue('250.00');
+    expect(screen.getByLabelText('Description')).toHaveValue('Monthly savings');
+
+    await user.clear(screen.getByLabelText('Amount'));
+    await user.type(screen.getByLabelText('Amount'), '300.00');
+    await user.click(screen.getByRole('button', { name: 'Save transfer' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+
+    const updateCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('transfer.update'));
+    expect(updateCall).toBeDefined();
+    const payload = JSON.parse(String(updateCall![1]?.body));
+    expect(payload).toMatchObject({
+      id: transfer.id,
+      sourceAccountId: checkingAccount.id,
+      destinationAccountId: savingsAccount.id,
+      amount: '300.00',
+      description: 'Monthly savings',
+    });
+    expect(payload).not.toHaveProperty('exchangeRate');
+    expect(payload).not.toHaveProperty('destinationAmount');
+    fetchSpy.mockRestore();
+  });
+
+  it('shows a form error when the update fails', async () => {
+    const user = userEvent.setup();
+    const transfer = makeTransfer();
+    mockUpdateTransferError('The Exchange Rate does not match the source and destination amounts.');
+    render(
+      <TransferForm
+        accounts={[checkingAccount, savingsAccount]}
+        transfer={transfer as unknown as Transfer}
+        onSuccess={vi.fn()}
+      />,
+      { wrapper: createQueryClientWrapper() }
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Save transfer' }));
+
+    expect(
+      await screen.findByText(
+        'The Exchange Rate does not match the source and destination amounts.'
+      )
     ).toBeInTheDocument();
   });
 });

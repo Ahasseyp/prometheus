@@ -15,7 +15,11 @@ import { FormError } from '@/components/form/FormError.js';
 import { FormField } from '@/components/form/FormField.js';
 import { formatMoney } from '@/lib/format-money.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
-import { useCreateTransfer, type Transfer } from '@/features/transfers/gateways/transfers.js';
+import {
+  useCreateTransfer,
+  useUpdateTransfer,
+  type Transfer,
+} from '@/features/transfers/gateways/transfers.js';
 import { getTransferMutationErrorMessage } from '@/features/transfers/lib/transfer-errors.js';
 
 const AMOUNT_PATTERN = /^\d+(\.\d+)?$/;
@@ -46,23 +50,19 @@ export interface TransferFormProps {
   onSuccess: () => void;
 }
 
-export function TransferForm({ accounts, onSuccess }: TransferFormProps) {
+export function TransferForm({ accounts, transfer, onSuccess }: TransferFormProps) {
   const createTransfer = useCreateTransfer();
-  const isPending = createTransfer.isPending;
+  const updateTransfer = useUpdateTransfer();
+  const isEditing = transfer !== undefined;
+  const isPending = isEditing ? updateTransfer.isPending : createTransfer.isPending;
   const [formError, setFormError] = useState<string | null>(null);
   const formSchema = useMemo(() => buildTransferFormSchema(accounts), [accounts]);
+  // The form state is initialized once per mount; the dialog unmounts the form
+  // when closed, so an edited Transfer refetching cannot clobber user input.
+  const defaultValues = useMemo(() => buildDefaultValues(transfer), [transfer]);
 
   const form = useForm({
-    defaultValues: {
-      sourceAccountId: '',
-      destinationAccountId: '',
-      amount: '',
-      exchangeRate: '',
-      // The date crosses the form as a `yyyy-MM-dd` string; it is converted to
-      // a local Date only when submitted to the API.
-      date: format(new Date(), 'yyyy-MM-dd'),
-      description: '',
-    },
+    defaultValues,
     validators: {
       onSubmit: formSchema,
     },
@@ -91,12 +91,16 @@ export function TransferForm({ accounts, onSuccess }: TransferFormProps) {
       : null;
 
   function getSubmitButtonText(): string {
-    return isPending ? 'Adding transfer…' : 'Add transfer';
+    if (isPending) {
+      return isEditing ? 'Saving…' : 'Adding transfer…';
+    }
+    return isEditing ? 'Save transfer' : 'Add transfer';
   }
 
   function clearFormError() {
     setFormError(null);
     createTransfer.reset();
+    updateTransfer.reset();
   }
 
   function withClearedError<T>(handler: (value: T) => void): (value: T) => void {
@@ -134,18 +138,26 @@ export function TransferForm({ accounts, onSuccess }: TransferFormProps) {
           destinationAmount: derivedDestinationAmount ?? undefined,
         }
       : {};
+    const mutationInput = {
+      sourceAccountId: value.sourceAccountId,
+      destinationAccountId: value.destinationAccountId,
+      amount: value.amount.trim(),
+      date: new Date(`${value.date}T00:00:00`),
+      // A blank description is omitted: on create the backend applies its
+      // default, on update the existing description is kept.
+      description: description === '' ? undefined : description,
+      ...crossCurrencyInput,
+    };
 
-    createTransfer.mutate(
-      {
-        sourceAccountId: value.sourceAccountId,
-        destinationAccountId: value.destinationAccountId,
-        amount: value.amount.trim(),
-        date: new Date(`${value.date}T00:00:00`),
-        description: description === '' ? undefined : description,
-        ...crossCurrencyInput,
-      },
-      { onSuccess, onError: handleMutationError }
-    );
+    if (isEditing) {
+      updateTransfer.mutate(
+        { id: transfer.id, ...mutationInput },
+        { onSuccess, onError: handleMutationError }
+      );
+      return;
+    }
+
+    createTransfer.mutate(mutationInput, { onSuccess, onError: handleMutationError });
   }
 
   function handleFormSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
@@ -304,6 +316,30 @@ type TransferFormState = {
   date: string;
   description: string;
 };
+
+function buildDefaultValues(transfer: Transfer | undefined): TransferFormState {
+  if (transfer === undefined) {
+    return {
+      sourceAccountId: '',
+      destinationAccountId: '',
+      amount: '',
+      exchangeRate: '',
+      // The date crosses the form as a `yyyy-MM-dd` string; it is converted to
+      // a local Date only when submitted to the API.
+      date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+    };
+  }
+
+  return {
+    sourceAccountId: transfer.sourceTransaction.accountId,
+    destinationAccountId: transfer.destinationTransaction.accountId,
+    amount: transfer.sourceTransaction.amount,
+    exchangeRate: transfer.exchangeRate ?? '',
+    date: format(new Date(transfer.sourceTransaction.date), 'yyyy-MM-dd'),
+    description: transfer.sourceTransaction.description,
+  };
+}
 
 // The schema is built per render because the cross-currency Exchange Rate
 // requirement depends on the selected Accounts' Currencies.

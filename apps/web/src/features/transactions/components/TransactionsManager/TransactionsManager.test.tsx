@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
 import { makeTransaction, mockTransactionListResponse } from '@/test/transaction-helpers.js';
+import {
+  makeTransfer,
+  mockDeleteTransferResponse,
+  mockGetTransferResponse,
+} from '@/test/transfer-helpers.js';
 import { mockCategoryListResponse } from '@/test/category-helpers.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 
@@ -44,6 +49,21 @@ const deposit = makeTransaction({
   type: 'income',
   amount: '500.00',
   description: 'Paycheck',
+});
+
+const transferId = 'd4e5f6a7-b8c9-0123-defa-234567890123';
+
+const linkedTransaction = makeTransaction({
+  id: 'b8c9d0e1-f2a3-4567-bcde-678901234567',
+  accountId: checkingAccount.id,
+  description: 'Transfer to Savings',
+  categoryId: null,
+  categoryName: null,
+  transfer: {
+    id: transferId,
+    counterpartyAccountId: savingsAccount.id,
+    counterpartyAccountName: 'Vacation Savings',
+  },
 });
 
 function renderManager() {
@@ -130,6 +150,48 @@ describe('TransactionsManager', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
 
     expect(await screen.findByText('Delete Weekly shop?')).toBeInTheDocument();
+  });
+
+  it('opens the transfer edit dialog from a linked transaction', async () => {
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount, savingsAccount]);
+    mockTransactionListResponse([linkedTransaction]);
+    mockGetTransferResponse(makeTransfer());
+    renderManager();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Actions for Transfer to Savings' })
+    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+
+    expect(await screen.findByText('Edit transfer')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Save transfer' })).toBeInTheDocument();
+  });
+
+  it('deletes a transfer from a linked transaction', async () => {
+    const user = userEvent.setup();
+    mockAccountListResponse([checkingAccount, savingsAccount]);
+    mockTransactionListResponse([linkedTransaction]);
+    mockDeleteTransferResponse();
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    renderManager();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Actions for Transfer to Savings' })
+    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+
+    expect(await screen.findByText('Delete transfer?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete transfer' }));
+
+    await vi.waitFor(() => {
+      const deleteCall = fetchSpy.mock.calls.find(([url]) =>
+        String(url).includes('transfer.delete')
+      );
+      expect(deleteCall).toBeDefined();
+      expect(JSON.parse(String(deleteCall![1]?.body))).toEqual({ id: transferId });
+    });
+    fetchSpy.mockRestore();
   });
 
   it('shows cards and opens the action sheet on mobile', async () => {

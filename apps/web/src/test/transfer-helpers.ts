@@ -7,8 +7,8 @@ export type TransferFixture = {
   id: string;
   householdId: string;
   exchangeRate: string | null;
-  sourceTransaction: unknown;
-  destinationTransaction: unknown;
+  sourceTransaction: TransactionFixture;
+  destinationTransaction: TransactionFixture;
 };
 
 export function makeTransfer(overrides: Partial<TransferFixture> = {}): TransferFixture {
@@ -31,6 +31,41 @@ export function mockCreateTransferResponse(data: unknown) {
   server.use(
     http.post('/api/trpc/transfer.create', () => {
       return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockGetTransferResponse(data: unknown) {
+  server.use(
+    http.get('/api/trpc/transfer.get', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockUpdateTransferResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/transfer.update', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockUpdateTransferError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/transfer.update', () => {
+      return HttpResponse.json(
+        { error: { message, code: -32600, data: { code: 'BAD_REQUEST', httpStatus: 400 } } },
+        { status: 400 }
+      );
+    })
+  );
+}
+
+export function mockDeleteTransferResponse() {
+  server.use(
+    http.post('/api/trpc/transfer.delete', () => {
+      return HttpResponse.json({ result: { data: { ok: true } } });
     })
   );
 }

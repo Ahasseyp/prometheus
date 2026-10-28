@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { TransferFormDialog } from '@/features/transfers/components/TransferFormDialog/TransferFormDialog.js';
+import { DeleteTransferDialog } from '@/features/transfers/components/DeleteTransferDialog/DeleteTransferDialog.js';
 import { DeleteTransactionDialog } from '@/features/transactions/components/DeleteTransactionDialog/DeleteTransactionDialog.js';
 import { TransactionActionSheet } from '@/features/transactions/components/TransactionActionSheet/TransactionActionSheet.js';
 import { TransactionFilters } from '@/features/transactions/components/TransactionFilters/TransactionFilters.js';
@@ -22,6 +23,8 @@ export function TransactionsManager() {
   const { data: transactions, isPending, isError, refetch } = useTransactions(filters);
   const [formOpen, setFormOpen] = useState(false);
   const [transferFormOpen, setTransferFormOpen] = useState(false);
+  const [editingTransferId, setEditingTransferId] = useState<string | null>(null);
+  const [deletingTransferId, setDeletingTransferId] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
@@ -34,12 +37,35 @@ export function TransactionsManager() {
   }
 
   function openTransferForm() {
+    setEditingTransferId(null);
     setTransferFormOpen(true);
   }
 
+  function handleTransferFormOpenChange(nextOpen: boolean) {
+    setTransferFormOpen(nextOpen);
+    if (!nextOpen) {
+      setEditingTransferId(null);
+    }
+  }
+
+  // A linked Transfer is edited and deleted as one unit from either side; the
+  // backend rejects single-Transaction mutations on both of its Transactions.
   function openEditForm(transaction: Transaction) {
+    if (transaction.transfer !== null) {
+      setEditingTransferId(transaction.transfer.id);
+      setTransferFormOpen(true);
+      return;
+    }
     setEditingTransaction(transaction);
     setFormOpen(true);
+  }
+
+  function openDeleteConfirmation(transaction: Transaction) {
+    if (transaction.transfer !== null) {
+      setDeletingTransferId(transaction.transfer.id);
+      return;
+    }
+    setDeletingTransaction(transaction);
   }
 
   return (
@@ -70,7 +96,7 @@ export function TransactionsManager() {
             isFiltered={isFiltered}
             emptyAction={openCreateForm}
             onEdit={openEditForm}
-            onDelete={setDeletingTransaction}
+            onDelete={openDeleteConfirmation}
             onSelect={setActiveTransaction}
           />
         </Card.Content>
@@ -84,18 +110,23 @@ export function TransactionsManager() {
       />
       <TransferFormDialog
         open={transferFormOpen}
-        onOpenChange={setTransferFormOpen}
+        onOpenChange={handleTransferFormOpenChange}
         accounts={accounts}
+        transferId={editingTransferId}
       />
       <DeleteTransactionDialog
         transaction={deletingTransaction}
         onClose={() => setDeletingTransaction(null)}
       />
+      <DeleteTransferDialog
+        transferId={deletingTransferId}
+        onClose={() => setDeletingTransferId(null)}
+      />
       <TransactionActionSheet
         transaction={activeTransaction}
         onClose={() => setActiveTransaction(null)}
         onEdit={openEditForm}
-        onDelete={setDeletingTransaction}
+        onDelete={openDeleteConfirmation}
       />
     </div>
   );

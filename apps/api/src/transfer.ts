@@ -2,7 +2,12 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { isPositiveDecimal } from '@prometheus/domain';
 
-import { createTransfer, findTransferById } from './services/transfer.js';
+import {
+  createTransfer,
+  deleteTransfer,
+  findTransferById,
+  updateTransfer,
+} from './services/transfer.js';
 import type { TransferErrorCode } from './services/transfer.js';
 import { transactionResponseSchema } from './transaction.js';
 import { getHouseholdId, protectedProcedure, router, throwServiceError } from './trpc.js';
@@ -34,6 +39,19 @@ const createTransferInputSchema = z.object({
 
 const transferIdInputSchema = z.object({
   id: z.string().uuid(),
+});
+
+const updateTransferInputSchema = transferIdInputSchema.extend({
+  sourceAccountId: z.string().uuid().optional(),
+  destinationAccountId: z.string().uuid().optional(),
+  amount: transferAmountSchema.optional(),
+  destinationAmount: transferAmountSchema.optional(),
+  exchangeRate: z
+    .string()
+    .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' })
+    .optional(),
+  date: z.coerce.date().optional(),
+  description: z.string().optional(),
 });
 
 const transferErrorMappings: Record<
@@ -69,6 +87,11 @@ const transferErrorMappings: Record<
     code: 'BAD_REQUEST',
     message: 'The Exchange Rate does not match the source and destination amounts.',
   },
+  'amount-incompatible-with-account': {
+    code: 'BAD_REQUEST',
+    message:
+      'The stored amount cannot be represented in the new account’s currency; supply a new amount.',
+  },
   'loan-overpayment': {
     code: 'BAD_REQUEST',
     message: 'This Transfer would overpay the loan.',
@@ -103,6 +126,34 @@ export const transferRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Transfer not found.' });
       }
       return transfer;
+    }),
+
+  update: protectedProcedure
+    .input(updateTransferInputSchema)
+    .output(transferResponseSchema)
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'transfers');
+      const { id, ...updateInput } = input;
+      const result = await updateTransfer(id, householdId, updateInput);
+      if (!result.ok) {
+        if (result.error === 'not-found') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Transfer not found.' });
+        }
+        throwServiceError(result.error, transferErrorMappings);
+      }
+      return result.transfer;
+    }),
+
+  delete: protectedProcedure
+    .input(transferIdInputSchema)
+    .output(z.object({ ok: z.literal(true) }))
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'transfers');
+      const deleted = await deleteTransfer(input.id, householdId);
+      if (!deleted) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Transfer not found.' });
+      }
+      return { ok: true as const };
     }),
 });
 

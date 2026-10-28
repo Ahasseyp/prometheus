@@ -3,6 +3,7 @@ import type { Transfer } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
 import {
+  amountFitsCurrency,
   loanBalanceRemainsNonNegative,
   mapTransactionToRecord,
   parseAmountToMinorUnits,
@@ -33,6 +34,7 @@ export type TransferErrorCode =
   | 'invalid-exchange-rate'
   | 'missing-exchange-rate'
   | 'rate-amount-mismatch'
+  | 'amount-incompatible-with-account'
   | 'loan-overpayment'
   | 'exchange-rate-unavailable'
   | 'invalid-data';
@@ -109,7 +111,7 @@ export async function createTransfer(
     return { ok: false, error: 'same-account' };
   }
 
-  const sourceAmountResult = parseAmountToMinorUnits(input.amount, sourceAccount);
+  const sourceAmountResult = parseAmountToMinorUnits(input.amount, sourceAccount.currency);
   if (!sourceAmountResult.ok) {
     return { ok: false, error: 'invalid-amount' };
   }
@@ -127,7 +129,7 @@ export async function createTransfer(
     }
     const destinationAmountResult = parseAmountToMinorUnits(
       input.destinationAmount,
-      destinationAccount
+      destinationAccount.currency
     );
     if (!destinationAmountResult.ok) {
       return { ok: false, error: 'invalid-destination-amount' };
@@ -148,7 +150,7 @@ export async function createTransfer(
   } else if (input.destinationAmount !== undefined) {
     const destinationAmountResult = parseAmountToMinorUnits(
       input.destinationAmount,
-      destinationAccount
+      destinationAccount.currency
     );
     if (
       !destinationAmountResult.ok ||
@@ -245,4 +247,248 @@ export async function findTransferById(
     return null;
   }
   return mapTransferToRecord(transfer);
+}
+
+export type UpdateTransferInput = {
+  sourceAccountId?: string;
+  destinationAccountId?: string;
+  amount?: string;
+  destinationAmount?: string;
+  exchangeRate?: string;
+  date?: Date;
+  description?: string;
+};
+
+export type UpdateTransferResult =
+  { ok: true; transfer: TransferRecord } | { ok: false; error: TransferErrorCode | 'not-found' };
+
+// Resolves the minor units for one side of an update: the new amount when
+// given, otherwise the stored amount — which is only portable to a new Account
+// when it has no fractional digits below the new currency's exponent.
+async function resolveSideMinorUnits(input: {
+  amount: string | undefined;
+  accountChanged: boolean;
+  storedMinorUnits: bigint;
+  fromCurrency: string;
+  toCurrency: string;
+  invalidError: 'invalid-amount' | 'invalid-destination-amount';
+}): Promise<{ ok: true; minorUnits: bigint } | { ok: false; error: TransferErrorCode }> {
+  if (input.amount !== undefined) {
+    const parsed = parseAmountToMinorUnits(input.amount, input.toCurrency);
+    if (!parsed.ok) {
+      return { ok: false, error: input.invalidError };
+    }
+    return { ok: true, minorUnits: parsed.minorUnits };
+  }
+  if (input.accountChanged) {
+    if (!amountFitsCurrency(input.storedMinorUnits, input.fromCurrency, input.toCurrency)) {
+      return { ok: false, error: 'amount-incompatible-with-account' };
+    }
+  }
+  return { ok: true, minorUnits: input.storedMinorUnits };
+}
+
+export async function updateTransfer(
+  transferId: string,
+  householdId: string,
+  input: UpdateTransferInput
+): Promise<UpdateTransferResult> {
+  const prisma = getPrisma();
+  const existing = await prisma.transfer.findFirst({
+    where: { id: transferId, householdId },
+    include: transferInclude,
+  });
+  if (existing === null) {
+    return { ok: false, error: 'not-found' };
+  }
+
+  const sourceAccount = await findAccountInHousehold(
+    input.sourceAccountId ?? existing.sourceTransaction.accountId,
+    householdId
+  );
+  if (sourceAccount === null) {
+    return { ok: false, error: 'account-not-found' };
+  }
+  const destinationAccount = await findAccountInHousehold(
+    input.destinationAccountId ?? existing.destinationTransaction.accountId,
+    householdId
+  );
+  if (destinationAccount === null) {
+    return { ok: false, error: 'account-not-found' };
+  }
+  if (sourceAccount.id === destinationAccount.id) {
+    return { ok: false, error: 'same-account' };
+  }
+
+  const sourceAccountChanged = sourceAccount.id !== existing.sourceTransaction.accountId;
+  const destinationAccountChanged =
+    destinationAccount.id !== existing.destinationTransaction.accountId;
+
+  const sourceAmount = await resolveSideMinorUnits({
+    amount: input.amount,
+    accountChanged: sourceAccountChanged,
+    storedMinorUnits: existing.sourceTransaction.amount,
+    fromCurrency: existing.sourceTransaction.account.currency,
+    toCurrency: sourceAccount.currency,
+    invalidError: 'invalid-amount',
+  });
+  if (!sourceAmount.ok) {
+    return sourceAmount;
+  }
+
+  const requestedDestinationAmount = await resolveSideMinorUnits({
+    amount: input.destinationAmount,
+    accountChanged: destinationAccountChanged,
+    storedMinorUnits: existing.destinationTransaction.amount,
+    fromCurrency: existing.destinationTransaction.account.currency,
+    toCurrency: destinationAccount.currency,
+    invalidError: 'invalid-destination-amount',
+  });
+  if (!requestedDestinationAmount.ok) {
+    return requestedDestinationAmount;
+  }
+
+  const crossCurrency = sourceAccount.currency !== destinationAccount.currency;
+
+  // Same-currency Transfers share one amount, so the destination side mirrors
+  // the source unless an equal destination amount was supplied and validated.
+  const destinationMinorUnits =
+    crossCurrency || input.destinationAmount !== undefined
+      ? requestedDestinationAmount.minorUnits
+      : sourceAmount.minorUnits;
+
+  let storedExchangeRate: string | null = null;
+  if (crossCurrency) {
+    const rate = input.exchangeRate ?? existing.exchangeRate?.toString();
+    if (rate === undefined) {
+      return { ok: false, error: 'missing-exchange-rate' };
+    }
+    if (
+      !amountsCoherentWithRate(
+        sourceAmount.minorUnits,
+        sourceAccount.currency,
+        destinationMinorUnits,
+        destinationAccount.currency,
+        rate
+      )
+    ) {
+      return { ok: false, error: 'rate-amount-mismatch' };
+    }
+    storedExchangeRate = rate;
+  } else if (
+    input.destinationAmount !== undefined &&
+    destinationMinorUnits !== sourceAmount.minorUnits
+  ) {
+    return { ok: false, error: 'invalid-destination-amount' };
+  }
+
+  const sourceLoanValid = await loanBalanceRemainsNonNegative(
+    sourceAccount,
+    'EXPENSE',
+    sourceAmount.minorUnits,
+    existing.sourceTransactionId
+  );
+  if (!sourceLoanValid) {
+    return { ok: false, error: 'loan-overpayment' };
+  }
+  const destinationLoanValid = await loanBalanceRemainsNonNegative(
+    destinationAccount,
+    'INCOME',
+    destinationMinorUnits,
+    existing.destinationTransactionId
+  );
+  if (!destinationLoanValid) {
+    return { ok: false, error: 'loan-overpayment' };
+  }
+
+  const targetDate = input.date ?? existing.sourceTransaction.date;
+  const dateChanged = targetDate.getTime() !== existing.sourceTransaction.date.getTime();
+  const sourceChanged = sourceAccountChanged || dateChanged;
+  const destinationChanged = destinationAccountChanged || dateChanged;
+
+  // Reporting snapshots are refreshed only for the sides whose Account or
+  // date changed; untouched sides keep their stored (possibly overridden) rate.
+  let sourceSnapshot: { reportingCurrency: string; exchangeRate: string } | null = null;
+  if (sourceChanged) {
+    sourceSnapshot = await resolveTransactionExchangeRate(
+      sourceAccount.currency,
+      householdId,
+      targetDate
+    );
+    if (sourceSnapshot === null) {
+      return { ok: false, error: 'exchange-rate-unavailable' };
+    }
+  }
+  let destinationSnapshot: { reportingCurrency: string; exchangeRate: string } | null = null;
+  if (destinationChanged) {
+    destinationSnapshot = await resolveTransactionExchangeRate(
+      destinationAccount.currency,
+      householdId,
+      targetDate
+    );
+    if (destinationSnapshot === null) {
+      return { ok: false, error: 'exchange-rate-unavailable' };
+    }
+  }
+
+  const transfer = await prisma.$transaction(async (tx) => {
+    await tx.transaction.update({
+      where: { id: existing.sourceTransactionId },
+      data: {
+        accountId: sourceAccount.id,
+        amount: sourceAmount.minorUnits,
+        date: targetDate,
+        description: input.description ?? existing.sourceTransaction.description,
+        ...(sourceSnapshot === null
+          ? {}
+          : {
+              reportingCurrency: sourceSnapshot.reportingCurrency,
+              exchangeRate: sourceSnapshot.exchangeRate,
+              exchangeRateOverridden: false,
+            }),
+      },
+    });
+    await tx.transaction.update({
+      where: { id: existing.destinationTransactionId },
+      data: {
+        accountId: destinationAccount.id,
+        amount: destinationMinorUnits,
+        date: targetDate,
+        description: input.description ?? existing.destinationTransaction.description,
+        ...(destinationSnapshot === null
+          ? {}
+          : {
+              reportingCurrency: destinationSnapshot.reportingCurrency,
+              exchangeRate: destinationSnapshot.exchangeRate,
+              exchangeRateOverridden: false,
+            }),
+      },
+    });
+    return tx.transfer.update({
+      where: { id: existing.id },
+      data: { exchangeRate: storedExchangeRate },
+      include: transferInclude,
+    });
+  });
+
+  return { ok: true, transfer: mapTransferToRecord(transfer) };
+}
+
+export async function deleteTransfer(transferId: string, householdId: string): Promise<boolean> {
+  const prisma = getPrisma();
+  const existing = await prisma.transfer.findFirst({
+    where: { id: transferId, householdId },
+    select: { id: true, sourceTransactionId: true, destinationTransactionId: true },
+  });
+  if (existing === null) {
+    return false;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transfer.delete({ where: { id: existing.id } });
+    await tx.transaction.deleteMany({
+      where: { id: { in: [existing.sourceTransactionId, existing.destinationTransactionId] } },
+    });
+  });
+  return true;
 }

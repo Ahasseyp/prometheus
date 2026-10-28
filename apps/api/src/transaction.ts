@@ -108,6 +108,10 @@ const transactionErrorMappings: Record<
     message:
       'The stored amount cannot be represented in the new account’s currency; supply a new amount.',
   },
+  'transfer-linked': {
+    code: 'BAD_REQUEST',
+    message: 'This Transaction is part of a Transfer; edit or delete the Transfer instead.',
+  },
 };
 
 export const transactionRouter = router({
@@ -164,8 +168,11 @@ export const transactionRouter = router({
     .output(z.object({ ok: z.literal(true) }))
     .mutation(async ({ input, ctx }) => {
       const householdId = getHouseholdId(ctx, 'transactions');
-      const deleted = await deleteTransaction(input.id, householdId);
-      if (!deleted) {
+      const result = await deleteTransaction(input.id, householdId);
+      if (!result.ok) {
+        if (result.reason === 'transfer-linked') {
+          throwServiceError('transfer-linked', transactionErrorMappings);
+        }
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Transaction not found.' });
       }
       return { ok: true as const };

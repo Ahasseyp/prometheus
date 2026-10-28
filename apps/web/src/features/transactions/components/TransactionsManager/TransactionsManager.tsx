@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ArrowRightLeft, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
+import { TransferFormDialog } from '@/features/transfers/components/TransferFormDialog/TransferFormDialog.js';
 import { DeleteTransactionDialog } from '@/features/transactions/components/DeleteTransactionDialog/DeleteTransactionDialog.js';
 import { TransactionActionSheet } from '@/features/transactions/components/TransactionActionSheet/TransactionActionSheet.js';
 import { TransactionFilters } from '@/features/transactions/components/TransactionFilters/TransactionFilters.js';
@@ -20,6 +21,7 @@ export function TransactionsManager() {
   const [filters, setFilters] = useState<Filters>({});
   const { data: transactions, isPending, isError, refetch } = useTransactions(filters);
   const [formOpen, setFormOpen] = useState(false);
+  const [transferFormOpen, setTransferFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
@@ -31,6 +33,10 @@ export function TransactionsManager() {
     setFormOpen(true);
   }
 
+  function openTransferForm() {
+    setTransferFormOpen(true);
+  }
+
   function openEditForm(transaction: Transaction) {
     setEditingTransaction(transaction);
     setFormOpen(true);
@@ -40,10 +46,16 @@ export function TransactionsManager() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-        <Button onClick={openCreateForm}>
-          <Plus data-icon="inline-start" />
-          Add transaction
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openTransferForm}>
+            <ArrowRightLeft data-icon="inline-start" />
+            Transfer
+          </Button>
+          <Button onClick={openCreateForm}>
+            <Plus data-icon="inline-start" />
+            Add transaction
+          </Button>
+        </div>
       </header>
 
       <TransactionFilters accounts={accounts} value={filters} onChange={setFilters} />
@@ -69,6 +81,11 @@ export function TransactionsManager() {
         onOpenChange={setFormOpen}
         accounts={accounts}
         transaction={editingTransaction}
+      />
+      <TransferFormDialog
+        open={transferFormOpen}
+        onOpenChange={setTransferFormOpen}
+        accounts={accounts}
       />
       <DeleteTransactionDialog
         transaction={deletingTransaction}

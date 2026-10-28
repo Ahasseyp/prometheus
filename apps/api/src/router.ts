@@ -7,6 +7,7 @@ import { categoryRouter } from './category.js';
 import { exchangeRateRouter } from './exchange-rate.js';
 import { householdRouter } from './household.js';
 import { registrationRouter } from './registration.js';
+import { reportingRouter } from './reporting.js';
 import { transactionRouter } from './transaction.js';
 
 export const appRouter = router({
@@ -26,6 +27,7 @@ export const appRouter = router({
   exchangeRate: exchangeRateRouter,
   household: householdRouter,
   registration: registrationRouter,
+  reporting: reportingRouter,
   transaction: transactionRouter,
 });
 

@@ -177,6 +177,43 @@ describe.sequential('transaction procedures', () => {
     });
 
     expect(updated.exchangeRate).toBe('0.055');
+
+    const overridden = await client.transaction.update.mutate({
+      id: transaction.id,
+      exchangeRate: '0.06',
+    });
+    expect(overridden.exchangeRate).toBe('0.06');
+    expect(overridden.exchangeRateOverridden).toBe(true);
+
+    const edited = await client.transaction.update.mutate({
+      id: transaction.id,
+      description: 'Edited without changing the rate',
+    });
+    expect(edited.exchangeRate).toBe('0.06');
+    expect(edited.exchangeRateOverridden).toBe(true);
+
+    const cachedRate = await getPrisma().exchangeRate.findUniqueOrThrow({
+      where: {
+        baseCurrency_quoteCurrency_date: {
+          baseCurrency: 'MXN',
+          quoteCurrency: 'USD',
+          date: nextDate,
+        },
+      },
+    });
+    expect(cachedRate.rate.toString()).toBe('0.055');
+
+    const movedWithOverride = await client.transaction.update.mutate({
+      id: transaction.id,
+      date: new Date('2026-08-17T00:00:00.000Z'),
+      exchangeRate: '0.061',
+    });
+    expect(movedWithOverride.exchangeRate).toBe('0.061');
+    expect(movedWithOverride.exchangeRateOverridden).toBe(true);
+
+    await expect(
+      client.transaction.update.mutate({ id: transaction.id, exchangeRate: '0' })
+    ).rejects.toThrow('Enter a positive Exchange Rate.');
   });
 
   it('rejects a cross-currency transaction when no exchange rate is available', async () => {

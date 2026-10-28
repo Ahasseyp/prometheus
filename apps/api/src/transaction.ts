@@ -21,6 +21,11 @@ const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
 });
 
+function isPositiveDecimal(value: string): boolean {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0;
+}
+
 const transactionResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
@@ -61,6 +66,10 @@ const updateTransactionInputSchema = z.object({
   categoryId: z.string().uuid().optional(),
   date: z.coerce.date().optional(),
   description: z.string().optional(),
+  exchangeRate: z
+    .string()
+    .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' })
+    .optional(),
 });
 
 const listTransactionsInputSchema = z.object({

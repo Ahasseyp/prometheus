@@ -35,6 +35,7 @@ export type UpdateTransactionInput = {
   categoryId?: string;
   date?: Date;
   description?: string;
+  exchangeRate?: string;
 };
 
 export type TransactionFilters = {
@@ -422,6 +423,10 @@ export async function updateTransaction(
   if (input.description !== undefined) {
     updateData.description = input.description;
   }
+  if (input.exchangeRate !== undefined) {
+    updateData.exchangeRate = input.exchangeRate;
+    updateData.exchangeRateOverridden = true;
+  }
   let targetAmount = existing.amount;
   if (input.amount !== undefined) {
     const amountResult = parseAmountToMinorUnits(input.amount, targetAccount);
@@ -433,7 +438,8 @@ export async function updateTransaction(
   }
 
   const dateChanged = input.date !== undefined && input.date.getTime() !== existing.date.getTime();
-  if (accountChanged || dateChanged) {
+  const needsResolvedRate = (accountChanged || dateChanged) && input.exchangeRate === undefined;
+  if (needsResolvedRate) {
     const targetDate = input.date ?? existing.date;
     const exchangeRate = await resolveTransactionExchangeRate(
       targetAccount.currency,

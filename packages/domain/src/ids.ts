@@ -20,6 +20,9 @@ export type CategoryId = Brand<string, 'CategoryId'>;
 /** A UUID that identifies a Transaction. */
 export type TransactionId = Brand<string, 'TransactionId'>;
 
+/** A UUID that identifies a Budget. */
+export type BudgetId = Brand<string, 'BudgetId'>;
+
 export function makeUserId(value: string): UserId {
   return value as UserId;
 }
@@ -42,4 +45,8 @@ export function makeCategoryId(value: string): CategoryId {
 
 export function makeTransactionId(value: string): TransactionId {
   return value as TransactionId;
+}
+
+export function makeBudgetId(value: string): BudgetId {
+  return value as BudgetId;
 }

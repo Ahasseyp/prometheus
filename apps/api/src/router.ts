@@ -3,6 +3,7 @@ import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
 import { accountRouter } from './account.js';
 import { authRouter } from './auth.js';
+import { budgetRouter } from './budget.js';
 import { categoryRouter } from './category.js';
 import { exchangeRateRouter } from './exchange-rate.js';
 import { householdRouter } from './household.js';
@@ -24,6 +25,7 @@ export const appRouter = router({
 
   account: accountRouter,
   auth: authRouter,
+  budget: budgetRouter,
   category: categoryRouter,
   exchangeRate: exchangeRateRouter,
   household: householdRouter,

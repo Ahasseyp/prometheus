@@ -31,6 +31,12 @@ export async function cleanupTestData({
     where: { userId: { in: userIds } },
   });
   if (householdIds !== undefined && householdIds.length > 0) {
+    // BudgetCategory references both Budget and Category with cascading on
+    // one side and restrict on the other, so clear the join rows explicitly
+    // before letting the household cascade delete either side.
+    await prisma.budgetCategory.deleteMany({
+      where: { budget: { householdId: { in: householdIds } } },
+    });
     await prisma.household.deleteMany({
       where: { id: { in: householdIds } },
     });

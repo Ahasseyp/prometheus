@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { createMoney, createMoneyFromMinorUnits } from './money.js';
+import {
+  convertMoney,
+  createMoney,
+  createMoneyFromMinorUnits,
+  isPositiveDecimal,
+} from './money.js';
 import { expectValue } from './testing/expect-value.js';
 
 const usd = (decimal: string) => createMoney(decimal, 'USD');
 const eur = (decimal: string) => createMoney(decimal, 'EUR');
+
+describe('positive decimal validation', () => {
+  it.each(['1', '0.05', ' 18.45 '])('accepts %j as a plain positive decimal', (value) => {
+    expect(isPositiveDecimal(value)).toBe(true);
+  });
+
+  it.each(['0', '-1', '1e3', '0x10', '2.', '.5', 'abc', ''])('rejects %j', (value) => {
+    expect(isPositiveDecimal(value)).toBe(false);
+  });
+});
 
 describe('Money creation', () => {
   it('creates money from a decimal string and exposes its currency', () => {
@@ -227,5 +242,21 @@ describe('Money sign', () => {
     expect(expectValue(usd('0.00')).isZero()).toBe(true);
     expect(expectValue(usd('1.00')).isPositive()).toBe(true);
     expect(expectValue(usd('-1.00')).isNegative()).toBe(true);
+  });
+});
+
+describe('Money conversion', () => {
+  it('converts using an exact decimal exchange rate', () => {
+    const converted = expectValue(convertMoney(expectValue(usd('10.01')), '0.36', 'EUR'));
+
+    expect(converted.toDecimal()).toBe('3.60');
+    expect(converted.currency).toBe('EUR');
+  });
+
+  it('rounds directly to the target currency exponent', () => {
+    const source = expectValue(createMoneyFromMinorUnits(1000n, 'JPY'));
+    const converted = expectValue(convertMoney(source, '0.0067', 'USD'));
+
+    expect(converted.toDecimal()).toBe('6.70');
   });
 });

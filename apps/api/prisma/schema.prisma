@@ -48,6 +48,19 @@ model Household {
   transactions Transaction[]
 }
 
+model ExchangeRate {
+  id            String   @id @default(uuid()) @db.Uuid
+  baseCurrency  String
+  quoteCurrency String
+  date          DateTime @db.Date
+  rate          Decimal  @db.Decimal(19, 8)
+  provider      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@unique([baseCurrency, quoteCurrency, date])
+}
+
 model Account {
   id          String      @id @default(uuid()) @db.Uuid
   householdId String      @db.Uuid
@@ -124,19 +137,22 @@ model Category {
 }
 
 // The amount is stored in minor units of the Account's currency and is
-// always positive; the type carries the direction (issue #24). There is no
-// currency column: a Transaction uses its Account's currency (ADR-0002).
+// always positive; the type carries the direction (issue #24). Reporting
+// Currency and Exchange Rate snapshot the historical conversion (ADR-0002).
 model Transaction {
-  id          String          @id @default(uuid()) @db.Uuid
-  householdId String          @db.Uuid
-  accountId   String          @db.Uuid
-  categoryId  String          @db.Uuid
-  type        TransactionType
-  amount      BigInt
-  date        DateTime
-  description String          @default("")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @default(now()) @updatedAt
+  id                     String          @id @default(uuid()) @db.Uuid
+  householdId            String          @db.Uuid
+  accountId              String          @db.Uuid
+  categoryId             String          @db.Uuid
+  type                   TransactionType
+  amount                 BigInt
+  date                   DateTime
+  description            String          @default("")
+  reportingCurrency      String?
+  exchangeRate           Decimal?        @db.Decimal(19, 8)
+  exchangeRateOverridden Boolean         @default(false)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @default(now()) @updatedAt
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)

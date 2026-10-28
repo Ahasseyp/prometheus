@@ -6,9 +6,13 @@ import { AccountListSkeleton } from '@/features/accounts/components/AccountListS
 import { AccountRow } from '@/features/accounts/components/AccountRow/AccountRow.js';
 import { AccountsEmptyState } from '@/features/accounts/components/AccountsEmptyState/AccountsEmptyState.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
+import type { ReportingAccount } from '@/features/reporting/gateways/reporting.js';
 
 export interface AccountListProps {
   accounts?: Account[];
+  reportingAccounts?: ReportingAccount[];
+  reportingCurrency?: string;
+  showConvertedBalances?: boolean;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -20,6 +24,9 @@ export interface AccountListProps {
 
 export function AccountList({
   accounts,
+  reportingAccounts,
+  reportingCurrency,
+  showConvertedBalances = false,
   isLoading,
   isError,
   onRetry,
@@ -53,9 +60,21 @@ export function AccountList({
 
   return (
     <>
-      {accounts.map((account) => (
-        <AccountRow key={account.id} account={account} onEdit={onEdit} onDelete={onDelete} />
-      ))}
+      {accounts.map((account) => {
+        const reportingAccount = reportingAccounts?.find(({ id }) => id === account.id);
+        return (
+          <AccountRow
+            key={account.id}
+            account={account}
+            convertedBalance={
+              showConvertedBalances ? reportingAccount?.convertedBalance : undefined
+            }
+            reportingCurrency={showConvertedBalances ? reportingCurrency : undefined}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        );
+      })}
     </>
   );
 }

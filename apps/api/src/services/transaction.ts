@@ -17,6 +17,7 @@ import type { Account, Category, Transaction } from '@prisma/client';
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
 import { mapDomainTransactionType, mapPrismaTransactionType } from '../lib/transaction-type.js';
+import { findExchangeRateOnDate, refreshExchangeRate } from './exchange-rate.js';
 
 export type CreateTransactionInput = {
   type: DomainTransactionType;
@@ -34,6 +35,7 @@ export type UpdateTransactionInput = {
   categoryId?: string;
   date?: Date;
   description?: string;
+  exchangeRate?: string;
 };
 
 export type TransactionFilters = {
@@ -51,6 +53,9 @@ export type TransactionRecord = {
   amount: string;
   date: Date;
   description: string;
+  reportingCurrency: string | null;
+  exchangeRate: string | null;
+  exchangeRateOverridden: boolean;
   createdAt: Date;
   updatedAt: Date;
   accountName: string;
@@ -65,6 +70,7 @@ export type TransactionErrorCode =
   | 'invalid-amount'
   | 'amount-incompatible-with-account'
   | 'loan-overpayment'
+  | 'exchange-rate-unavailable'
   | 'invalid-data';
 
 export type CreateTransactionResult =
@@ -94,6 +100,9 @@ function mapTransactionToRecord(transaction: TransactionWithRelations): Transact
     amount: minorUnitsToDecimal(transaction.amount, currency),
     date: transaction.date,
     description: transaction.description,
+    reportingCurrency: transaction.reportingCurrency,
+    exchangeRate: transaction.exchangeRate?.toString() ?? null,
+    exchangeRateOverridden: transaction.exchangeRateOverridden,
     createdAt: transaction.createdAt,
     updatedAt: transaction.updatedAt,
     accountName: transaction.account.name,
@@ -187,6 +196,43 @@ function existingAmountFitsAccount(
   return minorUnits % factor === 0n;
 }
 
+async function resolveTransactionExchangeRate(
+  accountCurrency: string,
+  householdId: string,
+  date: Date
+) {
+  const prisma = getPrisma();
+  const household = await prisma.household.findUnique({
+    where: { id: householdId },
+    select: { reportingCurrency: true },
+  });
+  if (household === null) {
+    throw unexpectedValidationError('household-not-found');
+  }
+  if (accountCurrency === household.reportingCurrency) {
+    return { reportingCurrency: accountCurrency, exchangeRate: '1' };
+  }
+
+  const cachedRate = await findExchangeRateOnDate(
+    accountCurrency,
+    household.reportingCurrency,
+    date
+  );
+  if (cachedRate !== null) {
+    return {
+      reportingCurrency: household.reportingCurrency,
+      exchangeRate: cachedRate.rate.toString(),
+    };
+  }
+
+  try {
+    const rate = await refreshExchangeRate(accountCurrency, household.reportingCurrency, date);
+    return { reportingCurrency: household.reportingCurrency, exchangeRate: rate.rate };
+  } catch {
+    return null;
+  }
+}
+
 export async function createTransaction(
   input: CreateTransactionInput,
   householdId: string
@@ -234,6 +280,15 @@ export async function createTransaction(
     return { ok: false, error: 'invalid-data' };
   }
 
+  const exchangeRate = await resolveTransactionExchangeRate(
+    account.currency,
+    householdId,
+    input.date
+  );
+  if (exchangeRate === null) {
+    return { ok: false, error: 'exchange-rate-unavailable' };
+  }
+
   const validatedTransaction = entityResult.value;
   const prisma = getPrisma();
   const transaction = await prisma.transaction.create({
@@ -246,6 +301,8 @@ export async function createTransaction(
       amount: validatedTransaction.amountMinorUnits,
       date: validatedTransaction.date,
       description: validatedTransaction.description,
+      reportingCurrency: exchangeRate.reportingCurrency,
+      exchangeRate: exchangeRate.exchangeRate,
     },
     include: { account: true, category: true },
   });
@@ -362,6 +419,17 @@ export async function updateTransaction(
   if (input.description !== undefined) {
     updateData.description = input.description;
   }
+  if (input.exchangeRate !== undefined) {
+    updateData.exchangeRate = input.exchangeRate;
+    updateData.exchangeRateOverridden = true;
+    if (existing.reportingCurrency === null) {
+      const household = await prisma.household.findUniqueOrThrow({
+        where: { id: householdId },
+        select: { reportingCurrency: true },
+      });
+      updateData.reportingCurrency = household.reportingCurrency;
+    }
+  }
   let targetAmount = existing.amount;
   if (input.amount !== undefined) {
     const amountResult = parseAmountToMinorUnits(input.amount, targetAccount);
@@ -370,6 +438,23 @@ export async function updateTransaction(
     }
     targetAmount = amountResult.minorUnits;
     updateData.amount = targetAmount;
+  }
+
+  const dateChanged = input.date !== undefined && input.date.getTime() !== existing.date.getTime();
+  const needsResolvedRate = (accountChanged || dateChanged) && input.exchangeRate === undefined;
+  if (needsResolvedRate) {
+    const targetDate = input.date ?? existing.date;
+    const exchangeRate = await resolveTransactionExchangeRate(
+      targetAccount.currency,
+      householdId,
+      targetDate
+    );
+    if (exchangeRate === null) {
+      return { ok: false, error: 'exchange-rate-unavailable' };
+    }
+    updateData.reportingCurrency = exchangeRate.reportingCurrency;
+    updateData.exchangeRate = exchangeRate.exchangeRate;
+    updateData.exchangeRateOverridden = false;
   }
 
   const loanBalanceIsValid = await loanBalanceRemainsNonNegative(

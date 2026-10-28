@@ -144,6 +144,57 @@ describe.sequential('household creation procedure', () => {
     });
   });
 
+  it('updates the active household reporting currency', async () => {
+    const email = makeTestEmail('household-update-currency-1');
+    const user = await registerAndLogin(email, 'Secure-password-5');
+    if (user === null) return;
+
+    const createResponse = await client.household.create.mutate({
+      name: 'My Household',
+      reportingCurrency: 'USD',
+    });
+    expect(createResponse.ok).toBe(true);
+    if (!createResponse.ok) return;
+    createdHouseholdIds.push(createResponse.household.id);
+
+    const updateResponse = await client.household.updateReportingCurrency.mutate({
+      reportingCurrency: 'MXN',
+    });
+
+    expect(updateResponse).toEqual({
+      id: createResponse.household.id,
+      name: createResponse.household.name,
+      reportingCurrency: 'MXN',
+      role: 'OWNER',
+    });
+
+    const meResponse = await client.household.me.query();
+    expect(meResponse.household?.reportingCurrency).toBe('MXN');
+  });
+
+  it('rejects an unsupported reporting currency', async () => {
+    const email = makeTestEmail('household-update-currency-2');
+    const user = await registerAndLogin(email, 'Secure-password-6');
+    if (user === null) return;
+
+    const createResponse = await client.household.create.mutate({
+      name: 'My Household',
+      reportingCurrency: 'USD',
+    });
+    expect(createResponse.ok).toBe(true);
+    if (!createResponse.ok) return;
+    createdHouseholdIds.push(createResponse.household.id);
+
+    await expect(
+      client.household.updateReportingCurrency.mutate({
+        reportingCurrency: 'INVALID',
+      })
+    ).rejects.toThrow('Unsupported currency.');
+
+    const meResponse = await client.household.me.query();
+    expect(meResponse.household?.reportingCurrency).toBe('USD');
+  });
+
   it('returns null when the authenticated user has no household', async () => {
     const email = makeTestEmail('household-me-2');
     const password = 'Secure-password-4';

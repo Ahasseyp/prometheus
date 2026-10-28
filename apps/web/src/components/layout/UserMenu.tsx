@@ -67,7 +67,7 @@ export function UserMenu({ user, className, compact = false }: UserMenuProps) {
       <DropdownMenu.Content align="end" className="w-56">
         <DropdownMenu.Group>
           <DropdownMenu.Label>{displayName}</DropdownMenu.Label>
-          <DropdownMenu.Item disabled aria-disabled="true">
+          <DropdownMenu.Item onClick={() => navigate({ to: '/settings' })}>
             <User className="mr-2 size-4" />
             Settings
           </DropdownMenu.Item>

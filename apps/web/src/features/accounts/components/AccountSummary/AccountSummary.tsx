@@ -1,76 +1,54 @@
 import { Card } from '@/components/ui/card.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
-import { sumAccountTotals } from '@/features/accounts/lib/account-totals.js';
-import { formatMinorUnits } from '@/lib/format-money.js';
-import type { Account } from '@/features/accounts/gateways/accounts.js';
-import type { CurrencyTotal } from '@/features/accounts/lib/account-totals.js';
+import type { ReportingSummary } from '@/features/reporting/gateways/reporting.js';
+import { formatMoney } from '@/lib/format-money.js';
 import { cn } from '@/lib/utils.js';
 
 export interface AccountSummaryProps {
-  accounts: Account[];
+  accountCount: number;
+  summary?: ReportingSummary;
   isLoading?: boolean;
 }
 
-function getSummaryFooterText(accounts: Account[], totals: CurrencyTotal[]): string {
-  if (accounts.length === 0) {
-    return 'Add an account to see your total.';
+function getSummaryFooterText(accountCount: number): string {
+  if (accountCount === 0) {
+    return 'Add an account to see your net worth.';
   }
-  if (totals.length > 1) {
-    return `Across ${totals.length} currencies`;
-  }
-  if (accounts.length === 1) {
+  if (accountCount === 1) {
     return '1 account';
   }
-  return `Across ${accounts.length} accounts`;
+  return `Across ${accountCount} accounts`;
 }
 
-function SummaryTitle({ isLoading, totals }: { isLoading: boolean; totals: CurrencyTotal[] }) {
-  if (isLoading) {
-    return <Skeleton className="h-9 w-32" />;
-  }
-  if (totals.length === 0) {
-    return <Card.Title className="text-3xl font-semibold">—</Card.Title>;
-  }
-  return (
-    <div className="flex flex-col gap-1 pt-1">
-      {totals.map((total) => (
-        <p
-          key={total.currency}
-          className={cn('text-2xl font-semibold', total.minorUnits < 0n && 'text-destructive')}
-        >
-          {formatMinorUnits(total.minorUnits, total.currency)}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function SummaryFooter({
-  isLoading,
-  accounts,
-  totals,
-}: {
-  isLoading: boolean;
-  accounts: Account[];
-  totals: CurrencyTotal[];
-}) {
-  if (isLoading) {
-    return <Skeleton className="h-5 w-36" />;
-  }
-  return <p className="text-sm text-muted-foreground">{getSummaryFooterText(accounts, totals)}</p>;
-}
-
-export function AccountSummary({ accounts, isLoading = false }: AccountSummaryProps) {
-  const totals = sumAccountTotals(accounts);
+export function AccountSummary({ accountCount, summary, isLoading = false }: AccountSummaryProps) {
+  const netWorth = summary?.netWorth;
 
   return (
     <Card className="bg-gradient-card glow-internal">
       <Card.Header>
-        <Card.Description>Total balance</Card.Description>
-        <SummaryTitle isLoading={isLoading} totals={totals} />
+        <Card.Description>
+          Net worth{summary ? ` in ${summary.reportingCurrency}` : ''}
+        </Card.Description>
+        {isLoading ? (
+          <Skeleton className="h-9 w-32" />
+        ) : accountCount === 0 ? (
+          <Card.Title className="text-3xl font-semibold">—</Card.Title>
+        ) : summary === undefined || netWorth == null ? (
+          <Card.Title className="text-xl font-semibold">Conversion unavailable</Card.Title>
+        ) : (
+          <Card.Title
+            className={cn('text-3xl font-semibold', netWorth.startsWith('-') && 'text-destructive')}
+          >
+            {formatMoney(netWorth, summary.reportingCurrency)}
+          </Card.Title>
+        )}
       </Card.Header>
       <Card.Content>
-        <SummaryFooter isLoading={isLoading} accounts={accounts} totals={totals} />
+        {isLoading ? (
+          <Skeleton className="h-5 w-36" />
+        ) : (
+          <p className="text-sm text-muted-foreground">{getSummaryFooterText(accountCount)}</p>
+        )}
       </Card.Content>
     </Card>
   );

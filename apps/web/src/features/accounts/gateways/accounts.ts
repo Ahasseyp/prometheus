@@ -4,6 +4,7 @@ import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@prometheus/api/router';
 
 import { trpc } from '@/gateways/trpc.js';
+import { reportingSummaryQueryKey } from '@/features/reporting/gateways/reporting.js';
 
 export type AccountListOutput = inferRouterOutputs<AppRouter>['account']['list'];
 export type Account = AccountListOutput[number];
@@ -54,5 +55,8 @@ export function useDeleteAccount() {
 }
 
 function invalidateAccounts(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: accountsListQueryKey });
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: accountsListQueryKey }),
+    queryClient.invalidateQueries({ queryKey: reportingSummaryQueryKey }),
+  ]);
 }

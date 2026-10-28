@@ -1,10 +1,12 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { renderWithRouter } from '@/test/render-router.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
+import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
 
 import { OverviewPage } from './overview.js';
 
@@ -28,6 +30,7 @@ const mockHousehold = {
 function mockAuthenticatedHousehold() {
   mockMeResponse(mockUser);
   mockHouseholdMeResponse(mockHousehold);
+  mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '0', accounts: [] });
 }
 
 describe('OverviewPage', () => {
@@ -53,6 +56,7 @@ describe('OverviewPage', () => {
         balance: '250.00',
       }),
     ]);
+    mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '1250.00', accounts: [] });
 
     await renderWithRouter(() => <OverviewPage />);
 
@@ -71,6 +75,7 @@ describe('OverviewPage', () => {
         balance: '250.00',
       }),
     ]);
+    mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '750.00', accounts: [] });
 
     await renderWithRouter(() => <OverviewPage />);
 
@@ -78,9 +83,9 @@ describe('OverviewPage', () => {
     expect(totals[0]).toHaveTextContent(/USD/);
   });
 
-  it('lists one total per currency when accounts use multiple currencies', async () => {
+  it('shows Reporting Currency net worth and toggles converted Account balances', async () => {
     mockAuthenticatedHousehold();
-    mockAccountListResponse([
+    const accounts = [
       makeAccount({ name: 'Checking', balance: '100.00', currency: 'USD' }),
       makeAccount({
         id: 'd4e5f6a7-b8c9-0123-defa-234567890123',
@@ -89,15 +94,27 @@ describe('OverviewPage', () => {
         balance: '1500',
         currency: 'JPY',
       }),
-    ]);
+    ];
+    mockAccountListResponse(accounts);
+    mockReportingSummaryResponse({
+      reportingCurrency: 'USD',
+      netWorth: '150.00',
+      accounts: accounts.map((account) => ({
+        ...account,
+        convertedBalance: account.currency === 'USD' ? '100.00' : '50.00',
+        exchangeRate: account.currency === 'USD' ? '1' : '0.0333333333',
+      })),
+    });
 
     await renderWithRouter(() => <OverviewPage />);
 
-    const usdTotals = await screen.findAllByText(/100\.00/);
-    expect(usdTotals.some((element) => element.textContent?.includes('USD'))).toBe(true);
-    const jpyTotals = screen.getAllByText(/1,500/);
-    expect(jpyTotals.some((element) => element.textContent?.includes('JPY'))).toBe(true);
-    expect(screen.getByText(/across 2 currencies/i)).toBeInTheDocument();
+    expect(await screen.findByText(/USD 150\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/JPY 1,500/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /converted balances/i }));
+
+    expect(screen.getByText(/USD 50\.00/)).toBeInTheDocument();
+    expect(screen.queryByText(/JPY 1,500/)).not.toBeInTheDocument();
   });
 
   it('links the accounts card to the full accounts page', async () => {

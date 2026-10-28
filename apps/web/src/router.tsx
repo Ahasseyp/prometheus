@@ -8,6 +8,7 @@ import { TransactionsPage } from './pages/transactions.js';
 import { CategoriesPage } from './pages/categories.js';
 import { BudgetsPage } from './pages/budgets.js';
 import { GoalsPage } from './pages/goals.js';
+import { SettingsPage } from './pages/settings.js';
 import { RegisterPage } from './pages/register.js';
 
 const rootRoute = createRootRoute({
@@ -62,6 +63,13 @@ const goalsRoute = createRoute({
   staticData: { title: 'Goals' },
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/settings',
+  component: SettingsPage,
+  staticData: { title: 'Settings' },
+});
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
@@ -82,6 +90,7 @@ const routeTree = rootRoute.addChildren([
     categoriesRoute,
     budgetsRoute,
     goalsRoute,
+    settingsRoute,
   ]),
   loginRoute,
   registerRoute,

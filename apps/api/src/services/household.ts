@@ -17,13 +17,15 @@ export type CreateHouseholdInput = {
   reportingCurrency: string;
 };
 
+export type HouseholdRecord = {
+  id: string;
+  name: string;
+  reportingCurrency: string;
+};
+
 type CreateHouseholdSuccess = {
   ok: true;
-  household: {
-    id: string;
-    name: string;
-    reportingCurrency: string;
-  };
+  household: HouseholdRecord;
 };
 
 export const USER_ALREADY_HAS_HOUSEHOLD_ERROR = 'user-already-has-household' as const;
@@ -70,6 +72,23 @@ export async function findActiveHouseholdForUser(userId: string): Promise<Househ
   }
 
   return mapMembershipToHouseholdContext(membership);
+}
+
+export async function updateHouseholdReportingCurrency(
+  reportingCurrency: string,
+  householdId: string
+): Promise<HouseholdRecord> {
+  const prisma = getPrisma();
+  const household = await prisma.household.update({
+    where: { id: householdId },
+    data: { reportingCurrency },
+  });
+
+  return {
+    id: household.id,
+    name: household.name,
+    reportingCurrency: household.reportingCurrency,
+  };
 }
 
 export async function createHousehold(

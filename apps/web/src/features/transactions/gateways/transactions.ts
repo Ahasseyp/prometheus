@@ -5,6 +5,7 @@ import type { AppRouter } from '@prometheus/api/router';
 
 import { trpc } from '@/gateways/trpc.js';
 import { accountsListQueryKey } from '@/features/accounts/gateways/accounts.js';
+import { reportingSummaryQueryKey } from '@/features/reporting/gateways/reporting.js';
 
 export type TransactionListOutput = inferRouterOutputs<AppRouter>['transaction']['list'];
 export type Transaction = TransactionListOutput[number];
@@ -71,5 +72,6 @@ function invalidateTransactionData(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: transactionsListQueryKey }),
     queryClient.invalidateQueries({ queryKey: accountsListQueryKey }),
+    queryClient.invalidateQueries({ queryKey: reportingSummaryQueryKey }),
   ]);
 }

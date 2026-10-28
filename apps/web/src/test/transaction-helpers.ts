@@ -16,6 +16,9 @@ export type TransactionFixture = {
   accountName: string;
   accountCurrency: string;
   categoryName: string;
+  reportingCurrency: string | null;
+  exchangeRate: string | null;
+  exchangeRateOverridden: boolean;
 };
 
 export function makeTransaction(overrides: Partial<TransactionFixture> = {}): TransactionFixture {
@@ -33,6 +36,9 @@ export function makeTransaction(overrides: Partial<TransactionFixture> = {}): Tr
     accountName: 'Everyday Checking',
     accountCurrency: 'USD',
     categoryName: 'Groceries',
+    reportingCurrency: null,
+    exchangeRate: null,
+    exchangeRateOverridden: false,
     ...overrides,
   };
 }

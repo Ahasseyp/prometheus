@@ -175,4 +175,41 @@ describe('TransactionForm', () => {
     });
     fetchSpy.mockRestore();
   });
+
+  it('submits an Exchange Rate override for a cross-currency Transaction', async () => {
+    const user = userEvent.setup();
+    const mxnAccount = makeAccount({
+      id: checkingAccount.id,
+      name: 'MXN Checking',
+      currency: 'MXN',
+    }) as unknown as Account;
+    const existing = makeTransaction({
+      accountId: mxnAccount.id,
+      reportingCurrency: 'USD',
+      exchangeRate: '0.05',
+    }) as unknown as Transaction;
+    mockCategoryListResponse([groceries]);
+    mockUpdateTransactionResponse(existing);
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    const onSuccess = vi.fn();
+
+    render(
+      <TransactionForm accounts={[mxnAccount]} transaction={existing} onSuccess={onSuccess} />,
+      { wrapper: createQueryClientWrapper() }
+    );
+
+    const exchangeRateInput = screen.getByLabelText('Exchange Rate');
+    expect(exchangeRateInput).toHaveValue('0.05');
+    await user.clear(exchangeRateInput);
+    await user.type(exchangeRateInput, '0.06');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    const updateCall = fetchSpy.mock.calls.find(([url]) =>
+      String(url).includes('transaction.update')
+    );
+    const updatePayload = JSON.parse(String(updateCall![1]?.body));
+    expect(updatePayload).toMatchObject({ id: existing.id, exchangeRate: '0.06' });
+    fetchSpy.mockRestore();
+  });
 });

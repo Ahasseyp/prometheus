@@ -5,21 +5,36 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 
 import { ACCOUNT_TYPE_META } from '@/features/accounts/lib/account-types.js';
 import { signedMinorUnits } from '@/features/accounts/lib/account-totals.js';
-import { formatMinorUnits } from '@/lib/format-money.js';
+import { formatMinorUnits, formatMoney } from '@/lib/format-money.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { cn } from '@/lib/utils.js';
 
 export interface AccountRowProps {
   account: Account;
+  convertedBalance?: string | null;
+  reportingCurrency?: string;
   onEdit?: (account: Account) => void;
   onDelete?: (account: Account) => void;
 }
 
-export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
+export function AccountRow({
+  account,
+  convertedBalance,
+  reportingCurrency,
+  onEdit,
+  onDelete,
+}: AccountRowProps) {
   const meta = ACCOUNT_TYPE_META[account.type];
   const Icon = meta.icon;
   const signedBalance = signedMinorUnits(account);
-  const isNegative = signedBalance < 0n;
+  const showConverted = reportingCurrency !== undefined;
+  const isConversionUnavailable = showConverted && convertedBalance == null;
+  const isNegative = showConverted ? convertedBalance?.startsWith('-') : signedBalance < 0n;
+  const displayedBalance = isConversionUnavailable
+    ? 'Rate unavailable'
+    : showConverted && convertedBalance != null
+      ? formatMoney(convertedBalance, reportingCurrency)
+      : formatMinorUnits(signedBalance, account.currency);
   const showActions = onEdit !== undefined && onDelete !== undefined;
 
   return (
@@ -42,7 +57,7 @@ export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
             isNegative ? 'text-destructive' : 'text-foreground'
           )}
         >
-          {formatMinorUnits(signedBalance, account.currency)}
+          {displayedBalance}
         </p>
         {showActions && (
           <DropdownMenu>

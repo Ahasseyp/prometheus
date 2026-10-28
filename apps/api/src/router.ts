@@ -4,8 +4,10 @@ import { publicProcedure, router } from './trpc.js';
 import { accountRouter } from './account.js';
 import { authRouter } from './auth.js';
 import { categoryRouter } from './category.js';
+import { exchangeRateRouter } from './exchange-rate.js';
 import { householdRouter } from './household.js';
 import { registrationRouter } from './registration.js';
+import { reportingRouter } from './reporting.js';
 import { transactionRouter } from './transaction.js';
 
 export const appRouter = router({
@@ -22,8 +24,10 @@ export const appRouter = router({
   account: accountRouter,
   auth: authRouter,
   category: categoryRouter,
+  exchangeRate: exchangeRateRouter,
   household: householdRouter,
   registration: registrationRouter,
+  reporting: reportingRouter,
   transaction: transactionRouter,
 });
 

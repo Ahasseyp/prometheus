@@ -1,3 +1,5 @@
+import { BudgetsManager } from '@/features/budgets/components/BudgetsManager/BudgetsManager.js';
+
 export function BudgetsPage() {
-  return <h1 className="sr-only">Budgets</h1>;
+  return <BudgetsManager />;
 }

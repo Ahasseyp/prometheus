@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
 import { server } from './server.js';
-import { makeTransaction } from './transaction-helpers.js';
+import { makeTransaction, type TransactionFixture } from './transaction-helpers.js';
 
 export type TransferFixture = {
   id: string;

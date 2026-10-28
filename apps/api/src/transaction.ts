@@ -21,11 +21,11 @@ const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
 });
 
-const transactionResponseSchema = z.object({
+export const transactionResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
   accountId: z.string().uuid(),
-  categoryId: z.string().uuid(),
+  categoryId: z.string().uuid().nullable(),
   type: transactionTypeSchema,
   amount: z.string(),
   date: z.date(),
@@ -37,7 +37,14 @@ const transactionResponseSchema = z.object({
   updatedAt: z.date(),
   accountName: z.string(),
   accountCurrency: z.string(),
-  categoryName: z.string(),
+  categoryName: z.string().nullable(),
+  transfer: z
+    .object({
+      id: z.string().uuid(),
+      counterpartyAccountId: z.string().uuid(),
+      counterpartyAccountName: z.string(),
+    })
+    .nullable(),
 });
 
 const createTransactionInputSchema = z.object({

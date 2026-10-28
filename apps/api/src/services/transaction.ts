@@ -12,7 +12,7 @@ import {
 } from '@prometheus/domain';
 import type { TransactionType as DomainTransactionType } from '@prometheus/domain';
 import { Prisma } from '@prisma/client';
-import type { Account, Category, Transaction } from '@prisma/client';
+import type { Account, Category, Transaction, Transfer } from '@prisma/client';
 
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
@@ -48,7 +48,7 @@ export type TransactionRecord = {
   id: string;
   householdId: string;
   accountId: string;
-  categoryId: string;
+  categoryId: string | null;
   type: DomainTransactionType;
   amount: string;
   date: Date;
@@ -60,7 +60,12 @@ export type TransactionRecord = {
   updatedAt: Date;
   accountName: string;
   accountCurrency: string;
-  categoryName: string;
+  categoryName: string | null;
+  transfer: {
+    id: string;
+    counterpartyAccountId: string;
+    counterpartyAccountName: string;
+  } | null;
 };
 
 export type TransactionErrorCode =
@@ -84,13 +89,54 @@ function unexpectedValidationError(reason: string): Error {
   return new Error(`Unexpected transaction validation failure: ${reason}`);
 }
 
-type TransactionWithRelations = Transaction & { account: Account; category: Category };
+export type TransferLink = Transfer & {
+  sourceTransaction: Transaction & { account: Account };
+  destinationTransaction: Transaction & { account: Account };
+};
 
-function mapTransactionToRecord(transaction: TransactionWithRelations): TransactionRecord {
+export type TransactionWithRelations = Transaction & {
+  account: Account;
+  category: Category | null;
+  transferSource: TransferLink[];
+  transferDestination: TransferLink[];
+};
+
+// Transfer Transactions have no Category (issue #26); transfer linkage is
+// included so reads can expose the linked pair and its counterparty Account.
+const transferLinkInclude = {
+  include: {
+    sourceTransaction: { include: { account: true } },
+    destinationTransaction: { include: { account: true } },
+  },
+} satisfies Prisma.Transaction$transferSourceArgs;
+
+export const transactionInclude = {
+  account: true,
+  category: true,
+  transferSource: transferLinkInclude,
+  transferDestination: transferLinkInclude,
+} satisfies Prisma.TransactionInclude;
+
+export function mapTransactionToRecord(transaction: TransactionWithRelations): TransactionRecord {
   const currency = transaction.account.currency;
   if (!isCurrencyCode(currency)) {
     throw unexpectedValidationError(`unsupported-currency:${currency}`);
   }
+
+  // The counterparty is the other side of the linked pair: for a source
+  // Transaction that is the destination, and vice versa.
+  const link = transaction.transferSource[0] ?? transaction.transferDestination[0];
+  let transfer: TransactionRecord['transfer'] = null;
+  if (link !== undefined) {
+    const counterparty =
+      transaction.transferSource.length > 0 ? link.destinationTransaction : link.sourceTransaction;
+    transfer = {
+      id: link.id,
+      counterpartyAccountId: counterparty.accountId,
+      counterpartyAccountName: counterparty.account.name,
+    };
+  }
+
   return {
     id: transaction.id,
     householdId: transaction.householdId,
@@ -107,7 +153,8 @@ function mapTransactionToRecord(transaction: TransactionWithRelations): Transact
     updatedAt: transaction.updatedAt,
     accountName: transaction.account.name,
     accountCurrency: transaction.account.currency,
-    categoryName: transaction.category.name,
+    categoryName: transaction.category?.name ?? null,
+    transfer,
   };
 }
 
@@ -121,7 +168,7 @@ async function findCategoryInHousehold(categoryId: string, householdId: string) 
   return prisma.category.findFirst({ where: { id: categoryId, householdId } });
 }
 
-function parseAmountToMinorUnits(
+export function parseAmountToMinorUnits(
   amount: string,
   account: Account
 ): { ok: true; minorUnits: bigint } | { ok: false } {
@@ -145,7 +192,7 @@ function parseAmountToMinorUnits(
   return { ok: true, minorUnits };
 }
 
-async function loanBalanceRemainsNonNegative(
+export async function loanBalanceRemainsNonNegative(
   account: Account,
   type: Transaction['type'],
   amount: bigint,
@@ -196,7 +243,7 @@ function existingAmountFitsAccount(
   return minorUnits % factor === 0n;
 }
 
-async function resolveTransactionExchangeRate(
+export async function resolveTransactionExchangeRate(
   accountCurrency: string,
   householdId: string,
   date: Date
@@ -304,7 +351,7 @@ export async function createTransaction(
       reportingCurrency: exchangeRate.reportingCurrency,
       exchangeRate: exchangeRate.exchangeRate,
     },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };
@@ -329,7 +376,7 @@ export async function listTransactionsForHousehold(
       ...(filters.accountId !== undefined ? { accountId: filters.accountId } : {}),
       ...(filters.from !== undefined || filters.to !== undefined ? { date: dateFilter } : {}),
     },
-    include: { account: true, category: true },
+    include: transactionInclude,
     orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
   });
 
@@ -343,7 +390,7 @@ export async function findTransactionById(
   const prisma = getPrisma();
   const transaction = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   if (transaction === null) {
@@ -361,7 +408,7 @@ export async function updateTransaction(
   const prisma = getPrisma();
   const existing = await prisma.transaction.findFirst({
     where: { id: transactionId, householdId },
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   if (existing === null) {
@@ -470,7 +517,7 @@ export async function updateTransaction(
   const transaction = await prisma.transaction.update({
     where: { id: existing.id },
     data: updateData,
-    include: { account: true, category: true },
+    include: transactionInclude,
   });
 
   return { ok: true, transaction: mapTransactionToRecord(transaction) };

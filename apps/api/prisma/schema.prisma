@@ -46,6 +46,7 @@ model Household {
   accounts     Account[]
   categories   Category[]
   transactions Transaction[]
+  transfers    Transfer[]
 }
 
 model ExchangeRate {
@@ -139,11 +140,13 @@ model Category {
 // The amount is stored in minor units of the Account's currency and is
 // always positive; the type carries the direction (issue #24). Reporting
 // Currency and Exchange Rate snapshot the historical conversion (ADR-0002).
+// Transfer Transactions (issue #26) have no Category; the Transfer record
+// links the source (expense) and destination (income) pair.
 model Transaction {
   id                     String          @id @default(uuid()) @db.Uuid
   householdId            String          @db.Uuid
   accountId              String          @db.Uuid
-  categoryId             String          @db.Uuid
+  categoryId             String?         @db.Uuid
   type                   TransactionType
   amount                 BigInt
   date                   DateTime
@@ -154,9 +157,11 @@ model Transaction {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @default(now()) @updatedAt
 
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  household             Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account               Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category              Category?   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transferSource        Transfer[]  @relation("TransferSource")
+  transferDestination   Transfer[]  @relation("TransferDestination")
 
   @@index([householdId])
   @@index([accountId])
@@ -166,4 +171,25 @@ model Transaction {
 enum TransactionType {
   INCOME
   EXPENSE
+  TRANSFER
+}
+
+// A Transfer is a first-class record linking one source Transaction and one
+// destination Transaction; both are written or removed in one database
+// transaction (issue #26). Cross-currency Transfers store the direct
+// source-to-destination Exchange Rate; same-currency Transfers leave it null.
+model Transfer {
+  id                       String   @id @default(uuid()) @db.Uuid
+  householdId              String   @db.Uuid
+  sourceTransactionId      String   @unique @db.Uuid
+  destinationTransactionId String   @unique @db.Uuid
+  exchangeRate             Decimal? @db.Decimal(19, 8)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
+
+  household                Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  sourceTransaction        Transaction @relation("TransferSource", fields: [sourceTransactionId], references: [id], onDelete: Cascade)
+  destinationTransaction   Transaction @relation("TransferDestination", fields: [destinationTransactionId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
 }

@@ -5,6 +5,7 @@ import { createTimestamps } from './timestamps.js';
 export const TransactionType = {
   Income: 'income',
   Expense: 'expense',
+  Transfer: 'transfer',
 } as const;
 
 export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType];
@@ -16,14 +17,14 @@ function isTransactionType(value: string): value is TransactionType {
 /**
  * A movement of Money into or out of an Account. The amount is stored in
  * minor units of the Account Currency and is always positive; the type
- * carries the direction. Transfers, splits, and recurring schedules are out
- * of scope for v1 (issue #24).
+ * carries the direction. Transfer Transactions have no Category; the Transfer
+ * record links the source and destination pair (issue #26).
  */
 export type Transaction = {
   readonly id: TransactionId;
   readonly householdId: HouseholdId;
   readonly accountId: AccountId;
-  readonly categoryId: CategoryId;
+  readonly categoryId: CategoryId | null;
   readonly type: TransactionType;
   readonly amountMinorUnits: bigint;
   readonly date: Date;
@@ -43,7 +44,7 @@ export function createTransaction(params: {
   id: TransactionId;
   householdId: HouseholdId;
   accountId: AccountId;
-  categoryId: CategoryId;
+  categoryId: CategoryId | null;
   type: string;
   amountMinorUnits: bigint;
   date: Date;

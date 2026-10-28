@@ -5,11 +5,13 @@ import type { $Enums } from '@prisma/client';
 const prismaTransactionTypeMap: Record<$Enums.TransactionType, DomainTransactionType> = {
   INCOME: TransactionType.Income,
   EXPENSE: TransactionType.Expense,
+  TRANSFER: TransactionType.Transfer,
 };
 
 const domainTransactionTypeMap: Record<DomainTransactionType, $Enums.TransactionType> = {
   [TransactionType.Income]: 'INCOME',
   [TransactionType.Expense]: 'EXPENSE',
+  [TransactionType.Transfer]: 'TRANSFER',
 };
 
 export function mapPrismaTransactionType(type: $Enums.TransactionType): DomainTransactionType {

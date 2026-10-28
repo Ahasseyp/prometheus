@@ -185,6 +185,11 @@ export async function listAccountsForHousehold(householdId: string): Promise<Acc
   return accounts.map((account) => mapAccountToWithBalance(account, balances));
 }
 
+export async function findAccountInHousehold(accountId: string, householdId: string) {
+  const prisma = getPrisma();
+  return prisma.account.findFirst({ where: { id: accountId, householdId } });
+}
+
 export async function findAccountById(
   accountId: string,
   householdId: string

@@ -17,6 +17,7 @@ import type { Account, Category, Transaction, Transfer } from '@prisma/client';
 import { minorUnitsToDecimal } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
 import { mapDomainTransactionType, mapPrismaTransactionType } from '../lib/transaction-type.js';
+import { findAccountInHousehold } from './account.js';
 import { findExchangeRateOnDate, refreshExchangeRate } from './exchange-rate.js';
 
 export type CreateTransactionInput = {
@@ -157,11 +158,6 @@ export function mapTransactionToRecord(transaction: TransactionWithRelations): T
     categoryName: transaction.category?.name ?? null,
     transfer,
   };
-}
-
-async function findAccountInHousehold(accountId: string, householdId: string) {
-  const prisma = getPrisma();
-  return prisma.account.findFirst({ where: { id: accountId, householdId } });
 }
 
 async function findCategoryInHousehold(categoryId: string, householdId: string) {

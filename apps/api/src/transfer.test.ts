@@ -45,8 +45,20 @@ describe.sequential('transfer procedures', () => {
     } else {
       process.env.ALLOW_REGISTRATION = originalAllowRegistration;
     }
+    // Scoped to the dates this file seeds: test files share the test database
+    // and run in parallel, so a broad MXN/USD delete would race other suites.
     await getPrisma().exchangeRate.deleteMany({
-      where: { baseCurrency: 'MXN', quoteCurrency: 'USD' },
+      where: {
+        baseCurrency: 'MXN',
+        quoteCurrency: 'USD',
+        date: {
+          in: [
+            new Date('2026-10-21T00:00:00.000Z'),
+            new Date('2026-10-22T00:00:00.000Z'),
+            new Date('2026-10-23T00:00:00.000Z'),
+          ],
+        },
+      },
     });
     await cleanupTestData({ userIds: createdUserIds, householdIds: createdHouseholdIds });
     await new Promise<void>((resolve, reject) => {
@@ -434,6 +446,33 @@ describe.sequential('transfer procedures', () => {
     expect(unchanged.sourceTransaction.amount).toBe('1000.00');
     expect(unchanged.destinationTransaction.amount).toBe('54.00');
     expect(unchanged.exchangeRate).toBe('0.054');
+  });
+
+  it('rejects an Exchange Rate supplied for a same-currency Transfer update', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('transfer-update-rate-same-ccy'),
+      'Secure-password-1'
+    );
+    if (context === null) return;
+
+    const source = await createAccount('Checking', 'USD');
+    const destination = await createAccount('Savings', 'USD');
+    const transfer = await client.transfer.create.mutate({
+      sourceAccountId: source.id,
+      destinationAccountId: destination.id,
+      amount: '100.00',
+      date: new Date('2026-10-20T00:00:00.000Z'),
+    });
+
+    await expect(
+      client.transfer.update.mutate({
+        id: transfer.id,
+        exchangeRate: '1.2',
+      })
+    ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
+
+    const unchanged = await client.transfer.get.query({ id: transfer.id });
+    expect(unchanged.exchangeRate).toBeNull();
   });
 
   it('rejects updates from outside the Household', async () => {

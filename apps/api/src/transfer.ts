@@ -16,6 +16,10 @@ const transferAmountSchema = z.string().refine((value) => value.trim().length > 
   message: 'Enter an amount.',
 });
 
+const exchangeRateSchema = z
+  .string()
+  .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' });
+
 const transferResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
@@ -29,10 +33,7 @@ const createTransferInputSchema = z.object({
   destinationAccountId: z.string().uuid(),
   amount: transferAmountSchema,
   destinationAmount: transferAmountSchema.optional(),
-  exchangeRate: z
-    .string()
-    .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' })
-    .optional(),
+  exchangeRate: exchangeRateSchema.optional(),
   date: z.coerce.date(),
   description: z.string().optional(),
 });
@@ -46,10 +47,7 @@ const updateTransferInputSchema = transferIdInputSchema.extend({
   destinationAccountId: z.string().uuid().optional(),
   amount: transferAmountSchema.optional(),
   destinationAmount: transferAmountSchema.optional(),
-  exchangeRate: z
-    .string()
-    .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' })
-    .optional(),
+  exchangeRate: exchangeRateSchema.optional(),
   date: z.coerce.date().optional(),
   description: z.string().optional(),
 });
@@ -149,8 +147,8 @@ export const transferRouter = router({
     .output(z.object({ ok: z.literal(true) }))
     .mutation(async ({ input, ctx }) => {
       const householdId = getHouseholdId(ctx, 'transfers');
-      const deleted = await deleteTransfer(input.id, householdId);
-      if (!deleted) {
+      const result = await deleteTransfer(input.id, householdId);
+      if (!result.ok) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Transfer not found.' });
       }
       return { ok: true as const };

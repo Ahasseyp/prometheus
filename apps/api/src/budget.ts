@@ -9,6 +9,7 @@ import {
   listBudgetsForHousehold,
   updateBudget,
 } from './services/budget.js';
+import { getBudgetProgress } from './services/budget-progress.js';
 import { getHouseholdId, protectedProcedure, router, throwServiceError } from './trpc.js';
 
 const budgetPeriodSchema = z.nativeEnum(BudgetPeriod);
@@ -55,6 +56,36 @@ const updateBudgetInputSchema = z.object({
   period: budgetPeriodSchema.optional(),
   categoryIds: budgetCategoryIdsSchema.optional(),
 });
+
+const budgetProgressInputSchema = z.object({
+  id: z.string().uuid(),
+  // The caller's local date for the day progress is measured; calendar
+  // periods are computed from its date components.
+  date: z.coerce.date().optional(),
+});
+
+const budgetProgressResponseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  currency: z.string(),
+  period: z.object({
+    start: z.date(),
+    end: z.date(),
+  }),
+  limit: z.string(),
+  rollover: z.string(),
+  available: z.string(),
+  spent: z.string(),
+  remaining: z.string(),
+});
+
+const progressBudgetErrorMappings = {
+  'not-found': { code: 'NOT_FOUND', message: 'Budget not found.' },
+  'unconvertible-transactions': {
+    code: 'PRECONDITION_FAILED',
+    message: 'Some transactions cannot be converted to the reporting currency.',
+  },
+} as const;
 
 function ensureBudgetFound<T>(budget: T | null): T {
   if (budget === null) {
@@ -130,6 +161,18 @@ export const budgetRouter = router({
         throwServiceError(result.error, saveBudgetErrorMappings);
       }
       return { ok: true as const };
+    }),
+
+  progress: protectedProcedure
+    .input(budgetProgressInputSchema)
+    .output(budgetProgressResponseSchema)
+    .query(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'budgets');
+      const result = await getBudgetProgress(input.id, householdId, input.date ?? new Date());
+      if (!result.ok) {
+        throwServiceError(result.error, progressBudgetErrorMappings);
+      }
+      return result.progress;
     }),
 });
 

@@ -3,6 +3,7 @@ import { Sheet } from '@/components/ui/sheet.js';
 import { formatMoney } from '@/lib/format-money.js';
 
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import { getTransactionDetailLabel } from '@/features/transactions/lib/transfer-presentation.js';
 
 export interface TransactionActionSheetProps {
   transaction: Transaction | null;
@@ -24,6 +25,7 @@ export function TransactionActionSheet({
   }
 
   const label = transaction.description || transaction.categoryName;
+  const detailLabel = getTransactionDetailLabel(transaction);
 
   return (
     <Sheet open={true} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
@@ -36,7 +38,7 @@ export function TransactionActionSheet({
               transaction.accountCurrency
             )}
             {' · '}
-            {transaction.categoryName}
+            {detailLabel}
           </Sheet.Description>
         </Sheet.Header>
         <div className="flex flex-col gap-2 px-4 pb-4">

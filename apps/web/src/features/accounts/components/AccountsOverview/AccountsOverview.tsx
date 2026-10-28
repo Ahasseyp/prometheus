@@ -2,6 +2,7 @@ import { AccountsOverviewCard } from '@/features/accounts/components/AccountsOve
 import { AccountSummary } from '@/features/accounts/components/AccountSummary/AccountSummary.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdState.js';
+import { ReportingCurrencyForm } from '@/features/household/components/ReportingCurrencyForm/ReportingCurrencyForm.js';
 
 export function AccountsOverview() {
   const { household } = useAuthHouseholdState();
@@ -15,6 +16,8 @@ export function AccountsOverview() {
           {household?.name ?? 'Personal'} overview
         </h1>
       </section>
+
+      <ReportingCurrencyForm reportingCurrency={household?.reportingCurrency ?? '—'} />
 
       <AccountSummary accounts={accounts ?? []} isLoading={isPending} />
 

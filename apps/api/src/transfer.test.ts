@@ -154,6 +154,27 @@ describe.sequential('transfer procedures', () => {
     expect(destinationSide?.transfer?.counterpartyAccountName).toBe('Checking');
   });
 
+  it('defaults each side’s description to the counterparty Account when none is given', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('transfer-default-description'),
+      'Secure-password-1'
+    );
+    if (context === null) return;
+
+    const source = await createAccount('Checking', 'USD');
+    const destination = await createAccount('Savings', 'USD');
+
+    const transfer = await client.transfer.create.mutate({
+      sourceAccountId: source.id,
+      destinationAccountId: destination.id,
+      amount: '100.00',
+      date: new Date('2026-10-22T00:00:00.000Z'),
+    });
+
+    expect(transfer.sourceTransaction.description).toBe('Transfer to Savings');
+    expect(transfer.destinationTransaction.description).toBe('Transfer from Checking');
+  });
+
   it('creates a cross-currency Transfer with source and destination amounts and a direct Exchange Rate', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('transfer-cross-ccy'),

@@ -5,13 +5,24 @@ import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
 import { useIsMobile } from '@/hooks/use-mobile.js';
 import { useCategories } from '@/features/categories/gateways/categories.js';
-import { useBudgets } from '@/features/budgets/gateways/budgets.js';
+import { useHouseholdMe } from '@/features/household/gateways/household.js';
+import { useBudgets, type Budget } from '@/features/budgets/gateways/budgets.js';
 import { BudgetCard } from '@/features/budgets/components/BudgetCard/BudgetCard.js';
+import { BudgetFormDialog } from '@/features/budgets/components/BudgetFormDialog/BudgetFormDialog.js';
 import { BudgetList } from '@/features/budgets/components/BudgetList/BudgetList.js';
+import { DeleteBudgetDialog } from '@/features/budgets/components/DeleteBudgetDialog/DeleteBudgetDialog.js';
+import {
+  getBudgetCategoryNames,
+  getBudgetTitle,
+} from '@/features/budgets/lib/budget-presentation.js';
 
 export function BudgetsManager() {
-  const [createStubVisible, setCreateStubVisible] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | undefined>(undefined);
+  const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);
+  const [deletingBudgetLabel, setDeletingBudgetLabel] = useState('');
   const isMobile = useIsMobile();
+  const { data: householdData } = useHouseholdMe();
   const {
     data: budgets,
     isPending: isBudgetsPending,
@@ -31,11 +42,39 @@ export function BudgetsManager() {
     void Promise.all([refetchBudgets(), refetchCategories()]);
   }
 
+  function openCreateForm() {
+    setEditingBudget(undefined);
+    setFormOpen(true);
+  }
+
+  function openEditForm(budget: Budget) {
+    setEditingBudget(budget);
+    setFormOpen(true);
+  }
+
+  function openDeleteConfirmation(budget: Budget) {
+    const categoryNames = getBudgetCategoryNames(budget, categories ?? []);
+    setDeletingBudgetLabel(getBudgetTitle(budget, categoryNames));
+    setDeletingBudget(budget);
+  }
+
+  function handleFormOpenChange(nextOpen: boolean) {
+    setFormOpen(nextOpen);
+    if (!nextOpen) {
+      setEditingBudget(undefined);
+    }
+  }
+
+  function handleDeleteDialogClose() {
+    setDeletingBudget(null);
+    setDeletingBudgetLabel('');
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
-        <Button onClick={() => setCreateStubVisible(true)}>
+        <Button onClick={openCreateForm}>
           <Plus data-icon="inline-start" aria-hidden="true" />
           Add budget
         </Button>
@@ -54,6 +93,8 @@ export function BudgetsManager() {
               isLoading={isLoading}
               isError={isError}
               onRetry={retryBudgets}
+              onEdit={openEditForm}
+              onDelete={openDeleteConfirmation}
             />
           ) : (
             <BudgetList
@@ -62,15 +103,25 @@ export function BudgetsManager() {
               isLoading={isLoading}
               isError={isError}
               onRetry={retryBudgets}
+              onEdit={openEditForm}
+              onDelete={openDeleteConfirmation}
             />
-          )}
-          {createStubVisible && (
-            <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-4 text-center text-muted-foreground">
-              BudgetFormDialog
-            </div>
           )}
         </Card.Content>
       </Card>
+
+      <BudgetFormDialog
+        open={formOpen}
+        onOpenChange={handleFormOpenChange}
+        budget={editingBudget}
+        categories={categories ?? []}
+        reportingCurrency={householdData?.household?.reportingCurrency}
+      />
+      <DeleteBudgetDialog
+        budget={deletingBudget}
+        label={deletingBudgetLabel}
+        onClose={handleDeleteDialogClose}
+      />
     </div>
   );
 }

@@ -3,11 +3,16 @@ import { Card } from '@/components/ui/card.js';
 
 import type { Category } from '@/features/categories/gateways/categories.js';
 import type { Budget } from '@/features/budgets/gateways/budgets.js';
+import { BudgetActions } from '@/features/budgets/components/BudgetActions/BudgetActions.js';
 import { BudgetListSkeleton } from '@/features/budgets/components/BudgetListSkeleton/BudgetListSkeleton.js';
 import { BudgetProgress } from '@/features/budgets/components/BudgetProgress/BudgetProgress.js';
 import { BudgetsEmptyState } from '@/features/budgets/components/BudgetsEmptyState/BudgetsEmptyState.js';
 import { BudgetsErrorState } from '@/features/budgets/components/BudgetsErrorState/BudgetsErrorState.js';
-import { getBudgetPeriodLabel } from '@/features/budgets/lib/budget-presentation.js';
+import {
+  getBudgetCategoryNames,
+  getBudgetPeriodLabel,
+  getBudgetTitle,
+} from '@/features/budgets/lib/budget-presentation.js';
 
 export interface BudgetCardProps {
   budgets?: Budget[];
@@ -15,6 +20,8 @@ export interface BudgetCardProps {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  onEdit?: (budget: Budget) => void;
+  onDelete?: (budget: Budget) => void;
 }
 
 export function BudgetCard({
@@ -23,6 +30,8 @@ export function BudgetCard({
   isLoading,
   isError,
   onRetry,
+  onEdit,
+  onDelete,
 }: BudgetCardProps) {
   if (isLoading) {
     return <BudgetListSkeleton cards />;
@@ -36,18 +45,33 @@ export function BudgetCard({
     return <BudgetsEmptyState />;
   }
 
+  const showActions = onEdit !== undefined && onDelete !== undefined;
+
   return (
     <div className="grid gap-4">
-      {budgets.map((budget) => (
-        <Card key={budget.id} size="sm">
-          <Card.Content className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <Badge variant="outline">{getBudgetPeriodLabel(budget.period)}</Badge>
-            </div>
-            <BudgetProgress budget={budget} categories={categories} />
-          </Card.Content>
-        </Card>
-      ))}
+      {budgets.map((budget) => {
+        const categoryNames = getBudgetCategoryNames(budget, categories);
+        const title = getBudgetTitle(budget, categoryNames);
+
+        return (
+          <Card key={budget.id} size="sm">
+            <Card.Content className="flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant="outline">{getBudgetPeriodLabel(budget.period)}</Badge>
+                {showActions && (
+                  <BudgetActions
+                    label={title}
+                    budget={budget}
+                    onEdit={() => onEdit(budget)}
+                    onDelete={() => onDelete(budget)}
+                  />
+                )}
+              </div>
+              <BudgetProgress budget={budget} categories={categories} />
+            </Card.Content>
+          </Card>
+        );
+      })}
     </div>
   );
 }

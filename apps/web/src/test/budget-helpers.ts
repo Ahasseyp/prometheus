@@ -85,3 +85,38 @@ export function mockBudgetProgressResponse(data: unknown) {
 export function mockBudgetProgressError() {
   server.use(http.get('/api/trpc/budget.progress', () => HttpResponse.error()));
 }
+
+export function mockCreateBudgetResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/budget.create', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockCreateBudgetError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/budget.create', () => {
+      return HttpResponse.json(
+        { error: { message, code: -32600, data: { code: 'BAD_REQUEST', httpStatus: 400 } } },
+        { status: 400 }
+      );
+    })
+  );
+}
+
+export function mockUpdateBudgetResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/budget.update', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockDeleteBudgetResponse(data: unknown = { ok: true }) {
+  server.use(
+    http.post('/api/trpc/budget.delete', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}

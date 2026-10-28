@@ -6,6 +6,8 @@ import { trpc } from '@/gateways/trpc.js';
 
 export type HouseholdMeOutput = inferRouterOutputs<AppRouter>['household']['me'];
 type CreateHouseholdInput = inferRouterInputs<AppRouter>['household']['create'];
+type UpdateReportingCurrencyInput =
+  inferRouterInputs<AppRouter>['household']['updateReportingCurrency'];
 export type CreateHouseholdOutput = inferRouterOutputs<AppRouter>['household']['create'];
 
 export function useHouseholdMe() {
@@ -22,6 +24,19 @@ export function useCreateHousehold() {
     mutationFn: (input: CreateHouseholdInput) => trpc.household.create.mutate(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['household', 'me'] });
+    },
+  });
+}
+
+export function useUpdateReportingCurrency() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateReportingCurrencyInput) =>
+      trpc.household.updateReportingCurrency.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['household', 'me'] });
+      void queryClient.invalidateQueries({ queryKey: ['reporting'] });
     },
   });
 }

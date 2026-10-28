@@ -43,6 +43,13 @@ const transactionFormSchema = z.object({
     message: 'Select a date.',
   }),
   description: z.string(),
+  exchangeRate: z.string().refine(
+    (value) => {
+      const exchangeRate = Number(value);
+      return value.trim() === '' || (Number.isFinite(exchangeRate) && exchangeRate > 0);
+    },
+    { message: 'Enter a positive Exchange Rate.' }
+  ),
 });
 
 type FormState = z.infer<typeof transactionFormSchema>;
@@ -76,6 +83,7 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
         ? format(new Date(transaction.date), 'yyyy-MM-dd')
         : format(new Date(), 'yyyy-MM-dd'),
       description: transaction?.description ?? '',
+      exchangeRate: transaction?.exchangeRate ?? '',
     } satisfies FormState,
     validators: {
       onSubmit: transactionFormSchema,
@@ -85,6 +93,12 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
 
   const type = useStore(form.store, (state) => state.values.type);
   const accountId = useStore(form.store, (state) => state.values.accountId);
+  const accountCurrency = accounts?.find((account) => account.id === accountId)?.currency;
+  const showExchangeRate =
+    isEditing &&
+    transaction.reportingCurrency !== null &&
+    accountCurrency !== undefined &&
+    accountCurrency !== transaction.reportingCurrency;
 
   // Categories are filtered to the selected transaction type; subcategories
   // are shown nested under their parent so the one-level hierarchy reads.
@@ -164,6 +178,10 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
           categoryId: value.categoryId,
           date,
           description,
+          exchangeRate:
+            showExchangeRate && value.exchangeRate.trim() !== ''
+              ? value.exchangeRate.trim()
+              : undefined,
         },
         { onSuccess: () => onSuccess?.(), onError: handleMutationError }
       );
@@ -262,11 +280,32 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
           {(fieldProps) => (
             <AmountInput
               {...fieldProps}
-              currency={accounts?.find((account) => account.id === accountId)?.currency}
+              currency={accountCurrency}
               onChange={withClearedError(fieldProps.onChange)}
             />
           )}
         </FormField>
+
+        {showExchangeRate && (
+          <FormField
+            form={form}
+            name="exchangeRate"
+            label="Exchange Rate"
+            disabled={isPending}
+            description={`${accountCurrency} to ${transaction.reportingCurrency}`}
+          >
+            {(fieldProps) => (
+              <Input
+                {...fieldProps}
+                inputMode="decimal"
+                autoComplete="off"
+                onChange={withClearedError((event: React.ChangeEvent<HTMLInputElement>) =>
+                  fieldProps.onChange(event.target.value)
+                )}
+              />
+            )}
+          </FormField>
+        )}
 
         <FormField form={form} name="categoryId" label="Category" disabled={isPending}>
           {(fieldProps) => {

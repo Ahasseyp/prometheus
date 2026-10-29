@@ -36,7 +36,13 @@ export function getBudgetProgressPercent(
   const exponent = getCurrencyExponent(currency);
   const spentMinorUnits = decimalStringToMinorUnits(spent, exponent);
   const availableMinorUnits = decimalStringToMinorUnits(available, exponent);
+  return getBudgetProgressPercentFromMinorUnits(spentMinorUnits, availableMinorUnits);
+}
 
+export function getBudgetProgressPercentFromMinorUnits(
+  spentMinorUnits: bigint,
+  availableMinorUnits: bigint
+): number {
   if (availableMinorUnits <= 0n) {
     return spentMinorUnits > 0n ? 100 : 0;
   }
@@ -44,4 +50,9 @@ export function getBudgetProgressPercent(
   const percent = (spentMinorUnits * 100n) / availableMinorUnits;
   const cappedPercent = percent > 100n ? 100n : percent;
   return Number(cappedPercent);
+}
+
+export function sumBudgetMoney(values: string[], currency: string): bigint {
+  const exponent = getCurrencyExponent(currency);
+  return values.reduce((total, value) => total + decimalStringToMinorUnits(value, exponent), 0n);
 }

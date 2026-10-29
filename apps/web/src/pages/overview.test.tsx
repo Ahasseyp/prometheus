@@ -6,6 +6,14 @@ import { renderWithRouter } from '@/test/render-router.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
+import {
+  makeBudget,
+  makeBudgetProgress,
+  mockBudgetListError,
+  mockBudgetListResponse,
+  mockBudgetProgressError,
+  mockBudgetProgressResponse,
+} from '@/test/budget-helpers.js';
 import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
 
 import { OverviewPage } from './overview.js';
@@ -31,6 +39,7 @@ function mockAuthenticatedHousehold() {
   mockMeResponse(mockUser);
   mockHouseholdMeResponse(mockHousehold);
   mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '0', accounts: [] });
+  mockBudgetListResponse([]);
 }
 
 describe('OverviewPage', () => {
@@ -124,5 +133,74 @@ describe('OverviewPage', () => {
     await renderWithRouter(() => <OverviewPage />);
 
     expect(await screen.findByRole('link', { name: /view all/i })).toBeInTheDocument();
+  });
+
+  it('shows current-period Budget progress totals on the overview', async () => {
+    const budget = makeBudget({ name: 'Monthly spending' });
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+    mockBudgetListResponse([budget]);
+    mockBudgetProgressResponse(
+      makeBudgetProgress({
+        id: budget.id,
+        limit: '500.00',
+        rollover: '25.00',
+        available: '525.00',
+        spent: '450.00',
+        remaining: '75.00',
+      })
+    );
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText(/450\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/525\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/75\.00/)).toBeInTheDocument();
+    expect(screen.getByText('On track')).toBeInTheDocument();
+  });
+
+  it('links the Budget overview card to Budget management', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByRole('link', { name: /manage budgets/i })).toHaveAttribute(
+      'href',
+      '/budgets'
+    );
+  });
+
+  it('shows an empty Budget overview state when no Budgets exist', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText('No budgets yet')).toBeInTheDocument();
+  });
+
+  it('shows a retryable Budget overview error when the list fails', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+    mockBudgetListError();
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText("We couldn't load your budgets")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('shows a retryable Budget overview error when progress fails', async () => {
+    const budget = makeBudget({ name: 'Monthly spending' });
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+    mockBudgetListResponse([budget]);
+    mockBudgetProgressError();
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText("We couldn't load your budgets")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 });

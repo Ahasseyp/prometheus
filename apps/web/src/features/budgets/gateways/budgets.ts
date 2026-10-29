@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@prometheus/api/router';
@@ -27,6 +27,15 @@ export function useBudgetProgress(budgetId: string) {
   return useQuery({
     queryKey: budgetProgressQueryKey(budgetId),
     queryFn: () => trpc.budget.progress.query({ id: budgetId }),
+  });
+}
+
+export function useBudgetProgressList(budgetIds: string[]) {
+  return useQueries({
+    queries: budgetIds.map((budgetId) => ({
+      queryKey: budgetProgressQueryKey(budgetId),
+      queryFn: () => trpc.budget.progress.query({ id: budgetId }),
+    })),
   });
 }
 

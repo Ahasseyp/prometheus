@@ -94,17 +94,21 @@ describe.sequential('budget procedures', () => {
     const groceries = await createExpenseCategory('Groceries');
     const dining = await createExpenseCategory('Dining');
 
+    const startDate = new Date('2026-09-15T00:00:00.000Z');
     const budget = await client.budget.create.mutate({
       name: 'Food',
       limit: '500.00',
       period: 'monthly',
       categoryIds: [groceries.id, dining.id],
+      startDate,
     });
 
     expect(budget.householdId).toBe(context.household.id);
     expect(budget.name).toBe('Food');
     expect(budget.limit).toBe('500.00');
     expect(budget.period).toBe('monthly');
+    expect(budget.startDate).toBe(startDate.toISOString());
+    expect(budget.rolloverEnabled).toBe(true);
     expect(budget.categoryIds).toEqual(expect.arrayContaining([groceries.id, dining.id]));
     expect(budget.categoryIds.length).toBe(2);
 
@@ -123,12 +127,14 @@ describe.sequential('budget procedures', () => {
     if (context === null) return;
 
     const category = await createExpenseCategory('Pets');
+    const startDate = new Date('2026-01-01T00:00:00.000Z');
 
     await expect(
       client.budget.create.mutate({
         limit: '0',
         period: 'monthly',
         categoryIds: [category.id],
+        startDate,
       })
     ).rejects.toThrow();
     await expect(
@@ -136,6 +142,7 @@ describe.sequential('budget procedures', () => {
         limit: '-10',
         period: 'monthly',
         categoryIds: [category.id],
+        startDate,
       })
     ).rejects.toThrow();
     await expect(
@@ -143,6 +150,7 @@ describe.sequential('budget procedures', () => {
         limit: '100',
         period: 'monthly',
         categoryIds: [],
+        startDate,
       })
     ).rejects.toThrow();
     await expect(
@@ -150,6 +158,7 @@ describe.sequential('budget procedures', () => {
         limit: '100',
         period: 'daily' as 'monthly',
         categoryIds: [category.id],
+        startDate,
       })
     ).rejects.toThrow();
   });
@@ -171,6 +180,7 @@ describe.sequential('budget procedures', () => {
         limit: '100',
         period: 'monthly',
         categoryIds: [income.id],
+        startDate: new Date('2026-01-01T00:00:00.000Z'),
       })
     ).rejects.toThrow();
 
@@ -180,6 +190,7 @@ describe.sequential('budget procedures', () => {
         limit: '100',
         period: 'monthly',
         categoryIds: [expense.id],
+        startDate: new Date('2026-01-01T00:00:00.000Z'),
       })
     ).rejects.toThrow();
 
@@ -202,6 +213,7 @@ describe.sequential('budget procedures', () => {
       limit: '100',
       period: 'weekly',
       categoryIds: [first.id],
+      startDate: new Date('2026-01-05T00:00:00.000Z'),
     });
 
     const updated = await client.budget.update.mutate({
@@ -210,14 +222,17 @@ describe.sequential('budget procedures', () => {
       limit: '250.50',
       period: 'yearly',
       categoryIds: [first.id, second.id],
+      rolloverEnabled: false,
     });
     expect(updated.name).toBe('Updated');
     expect(updated.limit).toBe('250.50');
     expect(updated.period).toBe('yearly');
     expect(updated.categoryIds).toEqual(expect.arrayContaining([first.id, second.id]));
+    expect(updated.rolloverEnabled).toBe(false);
 
     const refetched = await client.budget.get.query({ id: budget.id });
     expect(refetched.limit).toBe('250.50');
+    expect(refetched.rolloverEnabled).toBe(false);
   });
 
   it('deletes a Budget', async () => {
@@ -232,6 +247,7 @@ describe.sequential('budget procedures', () => {
       limit: '100',
       period: 'monthly',
       categoryIds: [category.id],
+      startDate: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     const deleted = await client.budget.delete.mutate({ id: budget.id });
@@ -251,6 +267,7 @@ describe.sequential('budget procedures', () => {
       limit: '100',
       period: 'monthly',
       categoryIds: [category.id],
+      startDate: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     await expect(client.category.delete.mutate({ id: category.id })).rejects.toThrow();
@@ -274,6 +291,7 @@ describe.sequential('budget procedures', () => {
       limit: '100',
       period: 'monthly',
       categoryIds: [category.id],
+      startDate: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     await registerAndCreateHousehold(makeTestEmail('budget-isolation-2'), 'Secure-password-9');

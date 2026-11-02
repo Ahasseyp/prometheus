@@ -185,13 +185,18 @@ enum TransactionType {
 // linked through BudgetCategory; a Category used by a Budget cannot be
 // deleted.
 model Budget {
-  id          String       @id @default(uuid()) @db.Uuid
-  householdId String       @db.Uuid
-  name        String       @default("")
-  limit       BigInt
-  period      BudgetPeriod
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now()) @updatedAt
+  id              String       @id @default(uuid()) @db.Uuid
+  householdId     String       @db.Uuid
+  name            String       @default("")
+  limit           BigInt
+  period          BudgetPeriod
+  // The date the first Budget Period begins; later periods anchor to this
+  // date (same weekday / same day-of-month clamped / same month-day).
+  startDate       DateTime     @db.Date
+  // When true, unused limit from prior periods carries into the current one.
+  rolloverEnabled Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
 
   household  Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
   categories BudgetCategory[]

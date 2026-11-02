@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 import { Badge } from '@/components/ui/badge.js';
 import { Skeleton } from '@/components/ui/skeleton.js';
 
@@ -111,8 +113,12 @@ export function BudgetProgress({ budget, categories }: BudgetProgressProps) {
         <div>
           <dt className="text-muted-foreground">Rollover</dt>
           <dd className="font-medium tabular-nums">
-            {formatMoney(progress.rollover, progress.currency)}
+            {budget.rolloverEnabled ? formatMoney(progress.rollover, progress.currency) : 'Off'}
           </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Started</dt>
+          <dd className="font-medium">{format(new Date(budget.startDate), 'PPP')}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Limit</dt>

@@ -33,6 +33,8 @@ const budgetResponseSchema = z.object({
   name: z.string(),
   limit: z.string(),
   period: budgetPeriodSchema,
+  startDate: z.date(),
+  rolloverEnabled: z.boolean(),
   categoryIds: z.array(z.string().uuid()),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -43,6 +45,8 @@ const createBudgetInputSchema = z.object({
   limit: budgetLimitSchema,
   period: budgetPeriodSchema,
   categoryIds: budgetCategoryIdsSchema,
+  startDate: z.coerce.date(),
+  rolloverEnabled: z.boolean().optional(),
 });
 
 const budgetIdInputSchema = z.object({
@@ -55,6 +59,7 @@ const updateBudgetInputSchema = z.object({
   limit: budgetLimitSchema.optional(),
   period: budgetPeriodSchema.optional(),
   categoryIds: budgetCategoryIdsSchema.optional(),
+  rolloverEnabled: z.boolean().optional(),
 });
 
 const budgetProgressInputSchema = z.object({
@@ -144,6 +149,7 @@ export const budgetRouter = router({
         limit: input.limit,
         period: input.period,
         categoryIds: input.categoryIds,
+        rolloverEnabled: input.rolloverEnabled,
       });
       if (!result.ok) {
         throwServiceError(result.error, saveBudgetErrorMappings);

@@ -9,6 +9,8 @@ export type BudgetFixture = {
   limit: string;
   period: 'weekly' | 'monthly' | 'yearly';
   categoryIds: string[];
+  startDate: string;
+  rolloverEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -36,6 +38,8 @@ export function makeBudget(overrides: Partial<BudgetFixture> = {}): BudgetFixtur
     limit: '500.00',
     period: 'monthly',
     categoryIds: ['a1b2c3d4-e5f6-7890-abcd-ef1234567890'],
+    startDate: '2026-09-01T00:00:00.000Z',
+    rolloverEnabled: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

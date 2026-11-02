@@ -22,6 +22,8 @@ export type CreateBudgetInput = {
   limit: string;
   period: string;
   categoryIds: string[];
+  startDate: Date;
+  rolloverEnabled?: boolean;
 };
 
 export type UpdateBudgetInput = {
@@ -29,6 +31,7 @@ export type UpdateBudgetInput = {
   limit?: string;
   period?: string;
   categoryIds?: string[];
+  rolloverEnabled?: boolean;
 };
 
 export type BudgetRecord = {
@@ -37,6 +40,8 @@ export type BudgetRecord = {
   name: string;
   limit: string;
   period: DomainBudgetPeriod;
+  startDate: Date;
+  rolloverEnabled: boolean;
   categoryIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +74,8 @@ function mapBudgetToRecord(
     name: budget.name,
     limit: minorUnitsToDecimal(budget.limit, reportingCurrency),
     period: mapPrismaBudgetPeriod(budget.period),
+    startDate: budget.startDate,
+    rolloverEnabled: budget.rolloverEnabled,
     categoryIds: budget.categories.map((entry) => entry.categoryId),
     createdAt: budget.createdAt,
     updatedAt: budget.updatedAt,
@@ -143,6 +150,8 @@ export async function createBudget(
     name: input.name,
     limit,
     period: input.period,
+    startDate: input.startDate,
+    rolloverEnabled: input.rolloverEnabled,
     categoryIds: categoriesResult.categoryIds.map(makeCategoryId),
   });
 
@@ -158,6 +167,8 @@ export async function createBudget(
       name: entityResult.value.name,
       limit: entityResult.value.limit.toMinorUnits(),
       period: mapDomainBudgetPeriod(entityResult.value.period),
+      startDate: entityResult.value.startDate,
+      rolloverEnabled: entityResult.value.rolloverEnabled,
       categories: {
         create: categoriesResult.categoryIds.map((categoryId) => ({ categoryId })),
       },
@@ -255,6 +266,7 @@ export async function updateBudget(
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         limit: limitMinorUnits,
         period,
+        ...(input.rolloverEnabled !== undefined ? { rolloverEnabled: input.rolloverEnabled } : {}),
       },
       include: { categories: true },
     });

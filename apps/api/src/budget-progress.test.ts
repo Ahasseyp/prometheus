@@ -126,7 +126,13 @@ describe.sequential('budget progress procedures', () => {
     limit = '500',
     period: 'weekly' | 'monthly' | 'yearly' = 'monthly'
   ) {
-    return client.budget.create.mutate({ name, limit, period, categoryIds });
+    return client.budget.create.mutate({
+      name,
+      limit,
+      period,
+      categoryIds,
+      startDate: new Date('2026-01-01T00:00:00.000Z'),
+    });
   }
 
   function seedTransaction(accountId: string, categoryId: string, amount: string, date: Date) {

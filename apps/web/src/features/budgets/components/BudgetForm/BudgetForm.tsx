@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useForm, useStore } from '@tanstack/react-form';
 import { BudgetPeriod, isPositiveDecimal } from '@prometheus/domain';
+import { format } from 'date-fns';
 import { z } from 'zod';
 
 import { AmountInput } from '@/components/molecules/AmountInput/AmountInput.js';
+import { DatePicker } from '@/components/molecules/DatePicker/DatePicker.js';
 import { FormError } from '@/components/form/FormError.js';
 import { FormField } from '@/components/form/FormField.js';
 import { Button } from '@/components/ui/button.js';
 import { Combobox, useComboboxAnchor } from '@/components/ui/combobox.js';
 import { Field } from '@/components/ui/field.js';
 import { Spinner } from '@/components/ui/spinner.js';
+import { Switch } from '@/components/ui/switch.js';
 import { ToggleGroup } from '@/components/ui/toggle-group.js';
 import type { Category } from '@/features/categories/gateways/categories.js';
 import {
@@ -29,6 +32,12 @@ const budgetFormSchema = z.object({
   categoryIds: z.array(z.string()).min(1, {
     message: 'Choose at least one category.',
   }),
+  // The start date crosses the form as a `yyyy-MM-dd` string, like the
+  // Transaction date; it is converted to a local Date only when submitted.
+  startDate: z.string().refine((value) => value.length > 0, {
+    message: 'Select a start date.',
+  }),
+  rolloverEnabled: z.boolean(),
 });
 
 type FormState = z.infer<typeof budgetFormSchema>;
@@ -111,11 +120,18 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
     setFormError(getBudgetMutationErrorMessage(error));
   }
 
+  function handleDateChange(onChange: (value: string) => void) {
+    return withClearedError((date: Date | undefined) => {
+      onChange(date === undefined ? '' : format(date, 'yyyy-MM-dd'));
+    });
+  }
+
   function handleSubmit({ value }: { value: FormState }) {
     const input = {
       limit: value.amount.trim(),
       period: value.period,
       categoryIds: value.categoryIds,
+      rolloverEnabled: value.rolloverEnabled,
     };
 
     if (isEditing) {
@@ -126,10 +142,16 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
       return;
     }
 
-    createBudget.mutate(input, {
-      onSuccess: () => onSuccess?.(),
-      onError: handleMutationError,
-    });
+    createBudget.mutate(
+      {
+        ...input,
+        startDate: new Date(`${value.startDate}T00:00:00`),
+      },
+      {
+        onSuccess: () => onSuccess?.(),
+        onError: handleMutationError,
+      }
+    );
   }
 
   function handleFormSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
@@ -143,6 +165,10 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
       amount: budget?.limit ?? '',
       period: budget?.period ?? BudgetPeriod.Monthly,
       categoryIds: budget?.categoryIds ?? [],
+      startDate: budget
+        ? format(new Date(budget.startDate), 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd'),
+      rolloverEnabled: budget?.rolloverEnabled ?? true,
     } satisfies FormState,
     validators: {
       onSubmit: budgetFormSchema,
@@ -150,6 +176,7 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
     onSubmit: handleSubmit,
   });
   const selectedCategoryIds = useStore(form.store, (state) => state.values.categoryIds);
+  const rolloverEnabled = useStore(form.store, (state) => state.values.rolloverEnabled);
   const selectedCategoryOptions = categoryOptions.filter((option) =>
     selectedCategoryIds.includes(option.value)
   );
@@ -186,6 +213,46 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
                 </ToggleGroup.Item>
               ))}
             </ToggleGroup>
+          )}
+        </FormField>
+
+        <FormField
+          form={form}
+          name="startDate"
+          label="Start date"
+          disabled={isPending || isEditing}
+          description={
+            isEditing
+              ? 'The start date is fixed once a budget is created.'
+              : 'Periods are counted from this date.'
+          }
+        >
+          {(fieldProps) => (
+            <DatePicker
+              value={fieldProps.value === '' ? undefined : new Date(`${fieldProps.value}T00:00:00`)}
+              onChange={handleDateChange(fieldProps.onChange)}
+              disabled={fieldProps.disabled}
+              aria-label="Start date"
+            />
+          )}
+        </FormField>
+
+        <FormField
+          form={form}
+          name="rolloverEnabled"
+          label="Rollover"
+          disabled={isPending}
+          description="Carry unused limit from earlier periods into the current one."
+        >
+          {() => (
+            <Switch
+              checked={rolloverEnabled}
+              onCheckedChange={withClearedError((checked: boolean) => {
+                void form.setFieldValue('rolloverEnabled', checked);
+              })}
+              disabled={isPending}
+              aria-label="Rollover"
+            />
           )}
         </FormField>
 

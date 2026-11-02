@@ -81,11 +81,15 @@ A planned spending limit for a Category or set of Categories over a Budget Perio
 _Avoid_: Limit, spending plan
 
 **Budget Period**:
-The time interval over which a Budget is tracked, such as monthly, weekly, or yearly.
+The time interval over which a Budget is tracked, such as monthly, weekly, or yearly. Period boundaries anchor to the Budget's Start Date.
 _Avoid_: Duration, frequency
 
+**Start Date**:
+The date on which a Budget's first Budget Period begins. Later periods follow the same weekday, day of month (clamped at month end), or month and day. Fixed after creation.
+_Avoid_: Anchor date, period start
+
 **Rollover**:
-The unused amount of a Budget that carries over to the next Budget Period.
+The unused amount of a Budget that carries over to the next Budget Period. Rollover is a per-Budget setting and can be turned off.
 _Avoid_: Carryover, surplus
 
 **Recurring Transaction**:

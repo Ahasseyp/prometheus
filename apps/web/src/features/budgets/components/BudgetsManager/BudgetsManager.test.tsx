@@ -93,6 +93,22 @@ describe('BudgetsManager', () => {
     expect(screen.getAllByText(/25\.00/).length).toBeGreaterThan(0);
   });
 
+  it('shows the start date and an explicit rollover state', async () => {
+    mockCategoryListResponse([groceries]);
+    mockBudgetListResponse([
+      makeBudget({
+        name: 'No rollover',
+        rolloverEnabled: false,
+        startDate: '2026-09-15T00:00:00.000Z',
+      }),
+    ]);
+    mockBudgetProgressResponse(makeBudgetProgress({ name: 'No rollover', rollover: '0.00' }));
+    renderManager();
+
+    expect(await screen.findByText('Started')).toBeInTheDocument();
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
   it('renders an over-budget state when remaining is negative', async () => {
     mockCategoryListResponse([groceries]);
     mockBudgetListResponse([groceriesBudget]);
@@ -174,10 +190,18 @@ describe('BudgetsManager', () => {
         ([url, init]) => String(url).includes('budget.create') && init?.method === 'POST'
       );
       expect(createCall).toBeDefined();
+      const today = new Date();
+      const expectedStartDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      ).toISOString();
       expect(JSON.parse(String(createCall![1]?.body))).toEqual({
         limit: '500.00',
         period: 'monthly',
         categoryIds: [groceries.id, dining.id],
+        startDate: expectedStartDate,
+        rolloverEnabled: true,
       });
     });
     await waitFor(() => {
@@ -213,6 +237,7 @@ describe('BudgetsManager', () => {
         limit: '500.00',
         period: 'monthly',
         categoryIds: [groceries.id],
+        rolloverEnabled: true,
       });
     });
     fetchSpy.mockRestore();

@@ -1,9 +1,9 @@
 import {
+  anchoredPeriodBoundsAt,
+  anchoredPeriodFor,
   convertMoney,
   createMoneyFromMinorUnits,
   isCurrencyCode,
-  periodBoundsFor,
-  shiftPeriod,
 } from '@prometheus/domain';
 import type { CurrencyCode, Money, PeriodBounds } from '@prometheus/domain';
 
@@ -79,9 +79,10 @@ function convertTransactionAmount(
 /**
  * Current-period progress for a Budget: spent measured from expense
  * Transactions in the Budget's Categories, converted at each Transaction's
- * stored transaction-date Exchange Rate, plus the unused amounts of every
- * period since the Budget was created carried forward as rollover.
- * Overspending contributes nothing (never a negative rollover).
+ * stored transaction-date Exchange Rate. Periods anchor to the Budget's
+ * Start Date; when rollover is enabled, the unused amounts of every period
+ * since then carry forward. Overspending contributes nothing (never a
+ * negative rollover).
  */
 export async function getBudgetProgress(
   budgetId: string,
@@ -103,7 +104,7 @@ export async function getBudgetProgress(
   }
   const categoryIds = budget.categories.map((entry) => entry.categoryId);
   const period = mapPrismaBudgetPeriod(budget.period);
-  const currentPeriod = periodBoundsFor(date, period);
+  const currentPeriod = anchoredPeriodFor(budget.startDate, date, period);
 
   const sumSpent = async (bounds: PeriodBounds): Promise<Money | 'unconvertible'> => {
     const transactions = await prisma.transaction.findMany({
@@ -139,25 +140,29 @@ export async function getBudgetProgress(
   const limit = expectMoney(createMoneyFromMinorUnits(budget.limit, reportingCurrency));
 
   let rollover = zeroMoney(reportingCurrency);
-  let cursor = periodBoundsFor(budget.createdAt, period);
-  let iterations = 0;
-  while (cursor.start.getTime() < currentPeriod.start.getTime()) {
-    iterations += 1;
-    if (iterations > MAX_PERIOD_ITERATIONS) {
-      throw new Error('Unexpected rollover period iteration overflow');
-    }
+  if (budget.rolloverEnabled) {
+    let index = 0;
+    let cursor = anchoredPeriodBoundsAt(budget.startDate, period, index);
+    let iterations = 0;
+    while (cursor.start.getTime() < currentPeriod.start.getTime()) {
+      iterations += 1;
+      if (iterations > MAX_PERIOD_ITERATIONS) {
+        throw new Error('Unexpected rollover period iteration overflow');
+      }
 
-    const spent = await sumSpent(cursor);
-    if (spent === 'unconvertible') {
-      return { ok: false, error: 'unconvertible-transactions' };
-    }
+      const spent = await sumSpent(cursor);
+      if (spent === 'unconvertible') {
+        return { ok: false, error: 'unconvertible-transactions' };
+      }
 
-    const unused = expectMoney(limit.subtract(spent));
-    if (unused.isPositive()) {
-      rollover = expectMoney(rollover.add(unused));
-    }
+      const unused = expectMoney(limit.subtract(spent));
+      if (unused.isPositive()) {
+        rollover = expectMoney(rollover.add(unused));
+      }
 
-    cursor = shiftPeriod(cursor, period, 1);
+      index += 1;
+      cursor = anchoredPeriodBoundsAt(budget.startDate, period, index);
+    }
   }
 
   const available = expectMoney(rollover.add(limit));

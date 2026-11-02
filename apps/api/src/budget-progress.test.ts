@@ -124,14 +124,17 @@ describe.sequential('budget progress procedures', () => {
     name: string,
     categoryIds: string[],
     limit = '500',
-    period: 'weekly' | 'monthly' | 'yearly' = 'monthly'
+    period: 'weekly' | 'monthly' | 'yearly' = 'monthly',
+    startDate = new Date('2026-01-01T00:00:00.000Z'),
+    rolloverEnabled?: boolean
   ) {
     return client.budget.create.mutate({
       name,
       limit,
       period,
       categoryIds,
-      startDate: new Date('2026-01-01T00:00:00.000Z'),
+      startDate,
+      rolloverEnabled,
     });
   }
 
@@ -154,7 +157,13 @@ describe.sequential('budget progress procedures', () => {
 
     const usdCategory = await createExpenseCategory('USD Spend');
     const eurCategory = await createExpenseCategory('EUR Spend');
-    const budget = await createBudgetWith('Mixed', [usdCategory.id, eurCategory.id]);
+    const budget = await createBudgetWith(
+      'Mixed',
+      [usdCategory.id, eurCategory.id],
+      '500',
+      'monthly',
+      new Date('2026-10-01T00:00:00.000Z')
+    );
 
     const usdAccount = await client.account.create.mutate({
       name: 'Checking',
@@ -199,23 +208,26 @@ describe.sequential('budget progress procedures', () => {
 
     const underspentCategory = await createExpenseCategory('Underspent');
     const overspentCategory = await createExpenseCategory('Overspent');
-    const underspent = await createBudgetWith('Underspent', [underspentCategory.id]);
-    const overspent = await createBudgetWith('Overspent', [overspentCategory.id]);
+    const underspent = await createBudgetWith(
+      'Underspent',
+      [underspentCategory.id],
+      '500',
+      'monthly',
+      TWO_MONTHS_AGO
+    );
+    const overspent = await createBudgetWith(
+      'Overspent',
+      [overspentCategory.id],
+      '500',
+      'monthly',
+      TWO_MONTHS_AGO
+    );
 
     const account = await client.account.create.mutate({
       name: 'Checking',
       type: AccountType.Checking,
       currency: 'USD',
     });
-
-    // Backdate both budgets so prior periods count as rollover windows.
-    const prisma = getPrisma();
-    for (const budget of [underspent, overspent]) {
-      await prisma.budget.update({
-        where: { id: budget.id },
-        data: { createdAt: TWO_MONTHS_AGO },
-      });
-    }
 
     // Underspent budget: 100 of 500 last month, 100 of 500 the month before.
     await seedTransaction(account.id, underspentCategory.id, '100.00', LAST_MONTH);
@@ -255,7 +267,13 @@ describe.sequential('budget progress procedures', () => {
       name: 'Salary',
       type: TransactionType.Income,
     });
-    const budget = await createBudgetWith('Tracked Budget', [tracked.id]);
+    const budget = await createBudgetWith(
+      'Tracked Budget',
+      [tracked.id],
+      '500',
+      'monthly',
+      new Date('2026-10-01T00:00:00.000Z')
+    );
 
     const account = await client.account.create.mutate({
       name: 'Checking',
@@ -282,7 +300,7 @@ describe.sequential('budget progress procedures', () => {
     expect(progress.remaining).toBe('400.00');
   });
 
-  it('measures weekly periods as Monday-starting weeks', async () => {
+  it('measures weekly periods from the budget start weekday', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('budget-progress-4'),
       'Secure-password-4'
@@ -290,7 +308,14 @@ describe.sequential('budget progress procedures', () => {
     if (context === null) return;
 
     const category = await createExpenseCategory('Weekly');
-    const budget = await createBudgetWith('Weekly', [category.id], '100', 'weekly');
+    // A Monday start keeps weeks Monday-starting.
+    const budget = await createBudgetWith(
+      'Weekly',
+      [category.id],
+      '100',
+      'weekly',
+      new Date('2026-10-12T00:00:00.000Z')
+    );
 
     const account = await client.account.create.mutate({
       name: 'Checking',
@@ -306,6 +331,124 @@ describe.sequential('budget progress procedures', () => {
     expect(progress.period.start).toBe('2026-10-12T00:00:00.000Z');
     expect(progress.period.end).toBe('2026-10-19T00:00:00.000Z');
     expect(progress.spent).toBe('40.00');
+  });
+
+  it('anchors monthly periods to the budget start date', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('budget-progress-mid-month'),
+      'Secure-password-4b'
+    );
+    if (context === null) return;
+
+    const category = await createExpenseCategory('Mid-month');
+    const budget = await createBudgetWith(
+      'Mid-month',
+      [category.id],
+      '500',
+      'monthly',
+      new Date('2026-09-15T00:00:00.000Z')
+    );
+
+    const account = await client.account.create.mutate({
+      name: 'Checking',
+      type: AccountType.Checking,
+      currency: 'USD',
+    });
+
+    // 2026-10-10 falls in the prior period [Sep 15, Oct 15); 2026-10-20 in
+    // the current one [Oct 15, Nov 15).
+    await seedTransaction(account.id, category.id, '100.00', new Date('2026-10-10T00:00:00.000Z'));
+    await seedTransaction(account.id, category.id, '200.00', new Date('2026-10-20T00:00:00.000Z'));
+
+    const progress = await client.budget.progress.query({
+      id: budget.id,
+      date: new Date('2026-10-28T00:00:00.000Z'),
+    });
+    expect(progress.period.start).toBe('2026-10-15T00:00:00.000Z');
+    expect(progress.period.end).toBe('2026-11-15T00:00:00.000Z');
+    expect(progress.spent).toBe('200.00');
+    expect(progress.rollover).toBe('400.00');
+    expect(progress.available).toBe('900.00');
+    expect(progress.remaining).toBe('700.00');
+  });
+
+  it('clamps month-end start dates at the shorter month', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('budget-progress-clamped'),
+      'Secure-password-4c'
+    );
+    if (context === null) return;
+
+    const category = await createExpenseCategory('Clamped');
+    const budget = await createBudgetWith(
+      'Clamped',
+      [category.id],
+      '500',
+      'monthly',
+      new Date('2026-01-31T00:00:00.000Z')
+    );
+
+    const progress = await client.budget.progress.query({
+      id: budget.id,
+      date: new Date('2026-02-15T00:00:00.000Z'),
+    });
+    expect(progress.period.start).toBe('2026-01-31T00:00:00.000Z');
+    expect(progress.period.end).toBe('2026-02-28T00:00:00.000Z');
+  });
+
+  it('anchors yearly periods to the budget start month and day', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('budget-progress-yearly'),
+      'Secure-password-4d'
+    );
+    if (context === null) return;
+
+    const category = await createExpenseCategory('Yearly');
+    const budget = await createBudgetWith(
+      'Yearly',
+      [category.id],
+      '500',
+      'yearly',
+      new Date('2025-06-15T00:00:00.000Z')
+    );
+
+    const progress = await client.budget.progress.query({
+      id: budget.id,
+      date: new Date('2026-07-01T00:00:00.000Z'),
+    });
+    expect(progress.period.start).toBe('2026-06-15T00:00:00.000Z');
+    expect(progress.period.end).toBe('2027-06-15T00:00:00.000Z');
+  });
+
+  it('excludes rollover when the budget has rollover disabled', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('budget-progress-no-rollover'),
+      'Secure-password-4e'
+    );
+    if (context === null) return;
+
+    const category = await createExpenseCategory('No Rollover');
+    const budget = await createBudgetWith(
+      'No Rollover',
+      [category.id],
+      '500',
+      'monthly',
+      TWO_MONTHS_AGO,
+      false
+    );
+
+    const account = await client.account.create.mutate({
+      name: 'Checking',
+      type: AccountType.Checking,
+      currency: 'USD',
+    });
+
+    await seedTransaction(account.id, category.id, '100.00', LAST_MONTH);
+
+    const progress = await client.budget.progress.query({ id: budget.id, date: TODAY });
+    expect(progress.rollover).toBe('0.00');
+    expect(progress.available).toBe('500.00');
+    expect(progress.remaining).toBe('500.00');
   });
 
   it('rejects progress when a transaction cannot be converted to the reporting currency', async () => {

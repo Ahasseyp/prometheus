@@ -64,8 +64,8 @@ const updateBudgetInputSchema = z.object({
 
 const budgetProgressInputSchema = z.object({
   id: z.string().uuid(),
-  // The caller's local date for the day progress is measured; calendar
-  // periods are computed from its date components.
+  // The caller's local date for the day progress is measured; Budget Periods
+  // are computed by anchoring to the Budget's Start Date.
   date: z.coerce.date().optional(),
 });
 

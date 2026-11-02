@@ -129,12 +129,13 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
   function handleSubmit({ value }: { value: FormState }) {
     const input = {
       limit: value.amount.trim(),
-      period: value.period,
       categoryIds: value.categoryIds,
       rolloverEnabled: value.rolloverEnabled,
     };
 
     if (isEditing) {
+      // The Start Date and Budget Period are fixed after creation (both
+      // fields are disabled above), so they are only sent on create.
       updateBudget.mutate(
         { id: budget.id, ...input },
         { onSuccess: () => onSuccess?.(), onError: handleMutationError }
@@ -145,6 +146,7 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
     createBudget.mutate(
       {
         ...input,
+        period: value.period,
         startDate: new Date(`${value.startDate}T00:00:00`),
       },
       {
@@ -197,7 +199,12 @@ export function BudgetForm({ budget, categories, reportingCurrency, onSuccess }:
           )}
         </FormField>
 
-        <FormField form={form} name="period" label="Budget period" disabled={isPending}>
+        <FormField
+          form={form}
+          name="period"
+          label="Budget period"
+          disabled={isPending || isEditing}
+        >
           {(fieldProps) => (
             <ToggleGroup
               variant="outline"

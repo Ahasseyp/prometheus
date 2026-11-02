@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import {
   createBudget as createBudgetEntity,
   createMoney,
-  isBudgetPeriod,
   isCurrencyCode,
   makeBudgetId,
   makeCategoryId,
@@ -29,7 +28,6 @@ export type CreateBudgetInput = {
 export type UpdateBudgetInput = {
   name?: string;
   limit?: string;
-  period?: string;
   categoryIds?: string[];
   rolloverEnabled?: boolean;
 };
@@ -235,14 +233,6 @@ export async function updateBudget(
     limitMinorUnits = limit.toMinorUnits();
   }
 
-  let period = existing.period;
-  if (input.period !== undefined) {
-    if (!isBudgetPeriod(input.period)) {
-      return { ok: false, error: 'invalid-data' };
-    }
-    period = mapDomainBudgetPeriod(input.period);
-  }
-
   let categoryIds: string[] | undefined;
   if (input.categoryIds !== undefined) {
     const categoriesResult = await validateCategories(input.categoryIds, householdId);
@@ -265,7 +255,6 @@ export async function updateBudget(
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         limit: limitMinorUnits,
-        period,
         ...(input.rolloverEnabled !== undefined ? { rolloverEnabled: input.rolloverEnabled } : {}),
       },
       include: { categories: true },

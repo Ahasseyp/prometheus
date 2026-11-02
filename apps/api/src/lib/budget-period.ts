@@ -8,11 +8,9 @@ const prismaBudgetPeriodMap: Record<$Enums.BudgetPeriod, DomainBudgetPeriod> = {
   YEARLY: BudgetPeriod.Yearly,
 };
 
-const domainBudgetPeriodMap: Record<DomainBudgetPeriod, $Enums.BudgetPeriod> = {
-  [BudgetPeriod.Weekly]: 'WEEKLY',
-  [BudgetPeriod.Monthly]: 'MONTHLY',
-  [BudgetPeriod.Yearly]: 'YEARLY',
-};
+const domainBudgetPeriodMap = Object.fromEntries(
+  Object.entries(prismaBudgetPeriodMap).map(([prisma, domain]) => [domain, prisma])
+) as Record<DomainBudgetPeriod, $Enums.BudgetPeriod>;
 
 export function mapPrismaBudgetPeriod(period: $Enums.BudgetPeriod): DomainBudgetPeriod {
   return prismaBudgetPeriodMap[period];

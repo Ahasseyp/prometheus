@@ -140,6 +140,10 @@ export async function getBudgetProgress(
   const limit = expectMoney(createMoneyFromMinorUnits(budget.limit, reportingCurrency));
 
   let rollover = zeroMoney(reportingCurrency);
+  // Rollover walks every period since the Start Date and measures each
+  // period's unused against the Budget's *current* limit: editing the limit
+  // retroactively re-measures past periods. Per-period limit history is not
+  // kept (issue #27).
   if (budget.rolloverEnabled) {
     let index = 0;
     let cursor = anchoredPeriodBoundsAt(budget.startDate, period, index);

@@ -235,7 +235,6 @@ describe('BudgetsManager', () => {
       expect(JSON.parse(String(updateCall![1]?.body))).toEqual({
         id: namedBudget.id,
         limit: '500.00',
-        period: 'monthly',
         categoryIds: [groceries.id],
         rolloverEnabled: true,
       });

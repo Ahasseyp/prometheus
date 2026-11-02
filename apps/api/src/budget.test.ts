@@ -199,7 +199,7 @@ describe.sequential('budget procedures', () => {
     expect(list).toEqual([]);
   });
 
-  it('updates a Budget limit, period, name, and categories', async () => {
+  it('updates a Budget limit, name, rollover, and categories', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('budget-update-1'),
       'Secure-password-5'
@@ -220,13 +220,12 @@ describe.sequential('budget procedures', () => {
       id: budget.id,
       name: 'Updated',
       limit: '250.50',
-      period: 'yearly',
       categoryIds: [first.id, second.id],
       rolloverEnabled: false,
     });
     expect(updated.name).toBe('Updated');
     expect(updated.limit).toBe('250.50');
-    expect(updated.period).toBe('yearly');
+    expect(updated.period).toBe('weekly');
     expect(updated.categoryIds).toEqual(expect.arrayContaining([first.id, second.id]));
     expect(updated.rolloverEnabled).toBe(false);
 

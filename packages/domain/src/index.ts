@@ -25,12 +25,7 @@ export { createCategory } from './category.js';
 export type { Category, CategoryError } from './category.js';
 export { BudgetPeriod, createBudget, isBudgetPeriod } from './budget.js';
 export type { Budget, BudgetError } from './budget.js';
-export {
-  periodBoundsFor,
-  shiftPeriod,
-  anchoredPeriodBoundsAt,
-  anchoredPeriodFor,
-} from './budget-period.js';
+export { anchoredPeriodBoundsAt, anchoredPeriodFor } from './budget-period.js';
 export type { PeriodBounds } from './budget-period.js';
 export { passwordSchema } from './password.js';
 export type { Password } from './password.js';

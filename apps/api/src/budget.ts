@@ -57,7 +57,6 @@ const updateBudgetInputSchema = z.object({
   id: z.string().uuid(),
   name: budgetNameSchema,
   limit: budgetLimitSchema.optional(),
-  period: budgetPeriodSchema.optional(),
   categoryIds: budgetCategoryIdsSchema.optional(),
   rolloverEnabled: z.boolean().optional(),
 });
@@ -147,7 +146,6 @@ export const budgetRouter = router({
       const result = await updateBudget(input.id, householdId, {
         name: input.name,
         limit: input.limit,
-        period: input.period,
         categoryIds: input.categoryIds,
         rolloverEnabled: input.rolloverEnabled,
       });

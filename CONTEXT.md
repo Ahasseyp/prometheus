@@ -81,7 +81,7 @@ A planned spending limit for a Category or set of Categories over a Budget Perio
 _Avoid_: Limit, spending plan
 
 **Budget Period**:
-The time interval over which a Budget is tracked, such as monthly, weekly, or yearly. Period boundaries anchor to the Budget's Start Date.
+The time interval over which a Budget is tracked, such as monthly, weekly, or yearly. Period boundaries anchor to the Budget's Start Date. The period type is fixed after creation.
 _Avoid_: Duration, frequency
 
 **Start Date**:

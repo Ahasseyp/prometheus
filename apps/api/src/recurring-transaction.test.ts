@@ -314,4 +314,76 @@ describe.sequential('recurring transaction procedures', () => {
       false
     );
   });
+
+  it('records a skipped instance for the next upcoming occurrence', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-skip-next-1'),
+      'Secure-password-8'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await client.recurringTransaction.list.query();
+    const beforeSkip = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+    expect(beforeSkip).toHaveLength(3);
+
+    const skipResult = await client.recurringTransaction.skip.mutate({ id: created.id });
+    expect(skipResult.skippedDate).toBeDefined();
+
+    await client.recurringTransaction.list.query();
+    const afterSkip = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+    expect(afterSkip).toHaveLength(3);
+    expect(
+      afterSkip.some(
+        (t) => new Date(t.date).getTime() === new Date(skipResult.skippedDate).getTime()
+      )
+    ).toBe(false);
+  });
+
+  it('is idempotent when skipping the same occurrence twice', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-skip-idempotent-1'),
+      'Secure-password-9'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await client.recurringTransaction.list.query();
+    const first = await client.recurringTransaction.skip.mutate({ id: created.id });
+    const second = await client.recurringTransaction.skip.mutate({ id: created.id });
+
+    expect(new Date(first.skippedDate).getTime()).toBe(new Date(second.skippedDate).getTime());
+  });
 });

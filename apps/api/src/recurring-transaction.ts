@@ -4,8 +4,12 @@ import { RecurrencePeriod, TransactionType } from '@prometheus/domain';
 import {
   createRecurringTransaction,
   listRecurringTransactionsForHousehold,
+  skipNextRecurringOccurrence,
 } from './services/recurring-transaction.js';
-import type { RecurringTransactionValidationError } from './services/recurring-transaction.js';
+import type {
+  RecurringTransactionValidationError,
+  SkipRecurringOccurrenceResult,
+} from './services/recurring-transaction.js';
 import { getHouseholdId, protectedProcedure, router, throwServiceError } from './trpc.js';
 
 const transactionTypeSchema = z
@@ -52,6 +56,21 @@ const createRecurringTransactionInputSchema = z.object({
   description: z.string().optional(),
 });
 
+const skipRecurringOccurrenceErrorMappings: Record<
+  Exclude<SkipRecurringOccurrenceResult, { ok: true }>['error'],
+  { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
+> = {
+  'schedule-not-found': { code: 'NOT_FOUND', message: 'Schedule not found.' },
+  'already-generated': {
+    code: 'BAD_REQUEST',
+    message: 'This occurrence has already been generated as a transaction.',
+  },
+  'past-occurrence': {
+    code: 'BAD_REQUEST',
+    message: 'Only the next upcoming occurrence can be skipped.',
+  },
+};
+
 const recurringTransactionErrorMappings: Record<
   RecurringTransactionValidationError,
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
@@ -92,6 +111,23 @@ export const recurringTransactionRouter = router({
     .query(async ({ ctx }) => {
       const householdId = getHouseholdId(ctx, 'recurring transactions');
       return listRecurringTransactionsForHousehold(householdId);
+    }),
+
+  skip: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .output(
+      z.object({
+        id: z.string().uuid(),
+        skippedDate: z.date(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'recurring transactions');
+      const result = await skipNextRecurringOccurrence(input.id, householdId);
+      if (!result.ok) {
+        throwServiceError(result.error, skipRecurringOccurrenceErrorMappings);
+      }
+      return { id: input.id, skippedDate: result.skippedDate };
     }),
 });
 

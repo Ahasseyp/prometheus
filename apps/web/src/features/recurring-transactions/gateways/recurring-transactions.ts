@@ -10,6 +10,7 @@ export type RecurringTransactionListOutput =
 export type RecurringTransaction = RecurringTransactionListOutput[number];
 type CreateRecurringTransactionInput =
   inferRouterInputs<AppRouter>['recurringTransaction']['create'];
+type SkipRecurringTransactionInput = inferRouterInputs<AppRouter>['recurringTransaction']['skip'];
 
 const recurringTransactionsListQueryKey = ['recurringTransactions', 'list'];
 
@@ -26,6 +27,18 @@ export function useCreateRecurringTransaction() {
   return useMutation({
     mutationFn: (input: CreateRecurringTransactionInput) =>
       trpc.recurringTransaction.create.mutate(input),
+    onSuccess: () => {
+      void invalidateRecurringTransactionsData(queryClient);
+    },
+  });
+}
+
+export function useSkipRecurringTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: SkipRecurringTransactionInput) =>
+      trpc.recurringTransaction.skip.mutate(input),
     onSuccess: () => {
       void invalidateRecurringTransactionsData(queryClient);
     },

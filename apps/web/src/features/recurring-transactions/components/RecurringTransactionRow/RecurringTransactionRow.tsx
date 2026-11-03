@@ -3,6 +3,7 @@ import { getSignedTransactionAmount, getTransactionIcon } from '@/lib/transactio
 import { formatMoney } from '@/lib/format-money.js';
 import { Table } from '@/components/ui/table.js';
 
+import { RecurringTransactionActions } from '@/features/recurring-transactions/components/RecurringTransactionActions/RecurringTransactionActions.js';
 import type { RecurringTransaction } from '@/features/recurring-transactions/gateways/recurring-transactions.js';
 import {
   formatRecurringTransactionDate,
@@ -11,9 +12,13 @@ import {
 
 export interface RecurringTransactionRowProps {
   recurringTransaction: RecurringTransaction;
+  onSkip?: (recurringTransaction: RecurringTransaction) => void;
 }
 
-export function RecurringTransactionRow({ recurringTransaction }: RecurringTransactionRowProps) {
+export function RecurringTransactionRow({
+  recurringTransaction,
+  onSkip,
+}: RecurringTransactionRowProps) {
   const isExpense = recurringTransaction.type === 'expense';
   const Icon = getTransactionIcon(isExpense);
   const signedAmount = getSignedTransactionAmount(isExpense, recurringTransaction.amount);
@@ -36,6 +41,14 @@ export function RecurringTransactionRow({ recurringTransaction }: RecurringTrans
       </Table.Cell>
       <Table.Cell className="text-right font-semibold tabular-nums">
         {formatMoney(signedAmount, recurringTransaction.accountCurrency)}
+      </Table.Cell>
+      <Table.Cell>
+        {onSkip !== undefined && (
+          <RecurringTransactionActions
+            recurringTransaction={recurringTransaction}
+            onSkip={onSkip}
+          />
+        )}
       </Table.Cell>
     </Table.Row>
   );

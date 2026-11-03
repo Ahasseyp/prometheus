@@ -247,6 +247,63 @@ export async function listRecurringTransactionsForHousehold(
   return recurringTransactions.map(mapRecurringTransactionToRecord);
 }
 
+export type SkipRecurringOccurrenceResult =
+  | { ok: true; skippedDate: Date }
+  | { ok: false; error: 'schedule-not-found' | 'already-generated' | 'past-occurrence' };
+
+export async function skipNextRecurringOccurrence(
+  recurringTransactionId: string,
+  householdId: string
+): Promise<SkipRecurringOccurrenceResult> {
+  const prisma = getPrisma();
+  const schedule = await prisma.recurringTransaction.findFirst({
+    where: { id: recurringTransactionId, householdId },
+    include: { account: true, category: true },
+  });
+
+  if (schedule === null) {
+    return { ok: false, error: 'schedule-not-found' };
+  }
+
+  const today = getToday();
+  const nextDate = nextRecurringOccurrenceAfter(
+    schedule.startDate,
+    mapPrismaRecurrencePeriod(schedule.period),
+    schedule.interval,
+    today
+  );
+
+  // Only the upcoming occurrence may be skipped; by definition it is on or
+  // after today. Anything strictly before today has already been generated
+  // (generation runs before skip), so disallow skipping it.
+  if (nextDate < today) {
+    return { ok: false, error: 'past-occurrence' };
+  }
+
+  const existingTransaction = await prisma.transaction.findFirst({
+    where: { recurringTransactionId: schedule.id, date: nextDate },
+  });
+  if (existingTransaction !== null) {
+    return { ok: false, error: 'already-generated' };
+  }
+
+  await prisma.skippedInstance.upsert({
+    where: {
+      recurringTransactionId_date: {
+        recurringTransactionId: schedule.id,
+        date: nextDate,
+      },
+    },
+    create: {
+      recurringTransactionId: schedule.id,
+      date: nextDate,
+    },
+    update: {},
+  });
+
+  return { ok: true, skippedDate: nextDate };
+}
+
 async function buildTransactionInstanceData(
   schedule: PrismaRecurringTransaction & {
     account: { currency: string };

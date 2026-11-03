@@ -75,3 +75,11 @@ export function mockCreateRecurringTransactionError(message = 'Something went wr
     })
   );
 }
+
+export function mockSkipRecurringTransactionResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/recurringTransaction.skip', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}

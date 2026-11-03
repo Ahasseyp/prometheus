@@ -12,6 +12,7 @@ export interface RecurringTransactionListProps {
   isError: boolean;
   onRetry: () => void;
   onAdd?: () => void;
+  onSkip?: (recurringTransaction: RecurringTransaction) => void;
 }
 
 export function RecurringTransactionList({
@@ -20,6 +21,7 @@ export function RecurringTransactionList({
   isError,
   onRetry,
   onAdd,
+  onSkip,
 }: RecurringTransactionListProps) {
   if (isLoading) {
     return <RecurringTransactionListSkeleton />;
@@ -47,6 +49,9 @@ export function RecurringTransactionList({
           <Table.Head>Repeats</Table.Head>
           <Table.Head>Next occurrence</Table.Head>
           <Table.Head className="text-right">Amount</Table.Head>
+          <Table.Head>
+            <span className="sr-only">Actions</span>
+          </Table.Head>
         </Table.Row>
       </Table.Header>
       <Table.Body>
@@ -54,6 +59,7 @@ export function RecurringTransactionList({
           <RecurringTransactionRow
             key={recurringTransaction.id}
             recurringTransaction={recurringTransaction}
+            onSkip={onSkip}
           />
         ))}
       </Table.Body>

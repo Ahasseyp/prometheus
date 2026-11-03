@@ -10,7 +10,10 @@ import {
   makeRecurringTransaction,
   mockCreateRecurringTransactionResponse,
   mockRecurringTransactionListResponse,
+  mockSkipRecurringTransactionResponse,
 } from '@/test/recurring-transaction-helpers.js';
+
+import { formatRecurringTransactionDate } from '@/features/recurring-transactions/lib/recurring-transaction-presentation.js';
 
 import { RecurringTransactionsManager } from './RecurringTransactionsManager.js';
 
@@ -87,5 +90,36 @@ describe('RecurringTransactionsManager', () => {
 
     await waitFor(() => expect(screen.getByText('Weekly groceries')).toBeInTheDocument());
     expect(screen.getByText('Every week')).toBeInTheDocument();
+  });
+
+  it('skips the next occurrence of a schedule', async () => {
+    const user = userEvent.setup();
+    const recurringTransaction = makeRecurringTransaction({ description: 'Rent' });
+    const updatedRecurringTransaction = makeRecurringTransaction({
+      ...recurringTransaction,
+      nextDate: '2026-12-01T00:00:00.000Z',
+    });
+
+    mockRecurringTransactionListResponse([recurringTransaction]);
+    mockSkipRecurringTransactionResponse({
+      id: recurringTransaction.id,
+      skippedDate: recurringTransaction.nextDate,
+    });
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Rent' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Skip next occurrence' }));
+
+    // Simulate the backend invalidating the list query by returning the
+    // updated schedule on the next fetch.
+    mockRecurringTransactionListResponse([updatedRecurringTransaction]);
+    await user.click(screen.getByRole('button', { name: 'Skip occurrence' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(
+        screen.getByText(formatRecurringTransactionDate(updatedRecurringTransaction.nextDate))
+      ).toBeInTheDocument();
+    });
   });
 });

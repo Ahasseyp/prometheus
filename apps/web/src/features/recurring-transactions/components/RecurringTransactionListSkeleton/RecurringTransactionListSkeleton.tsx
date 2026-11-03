@@ -17,6 +17,9 @@ export function RecurringTransactionListSkeleton({
           <Table.Head>Repeats</Table.Head>
           <Table.Head>Next occurrence</Table.Head>
           <Table.Head className="text-right">Amount</Table.Head>
+          <Table.Head>
+            <span className="sr-only">Actions</span>
+          </Table.Head>
         </Table.Row>
       </Table.Header>
       <Table.Body>
@@ -36,6 +39,9 @@ export function RecurringTransactionListSkeleton({
             </Table.Cell>
             <Table.Cell className="text-right">
               <Skeleton className="ml-auto h-4 w-20" />
+            </Table.Cell>
+            <Table.Cell>
+              <Skeleton className="ml-auto h-8 w-8 rounded-full" />
             </Table.Cell>
           </Table.Row>
         ))}

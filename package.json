@@ -10,6 +10,8 @@
     "db:stop": "docker compose down",
     "db:migrate": "pnpm --filter @prometheus/api exec prisma migrate dev",
     "db:migrate:deploy": "pnpm --filter @prometheus/api exec prisma migrate deploy",
+    "db:migrate:dev": "DATABASE_URL=$(grep '^DATABASE_URL=' .env | cut -d '=' -f2-) pnpm --filter @prometheus/api exec prisma migrate deploy",
+    "db:migrate:test": "DATABASE_URL=$(grep '^DATABASE_URL=' .env.test.local | cut -d '=' -f2-) pnpm --filter @prometheus/api exec prisma migrate deploy",
     "db:generate": "pnpm --filter @prometheus/api exec prisma generate",
     "lint": "eslint .",
     "format": "prettier --write .",

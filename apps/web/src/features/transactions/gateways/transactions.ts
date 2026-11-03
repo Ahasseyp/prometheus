@@ -66,13 +66,15 @@ export function useDeleteTransaction() {
   });
 }
 
-// Transactions change the transactions list and the account balances shown on
-// the overview page (derived from the ledger server-side). Transfers reuse
-// this invalidation because they create, update, and delete Transactions too.
+// Transactions change the transactions list, account balances shown on the
+// overview page (derived from the ledger server-side), and current Budget
+// progress. Transfers reuse this invalidation because they create, update, and
+// delete Transactions too.
 export function invalidateTransactionData(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: transactionsListQueryKey }),
     queryClient.invalidateQueries({ queryKey: accountsListQueryKey }),
     queryClient.invalidateQueries({ queryKey: reportingSummaryQueryKey }),
+    queryClient.invalidateQueries({ queryKey: ['budgets'] }),
   ]);
 }

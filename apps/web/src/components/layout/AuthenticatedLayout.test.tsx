@@ -25,6 +25,7 @@ import { server } from '@/test/server.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockCreateHouseholdResponse, mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { mockAccountListResponse } from '@/test/account-helpers.js';
+import { mockBudgetListResponse } from '@/test/budget-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
 
@@ -72,6 +73,7 @@ async function renderAuthenticatedLayout(options: RenderAuthenticatedLayoutOptio
   mockMeResponse(user);
   mockHouseholdMeResponse(householdResponse);
   mockAccountListResponse([]);
+  mockBudgetListResponse([]);
   mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '0', accounts: [] });
 
   const history = createMemoryHistory({ initialEntries });

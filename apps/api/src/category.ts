@@ -88,6 +88,10 @@ const deleteCategoryErrorMappings = {
     code: 'PRECONDITION_FAILED',
     message: 'This category is used by transactions and cannot be deleted.',
   },
+  'has-budgets': {
+    code: 'PRECONDITION_FAILED',
+    message: 'This category is used by a budget and cannot be deleted.',
+  },
 } as const;
 
 export const categoryRouter = router({

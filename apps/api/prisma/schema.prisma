@@ -47,6 +47,7 @@ model Household {
   categories   Category[]
   transactions Transaction[]
   transfers    Transfer[]
+  budgets      Budget[]
 }
 
 model ExchangeRate {
@@ -132,6 +133,7 @@ model Category {
   parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children     Category[]    @relation("CategoryHierarchy")
   transactions Transaction[]
+  budgets      BudgetCategory[]
 
   @@index([householdId])
   @@index([parentId])
@@ -175,6 +177,48 @@ enum TransactionType {
   INCOME
   EXPENSE
   TRANSFER
+}
+
+// A Budget is a planned spending limit for one or more expense Categories
+// over a Budget Period (issue #27). The limit is stored in minor units of the
+// Household's Reporting Currency and is always positive. Categories are
+// linked through BudgetCategory; a Category used by a Budget cannot be
+// deleted.
+model Budget {
+  id              String       @id @default(uuid()) @db.Uuid
+  householdId     String       @db.Uuid
+  name            String       @default("")
+  limit           BigInt
+  period          BudgetPeriod
+  // The date the first Budget Period begins; later periods anchor to this
+  // date (same weekday / same day-of-month clamped / same month-day).
+  startDate       DateTime     @db.Date
+  // When true, unused limit from prior periods carries into the current one.
+  rolloverEnabled Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  household  Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  categories BudgetCategory[]
+
+  @@index([householdId])
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model BudgetCategory {
+  budgetId   String @db.Uuid
+  categoryId String @db.Uuid
+
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId])
 }
 
 // A Transfer is a first-class record linking one source Transaction and one

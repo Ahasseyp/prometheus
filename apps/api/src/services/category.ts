@@ -48,7 +48,8 @@ export type DeleteCategoryResult =
   | { ok: true }
   | {
       ok: false;
-      error: 'not-found' | 'system-category' | 'has-subcategories' | 'has-transactions';
+      error:
+        'not-found' | 'system-category' | 'has-subcategories' | 'has-transactions' | 'has-budgets';
     };
 
 // See apps/api/src/services/account.ts: the tRPC layer validates first.
@@ -278,7 +279,7 @@ export async function deleteCategory(
   const category = await prisma.category.findFirst({
     where: { id: categoryId, householdId },
     include: {
-      _count: { select: { children: true, transactions: true } },
+      _count: { select: { children: true, transactions: true, budgets: true } },
     },
   });
 
@@ -298,6 +299,12 @@ export async function deleteCategory(
 
   if (category._count.transactions > 0) {
     return { ok: false, error: 'has-transactions' };
+  }
+
+  // A Category assigned to a Budget cannot be deleted until the Budget is
+  // updated or deleted (issue #27).
+  if (category._count.budgets > 0) {
+    return { ok: false, error: 'has-budgets' };
   }
 
   await prisma.category.delete({ where: { id: category.id } });

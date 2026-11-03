@@ -48,6 +48,7 @@ model Household {
   transactions Transaction[]
   transfers    Transfer[]
   budgets      Budget[]
+  goals        Goal[]
 }
 
 model ExchangeRate {
@@ -219,6 +220,26 @@ model BudgetCategory {
 
   @@id([budgetId, categoryId])
   @@index([categoryId])
+}
+
+// A Goal earmarks Money from Account Balances through Goal Contributions
+// without creating Transactions (issue #28). The target is stored in minor
+// units of the Goal Currency and is always positive; the saved amount is
+// derived from Goal Contributions. The Currency is fixed after creation
+// (ADR-0002) and the deadline is a pure calendar date.
+model Goal {
+  id          String   @id @default(uuid()) @db.Uuid
+  householdId String   @db.Uuid
+  name        String
+  target      BigInt
+  currency    String
+  deadline    DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
 }
 
 // A Transfer is a first-class record linking one source Transaction and one

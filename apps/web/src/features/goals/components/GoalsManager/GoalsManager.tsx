@@ -1,37 +1,98 @@
-import type { Account } from '@/features/accounts/gateways/accounts.js';
-import type { Goal } from '@/features/goals/gateways/goals.js';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
-export type GoalsManagerProps = {
-  goals: Goal[] | undefined;
-  accounts: Account[] | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  onRetry: () => void;
-};
+import { Button } from '@/components/ui/button.js';
+import { Card } from '@/components/ui/card.js';
+import { useIsMobile } from '@/hooks/use-mobile.js';
+import { useGoals, type Goal } from '@/features/goals/gateways/goals.js';
+import { GoalCard } from '@/features/goals/components/GoalCard/GoalCard.js';
+import { GoalFormDialog } from '@/features/goals/components/GoalFormDialog/GoalFormDialog.js';
+import { GoalList } from '@/features/goals/components/GoalList/GoalList.js';
+import { DeleteGoalDialog } from '@/features/goals/components/DeleteGoalDialog/DeleteGoalDialog.js';
 
-// Slice 4 stub: verifies placement, naming, and data flow before the real
-// list and forms land. Replace region-by-region in later slices.
-export function GoalsManager({ goals, accounts, isLoading, isError, onRetry }: GoalsManagerProps) {
+export function GoalsManager() {
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | undefined>(undefined);
+  const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
+  const isMobile = useIsMobile();
+  const {
+    data: goals,
+    isPending: isGoalsPending,
+    isError: isGoalsError,
+    refetch: refetchGoals,
+  } = useGoals();
+  const isLoading = isGoalsPending;
+  const isError = !isLoading && isGoalsError;
+
+  function openCreateForm() {
+    setEditingGoal(undefined);
+    setFormOpen(true);
+  }
+
+  function openEditForm(goal: Goal) {
+    setEditingGoal(goal);
+    setFormOpen(true);
+  }
+
+  function openDeleteConfirmation(goal: Goal) {
+    setDeletingGoal(goal);
+  }
+
+  function handleFormOpenChange(nextOpen: boolean) {
+    setFormOpen(nextOpen);
+    if (!nextOpen) {
+      setEditingGoal(undefined);
+    }
+  }
+
+  function handleDeleteDialogClose() {
+    setDeletingGoal(null);
+  }
+
   return (
-    <div
-      data-testid="goals-manager-stub"
-      className="flex flex-col gap-2 rounded-lg border-2 border-dashed border-muted-foreground/40 p-6"
-    >
-      <p className="text-sm font-medium text-muted-foreground">GoalsManager</p>
-      {isLoading ? (
-        <p className="text-sm">Loading goals and accounts…</p>
-      ) : isError ? (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-destructive">Could not load goals.</p>
-          <button type="button" className="text-sm underline underline-offset-4" onClick={onRetry}>
-            Retry
-          </button>
-        </div>
-      ) : (
-        <p className="text-sm">
-          Received {goals?.length ?? 0} goal(s) and {accounts?.length ?? 0} account(s).
-        </p>
-      )}
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <header className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
+        <Button onClick={openCreateForm}>
+          <Plus data-icon="inline-start" aria-hidden="true" />
+          Add goal
+        </Button>
+      </header>
+
+      <Card>
+        <Card.Header>
+          <Card.Title>Savings goals</Card.Title>
+          <Card.Description>Earmark money from your accounts toward a target.</Card.Description>
+        </Card.Header>
+        <Card.Content className="flex min-h-[28rem] flex-col gap-4">
+          {isMobile ? (
+            <GoalCard
+              goals={goals}
+              isLoading={isLoading}
+              isError={isError}
+              onRetry={() => void refetchGoals()}
+              onEdit={openEditForm}
+              onDelete={openDeleteConfirmation}
+            />
+          ) : (
+            <GoalList
+              goals={goals}
+              isLoading={isLoading}
+              isError={isError}
+              onRetry={() => void refetchGoals()}
+              onEdit={openEditForm}
+              onDelete={openDeleteConfirmation}
+            />
+          )}
+        </Card.Content>
+      </Card>
+
+      <GoalFormDialog open={formOpen} onOpenChange={handleFormOpenChange} goal={editingGoal} />
+      <DeleteGoalDialog
+        goal={deletingGoal}
+        label={deletingGoal?.name ?? ''}
+        onClose={handleDeleteDialogClose}
+      />
     </div>
   );
 }

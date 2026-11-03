@@ -32,6 +32,7 @@ const goalResponseSchema = z.object({
   householdId: z.string().uuid(),
   name: z.string(),
   target: z.string(),
+  savedAmount: z.string(),
   currency: z.string(),
   deadline: z.date(),
   createdAt: z.date(),

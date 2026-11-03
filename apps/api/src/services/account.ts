@@ -85,7 +85,7 @@ function createMoneyInAccountCurrency(
 // Balance is derived from the transaction ledger: income adds, expense
 // subtracts (issue #24). Sums are Money values in the Account Currency and
 // are only formatted to decimal strings at the response boundary.
-async function sumAccountBalances(
+export async function sumAccountBalances(
   accounts: Array<Pick<Account, 'id' | 'currency'>>
 ): Promise<Map<string, Money>> {
   const balances = new Map<string, Money>();

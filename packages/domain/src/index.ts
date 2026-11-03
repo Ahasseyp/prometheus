@@ -21,12 +21,20 @@ export {
   makeAccountId,
   makeBudgetId,
   makeCategoryId,
+  makeGoalContributionId,
   makeGoalId,
   makeTransactionId,
 } from './ids.js';
-export type { AccountId, BudgetId, CategoryId, GoalId, TransactionId } from './ids.js';
-export { createGoal } from './goal.js';
-export type { Goal, GoalError } from './goal.js';
+export type {
+  AccountId,
+  BudgetId,
+  CategoryId,
+  GoalContributionId,
+  GoalId,
+  TransactionId,
+} from './ids.js';
+export { createGoal, createGoalContribution } from './goal.js';
+export type { Goal, GoalContribution, GoalContributionError, GoalError } from './goal.js';
 export { createTransaction, TransactionType } from './transaction.js';
 export type { Transaction, TransactionError } from './transaction.js';
 export { createCategory } from './category.js';

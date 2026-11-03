@@ -26,6 +26,9 @@ export type BudgetId = Brand<string, 'BudgetId'>;
 /** A UUID that identifies a Goal. */
 export type GoalId = Brand<string, 'GoalId'>;
 
+/** A UUID that identifies a Goal Contribution. */
+export type GoalContributionId = Brand<string, 'GoalContributionId'>;
+
 export function makeUserId(value: string): UserId {
   return value as UserId;
 }
@@ -56,4 +59,8 @@ export function makeBudgetId(value: string): BudgetId {
 
 export function makeGoalId(value: string): GoalId {
   return value as GoalId;
+}
+
+export function makeGoalContributionId(value: string): GoalContributionId {
+  return value as GoalContributionId;
 }

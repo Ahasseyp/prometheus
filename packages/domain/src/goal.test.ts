@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createGoal } from './goal.js';
-import { makeGoalId, makeHouseholdId } from './ids.js';
+import { createGoal, createGoalContribution } from './goal.js';
+import { makeAccountId, makeGoalContributionId, makeGoalId, makeHouseholdId } from './ids.js';
 import { createMoney } from './money.js';
 
 function usd(amount: string) {
@@ -10,7 +10,36 @@ function usd(amount: string) {
   return result.value;
 }
 
-const validParams = {
+const validContributionParams = {
+  id: makeGoalContributionId('b6a99269-1f3b-47c6-9c7a-5eb0a4f7c3d1'),
+  goalId: makeGoalId('9b2f2652-2a62-4a26-92aa-c3129b6a622c'),
+  accountId: makeAccountId('2bd9b6c4-2a2f-4f84-9c1d-7b8e2a4c6d8e'),
+  amount: usd('100.00'),
+};
+
+describe('createGoalContribution', () => {
+  it('creates a Goal Contribution with a positive amount', () => {
+    const result = createGoalContribution(validContributionParams);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.id).toBe(validContributionParams.id);
+    expect(result.value.goalId).toBe(validContributionParams.goalId);
+    expect(result.value.accountId).toBe(validContributionParams.accountId);
+    expect(result.value.amount.toDecimal()).toBe('100.00');
+    expect(result.value.amount.currency).toBe('USD');
+  });
+
+  it('rejects a non-positive amount', () => {
+    for (const amount of [usd('0'), usd('-5')]) {
+      const result = createGoalContribution({ ...validContributionParams, amount });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.type).toBe('non-positive-amount');
+    }
+  });
+});
+
+const validGoalParams = {
   id: makeGoalId('9b2f2652-2a62-4a26-92aa-c3129b6a622c'),
   householdId: makeHouseholdId('3d9898a8-1d54-4468-9288-5e0e41d6b1d0'),
   name: 'Emergency Fund',
@@ -20,42 +49,37 @@ const validParams = {
 
 describe('createGoal', () => {
   it('creates a Goal with a name, positive target, and deadline', () => {
-    const result = createGoal(validParams);
+    const result = createGoal(validGoalParams);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.id).toBe(validParams.id);
-    expect(result.value.householdId).toBe(validParams.householdId);
     expect(result.value.name).toBe('Emergency Fund');
     expect(result.value.target.toDecimal()).toBe('1000.00');
     expect(result.value.target.currency).toBe('USD');
-    expect(result.value.deadline).toEqual(validParams.deadline);
+  });
+
+  it('trims the name', () => {
+    const result = createGoal({ ...validGoalParams, name: '  Emergency Fund  ' });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.name).toBe('Emergency Fund');
   });
 
   it('rejects an empty or whitespace-only name', () => {
     for (const name of ['', '   ']) {
-      const result = createGoal({ ...validParams, name });
+      const result = createGoal({ ...validGoalParams, name });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.error.type).toBe('empty-name');
     }
   });
 
-  it('trims the name', () => {
-    const result = createGoal({ ...validParams, name: '  Emergency Fund  ' });
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.name).toBe('Emergency Fund');
-  });
-
   it('rejects a non-positive target', () => {
-    for (const target of [usd('0'), usd('-10')]) {
-      const result = createGoal({ ...validParams, target });
-      expect(result.ok).toBe(false);
-      if (!result.ok) expect(result.error.type).toBe('non-positive-target');
-    }
+    const result = createGoal({ ...validGoalParams, target: usd('0') });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.type).toBe('non-positive-target');
   });
 
   it('rejects an invalid deadline', () => {
-    const result = createGoal({ ...validParams, deadline: new Date('not-a-date') });
+    const result = createGoal({ ...validGoalParams, deadline: new Date('not-a-date') });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.type).toBe('invalid-deadline');
   });

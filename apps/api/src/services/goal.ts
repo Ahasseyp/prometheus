@@ -32,6 +32,7 @@ export type GoalRecord = {
   householdId: string;
   name: string;
   target: string;
+  savedAmount: string;
   currency: string;
   deadline: Date;
   createdAt: Date;
@@ -53,7 +54,7 @@ function unexpectedValidationError(reason: string): Error {
   return new Error(`Unexpected goal validation failure: ${reason}`);
 }
 
-function mapGoalToRecord(goal: Goal): GoalRecord {
+function mapGoalToRecord(goal: Goal, savedMinorUnits: bigint): GoalRecord {
   if (!isCurrencyCode(goal.currency)) {
     throw unexpectedValidationError(`unsupported-currency:${goal.currency}`);
   }
@@ -62,11 +63,44 @@ function mapGoalToRecord(goal: Goal): GoalRecord {
     householdId: goal.householdId,
     name: goal.name,
     target: minorUnitsToDecimal(goal.target, goal.currency),
+    savedAmount: minorUnitsToDecimal(savedMinorUnits, goal.currency),
     currency: goal.currency,
     deadline: goal.deadline,
     createdAt: goal.createdAt,
     updatedAt: goal.updatedAt,
   };
+}
+
+// The saved amount is derived from Goal Contributions (issue #28); it is a
+// plain sum because every Contribution to a Goal is denominated in the Goal
+// Currency.
+async function sumSavedAmounts(goalIds: string[]): Promise<Map<string, bigint>> {
+  const saved = new Map<string, bigint>();
+  if (goalIds.length === 0) {
+    return saved;
+  }
+
+  const prisma = getPrisma();
+  const grouped = await prisma.goalContribution.groupBy({
+    by: ['goalId'],
+    where: { goalId: { in: goalIds } },
+    _sum: { amount: true },
+  });
+
+  for (const row of grouped) {
+    saved.set(row.goalId, row._sum.amount ?? 0n);
+  }
+  return saved;
+}
+
+async function mapGoalsToRecords(goals: Goal[]): Promise<GoalRecord[]> {
+  const savedAmounts = await sumSavedAmounts(goals.map((goal) => goal.id));
+  return goals.map((goal) => mapGoalToRecord(goal, savedAmounts.get(goal.id) ?? 0n));
+}
+
+async function mapGoalToRecordWithSaved(goal: Goal): Promise<GoalRecord> {
+  const savedAmounts = await sumSavedAmounts([goal.id]);
+  return mapGoalToRecord(goal, savedAmounts.get(goal.id) ?? 0n);
 }
 
 function buildTargetMoney(target: string, currency: string) {
@@ -114,7 +148,7 @@ export async function createGoal(
     },
   });
 
-  return { ok: true, goal: mapGoalToRecord(goal) };
+  return { ok: true, goal: await mapGoalToRecordWithSaved(goal) };
 }
 
 export async function listGoalsForHousehold(householdId: string): Promise<GoalRecord[]> {
@@ -124,7 +158,7 @@ export async function listGoalsForHousehold(householdId: string): Promise<GoalRe
     orderBy: { createdAt: 'asc' },
   });
 
-  return goals.map(mapGoalToRecord);
+  return mapGoalsToRecords(goals);
 }
 
 export async function findGoalById(
@@ -140,7 +174,7 @@ export async function findGoalById(
     return null;
   }
 
-  return mapGoalToRecord(goal);
+  return mapGoalToRecordWithSaved(goal);
 }
 
 export async function updateGoal(
@@ -188,7 +222,7 @@ export async function updateGoal(
     data: updateData,
   });
 
-  return { ok: true, goal: mapGoalToRecord(goal) };
+  return { ok: true, goal: await mapGoalToRecordWithSaved(goal) };
 }
 
 export async function deleteGoal(goalId: string, householdId: string): Promise<DeleteGoalResult> {

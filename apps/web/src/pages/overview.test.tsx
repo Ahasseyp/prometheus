@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -6,6 +6,7 @@ import { renderWithRouter } from '@/test/render-router.js';
 import { mockMeResponse } from '@/test/login-helpers.js';
 import { mockHouseholdMeResponse } from '@/test/household-helpers.js';
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
+import { makeGoal, mockGoalListResponse } from '@/test/goal-helpers.js';
 import {
   makeBudget,
   makeBudgetProgress,
@@ -40,6 +41,7 @@ function mockAuthenticatedHousehold() {
   mockHouseholdMeResponse(mockHousehold);
   mockReportingSummaryResponse({ reportingCurrency: 'USD', netWorth: '0', accounts: [] });
   mockBudgetListResponse([]);
+  mockGoalListResponse([]);
 }
 
 describe('OverviewPage', () => {
@@ -132,7 +134,11 @@ describe('OverviewPage', () => {
 
     await renderWithRouter(() => <OverviewPage />);
 
-    expect(await screen.findByRole('link', { name: /view all/i })).toBeInTheDocument();
+    const card = screen.getByRole('heading', { name: 'Accounts' }).closest('[data-slot="card"]');
+    expect(card).not.toBeNull();
+    expect(
+      within(card as HTMLElement).getByRole('link', { name: /view all/i })
+    ).toBeInTheDocument();
   });
 
   it('shows current-period Budget progress totals on the overview', async () => {
@@ -202,5 +208,65 @@ describe('OverviewPage', () => {
 
     expect(await screen.findByText("We couldn't load your budgets")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('shows Goal progress summaries with a link to the Goals page', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([]);
+    mockGoalListResponse([
+      makeGoal({
+        name: 'Vacation',
+        savedAmount: '250.00',
+        target: '1000.00',
+        currency: 'USD',
+      }),
+    ]);
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText('Vacation')).toBeInTheDocument();
+    expect(screen.getByText('25%')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Vacation savings progress' })).toHaveAttribute(
+      'aria-valuenow',
+      '25'
+    );
+    const card = screen.getByRole('heading', { name: 'Goals' }).closest('[data-slot="card"]');
+    expect(card).not.toBeNull();
+    expect(within(card as HTMLElement).getByRole('link', { name: 'View all' })).toBeInTheDocument();
+  });
+
+  it('shows the Unallocated and Earmarked split on accounts with Contributions', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([
+      makeAccount({
+        name: 'Savings',
+        balance: '1000.00',
+        unallocatedBalance: '750.00',
+        earmarkedBalance: '250.00',
+      }),
+    ]);
+
+    await renderWithRouter(() => <OverviewPage />);
+
+    expect(await screen.findByText(/750\.00.*unallocated.*250\.00.*earmarked/)).toBeInTheDocument();
+  });
+
+  it('hides the allocation split when showing converted balances', async () => {
+    mockAuthenticatedHousehold();
+    mockAccountListResponse([
+      makeAccount({
+        name: 'Savings',
+        balance: '1000.00',
+        unallocatedBalance: '750.00',
+        earmarkedBalance: '250.00',
+      }),
+    ]);
+
+    await renderWithRouter(() => <OverviewPage />);
+    await screen.findByText(/750\.00.*unallocated/);
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Converted balances' }));
+
+    expect(screen.queryByText(/unallocated/)).not.toBeInTheDocument();
   });
 });

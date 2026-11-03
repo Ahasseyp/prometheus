@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
@@ -9,8 +9,10 @@ import { createQueryClientWrapper } from '@/test/providers.js';
 import {
   makeRecurringTransaction,
   mockCreateRecurringTransactionResponse,
+  mockDeleteRecurringTransactionResponse,
   mockRecurringTransactionListResponse,
   mockSkipRecurringTransactionResponse,
+  mockUpdateRecurringTransactionResponse,
 } from '@/test/recurring-transaction-helpers.js';
 
 import { formatRecurringTransactionDate } from '@/features/recurring-transactions/lib/recurring-transaction-presentation.js';
@@ -33,6 +35,15 @@ describe('RecurringTransactionsManager', () => {
     mockMatchMedia(false);
     mockAccountListResponse([checkingAccount]);
     mockCategoryListResponse([groceries]);
+    if (typeof window.PointerEvent === 'undefined') {
+      vi.stubGlobal(
+        'PointerEvent',
+        class PointerEvent extends MouseEvent {
+          // Base UI dispatches a synthetic PointerEvent to the hidden checkbox
+          // when clicking the switch root; jsdom does not provide it.
+        }
+      );
+    }
   });
 
   it('renders recurring transactions from the list endpoint', async () => {
@@ -121,5 +132,80 @@ describe('RecurringTransactionsManager', () => {
         screen.getByText(formatRecurringTransactionDate(updatedRecurringTransaction.nextDate))
       ).toBeInTheDocument();
     });
+  });
+
+  it('edits a schedule from the row actions', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    const recurringTransaction = makeRecurringTransaction({ description: 'Rent' });
+    const updatedRecurringTransaction = makeRecurringTransaction({
+      ...recurringTransaction,
+      amount: '55.00',
+      interval: 2,
+    });
+
+    mockRecurringTransactionListResponse([recurringTransaction]);
+    mockUpdateRecurringTransactionResponse(updatedRecurringTransaction);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Rent' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit recurring transaction' });
+
+    await user.clear(within(dialog).getByLabelText('Amount'));
+    await user.type(within(dialog).getByLabelText('Amount'), '55.00');
+    await user.clear(within(dialog).getByLabelText('Repeat every'));
+    await user.type(within(dialog).getByLabelText('Repeat every'), '2');
+
+    mockRecurringTransactionListResponse([updatedRecurringTransaction]);
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await vi.waitFor(() => {
+      const updateCall = fetchSpy.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes('recurringTransaction.update') && init?.method === 'POST'
+      );
+      expect(updateCall).toBeDefined();
+      expect(JSON.parse(String(updateCall![1]?.body))).toEqual(
+        expect.objectContaining({
+          id: recurringTransaction.id,
+          amount: '55.00',
+          interval: '2',
+        })
+      );
+    });
+    fetchSpy.mockRestore();
+  });
+
+  it('deletes a schedule after confirmation', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(window, 'fetch');
+    const recurringTransaction = makeRecurringTransaction({ description: 'Rent' });
+
+    mockRecurringTransactionListResponse([recurringTransaction]);
+    mockDeleteRecurringTransactionResponse();
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Rent' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Rent?' });
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Also remove already generated transactions' })
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Delete schedule' }));
+
+    await vi.waitFor(() => {
+      const deleteCall = fetchSpy.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes('recurringTransaction.delete') && init?.method === 'POST'
+      );
+      expect(deleteCall).toBeDefined();
+      expect(JSON.parse(String(deleteCall![1]?.body))).toEqual({
+        id: recurringTransaction.id,
+        removeGenerated: true,
+      });
+    });
+    fetchSpy.mockRestore();
   });
 });

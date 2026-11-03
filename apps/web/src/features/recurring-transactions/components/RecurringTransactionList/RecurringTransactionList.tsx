@@ -12,6 +12,8 @@ export interface RecurringTransactionListProps {
   isError: boolean;
   onRetry: () => void;
   onAdd?: () => void;
+  onEdit?: (recurringTransaction: RecurringTransaction) => void;
+  onDelete?: (recurringTransaction: RecurringTransaction) => void;
   onSkip?: (recurringTransaction: RecurringTransaction) => void;
 }
 
@@ -21,6 +23,8 @@ export function RecurringTransactionList({
   isError,
   onRetry,
   onAdd,
+  onEdit,
+  onDelete,
   onSkip,
 }: RecurringTransactionListProps) {
   if (isLoading) {
@@ -59,6 +63,8 @@ export function RecurringTransactionList({
           <RecurringTransactionRow
             key={recurringTransaction.id}
             recurringTransaction={recurringTransaction}
+            onEdit={onEdit}
+            onDelete={onDelete}
             onSkip={onSkip}
           />
         ))}

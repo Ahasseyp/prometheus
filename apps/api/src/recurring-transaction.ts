@@ -1,12 +1,16 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { RecurrencePeriod, TransactionType } from '@prometheus/domain';
 
 import {
   createRecurringTransaction,
+  deleteRecurringTransaction,
   listRecurringTransactionsForHousehold,
   skipNextRecurringOccurrence,
+  updateRecurringTransaction,
 } from './services/recurring-transaction.js';
 import type {
+  DeleteRecurringTransactionResult,
   RecurringTransactionValidationError,
   SkipRecurringOccurrenceResult,
 } from './services/recurring-transaction.js';
@@ -25,6 +29,8 @@ const recurrenceIntervalSchema = z.coerce.number().int().min(1, 'Interval must b
 const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
 });
+
+const recurringTransactionIdSchema = z.object({ id: z.string().uuid() });
 
 const recurringTransactionResponseSchema = z.object({
   id: z.string().uuid(),
@@ -71,6 +77,13 @@ const skipRecurringOccurrenceErrorMappings: Record<
   },
 };
 
+const deleteRecurringTransactionErrorMappings: Record<
+  Exclude<DeleteRecurringTransactionResult, { ok: true }>['error'],
+  { code: 'NOT_FOUND'; message: string }
+> = {
+  'not-found': { code: 'NOT_FOUND', message: 'Schedule not found.' },
+};
+
 const recurringTransactionErrorMappings: Record<
   RecurringTransactionValidationError,
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
@@ -113,8 +126,47 @@ export const recurringTransactionRouter = router({
       return listRecurringTransactionsForHousehold(householdId);
     }),
 
+  update: protectedProcedure
+    .input(
+      recurringTransactionIdSchema.extend({
+        type: transactionTypeSchema.optional(),
+        amount: amountSchema.optional(),
+        accountId: z.string().uuid().optional(),
+        categoryId: z.string().uuid().optional(),
+        period: recurrencePeriodSchema.optional(),
+        interval: recurrenceIntervalSchema.optional(),
+        startDate: z.coerce.date().optional(),
+        description: z.string().optional(),
+      })
+    )
+    .output(recurringTransactionResponseSchema)
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'recurring transactions');
+      const { id, ...updateInput } = input;
+      const result = await updateRecurringTransaction(id, householdId, updateInput);
+      if (!result.ok) {
+        if (result.error === 'not-found') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found.' });
+        }
+        throwServiceError(result.error, recurringTransactionErrorMappings);
+      }
+      return result.recurringTransaction;
+    }),
+
+  delete: protectedProcedure
+    .input(recurringTransactionIdSchema.extend({ removeGenerated: z.boolean() }))
+    .output(z.object({ ok: z.literal(true) }))
+    .mutation(async ({ input, ctx }) => {
+      const householdId = getHouseholdId(ctx, 'recurring transactions');
+      const result = await deleteRecurringTransaction(input.id, householdId, input.removeGenerated);
+      if (!result.ok) {
+        throwServiceError(result.error, deleteRecurringTransactionErrorMappings);
+      }
+      return { ok: true as const };
+    }),
+
   skip: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(recurringTransactionIdSchema)
     .output(
       z.object({
         id: z.string().uuid(),

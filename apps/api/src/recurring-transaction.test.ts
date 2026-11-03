@@ -386,4 +386,143 @@ describe.sequential('recurring transaction procedures', () => {
 
     expect(new Date(first.skippedDate).getTime()).toBe(new Date(second.skippedDate).getTime());
   });
+
+  it('updates a schedule and reflects changes in the list', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-update-1'),
+      'Secure-password-10'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const salary = await findSystemCategory('Salary');
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate: daysAgo(28),
+      period: 'week',
+      interval: 1,
+    });
+
+    const updated = await client.recurringTransaction.update.mutate({
+      id: created.id,
+      amount: '30.00',
+      interval: 2,
+      type: TransactionType.Income,
+      categoryId: salary.id,
+    });
+
+    expect(updated.amount).toBe('30.00');
+    expect(updated.interval).toBe(2);
+    expect(updated.type).toBe('income');
+    expect(updated.categoryId).toBe(salary.id);
+
+    const schedules = await client.recurringTransaction.list.query();
+    const schedule = schedules.find((s) => s.id === created.id);
+    expect(schedule).toBeDefined();
+    expect(schedule!.amount).toBe('30.00');
+    expect(schedule!.interval).toBe(2);
+    expect(schedule!.type).toBe('income');
+  });
+
+  it('rejects an update with a mismatched category type', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-update-type-mismatch-1'),
+      'Secure-password-11'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const salary = await findSystemCategory('Salary');
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate: daysAgo(28),
+      period: 'week',
+      interval: 1,
+    });
+
+    await expect(
+      client.recurringTransaction.update.mutate({
+        id: created.id,
+        categoryId: salary.id,
+      })
+    ).rejects.toThrow(/category type must match/);
+  });
+
+  it('deletes a schedule and keeps generated transactions by default', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-delete-keep-1'),
+      'Secure-password-12'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await client.recurringTransaction.list.query();
+    const beforeDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
+    expect(beforeDelete.length).toBeGreaterThan(0);
+
+    await client.recurringTransaction.delete.mutate({ id: created.id, removeGenerated: false });
+
+    const schedules = await client.recurringTransaction.list.query();
+    expect(schedules.some((s) => s.id === created.id)).toBe(false);
+
+    const afterDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
+    expect(afterDelete).toHaveLength(beforeDelete.length);
+  });
+
+  it('deletes a schedule and removes generated transactions when requested', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-delete-remove-1'),
+      'Secure-password-13'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '20.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await client.recurringTransaction.list.query();
+    const beforeDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
+    expect(beforeDelete.length).toBeGreaterThan(0);
+
+    await client.recurringTransaction.delete.mutate({ id: created.id, removeGenerated: true });
+
+    const schedules = await client.recurringTransaction.list.query();
+    expect(schedules.some((s) => s.id === created.id)).toBe(false);
+
+    const afterDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
+    expect(afterDelete).toHaveLength(0);
+  });
 });

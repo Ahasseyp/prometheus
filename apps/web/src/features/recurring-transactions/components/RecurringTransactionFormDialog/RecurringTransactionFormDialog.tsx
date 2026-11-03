@@ -2,26 +2,39 @@ import { Dialog } from '@/components/ui/dialog.js';
 import { Sheet } from '@/components/ui/sheet.js';
 import { useIsMobile } from '@/hooks/use-mobile.js';
 
-import { RecurringTransactionForm } from '@/features/recurring-transactions/components/RecurringTransactionForm/RecurringTransactionForm.js';
+import {
+  RecurringTransactionForm,
+  type RecurringTransactionFormProps,
+} from '@/features/recurring-transactions/components/RecurringTransactionForm/RecurringTransactionForm.js';
+import type { RecurringTransaction } from '@/features/recurring-transactions/gateways/recurring-transactions.js';
 
 export interface RecurringTransactionFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  recurringTransaction?: RecurringTransaction;
 }
 
 export function RecurringTransactionFormDialog({
   open,
   onOpenChange,
+  recurringTransaction,
 }: RecurringTransactionFormDialogProps) {
   const isMobile = useIsMobile();
-  const title = 'Add recurring transaction';
-  const description = 'Set up a schedule that generates income or expense transactions.';
+  const isEditing = recurringTransaction !== undefined;
+  const title = isEditing ? 'Edit recurring transaction' : 'Add recurring transaction';
+  const description = isEditing
+    ? 'Update the schedule details; generated transactions stay unchanged.'
+    : 'Set up a schedule that generates income or expense transactions.';
 
   function handleSuccess() {
     onOpenChange(false);
   }
 
-  const form = <RecurringTransactionForm onSuccess={handleSuccess} />;
+  const formProps: RecurringTransactionFormProps = {
+    recurringTransaction,
+    onSuccess: handleSuccess,
+  };
+  const form = <RecurringTransactionForm {...formProps} />;
 
   if (isMobile) {
     return (

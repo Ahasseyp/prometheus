@@ -16,7 +16,11 @@ import { FormError } from '@/components/form/FormError.js';
 import { FormField } from '@/components/form/FormField.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { useCategories } from '@/features/categories/gateways/categories.js';
-import { useCreateRecurringTransaction } from '@/features/recurring-transactions/gateways/recurring-transactions.js';
+import {
+  useCreateRecurringTransaction,
+  useUpdateRecurringTransaction,
+  type RecurringTransaction,
+} from '@/features/recurring-transactions/gateways/recurring-transactions.js';
 import { getRecurringTransactionMutationErrorMessage } from '@/features/recurring-transactions/lib/recurring-transaction-errors.js';
 
 const FORM_TYPES = [TransactionType.Expense, TransactionType.Income] as const;
@@ -30,9 +34,9 @@ const TYPE_LABELS: Record<FormTransactionType, string> = {
 const PERIODS = [RecurrencePeriod.Week, RecurrencePeriod.Month, RecurrencePeriod.Year] as const;
 
 const PERIOD_LABELS: Record<(typeof PERIODS)[number], string> = {
-  [RecurrencePeriod.Week]: 'weeks',
-  [RecurrencePeriod.Month]: 'months',
-  [RecurrencePeriod.Year]: 'years',
+  [RecurrencePeriod.Week]: 'Weeks',
+  [RecurrencePeriod.Month]: 'Months',
+  [RecurrencePeriod.Year]: 'Years',
 };
 
 const recurringTransactionFormSchema = z.object({
@@ -60,25 +64,33 @@ type FormState = z.infer<typeof recurringTransactionFormSchema>;
 type Option = { value: string; label: string };
 
 export interface RecurringTransactionFormProps {
+  recurringTransaction?: RecurringTransaction;
   onSuccess?: () => void;
 }
 
-export function RecurringTransactionForm({ onSuccess }: RecurringTransactionFormProps) {
+export function RecurringTransactionForm({
+  recurringTransaction,
+  onSuccess,
+}: RecurringTransactionFormProps) {
+  const isEditing = recurringTransaction !== undefined;
   const createRecurringTransaction = useCreateRecurringTransaction();
-  const isPending = createRecurringTransaction.isPending;
+  const updateRecurringTransaction = useUpdateRecurringTransaction();
+  const isPending = createRecurringTransaction.isPending || updateRecurringTransaction.isPending;
   const [formError, setFormError] = useState<string | null>(null);
   const { data: accounts } = useAccounts();
   const { data: categories } = useCategories();
 
   const defaultFormValues: FormState = {
-    type: TransactionType.Expense,
-    amount: '',
-    accountId: '',
-    categoryId: '',
-    interval: 1,
-    period: RecurrencePeriod.Month,
-    startDate: format(new Date(), 'yyyy-MM-dd'),
-    description: '',
+    type: recurringTransaction?.type ?? TransactionType.Expense,
+    amount: recurringTransaction?.amount ?? '',
+    accountId: recurringTransaction?.accountId ?? '',
+    categoryId: recurringTransaction?.categoryId ?? '',
+    interval: recurringTransaction?.interval ?? 1,
+    period: recurringTransaction?.period ?? RecurrencePeriod.Month,
+    startDate: recurringTransaction
+      ? format(new Date(recurringTransaction.startDate), 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd'),
+    description: recurringTransaction?.description ?? '',
   };
 
   const form = useForm({
@@ -116,12 +128,16 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
   }, [categories, type]);
 
   function getSubmitButtonText(): string {
-    return isPending ? 'Adding schedule…' : 'Add schedule';
+    if (isPending) {
+      return isEditing ? 'Saving…' : 'Adding schedule…';
+    }
+    return isEditing ? 'Save changes' : 'Add schedule';
   }
 
   function clearFormError() {
     setFormError(null);
     createRecurringTransaction.reset();
+    updateRecurringTransaction.reset();
   }
 
   function withClearedError<T>(handler: (value: T) => void): (value: T) => void {
@@ -171,15 +187,30 @@ export function RecurringTransactionForm({ onSuccess }: RecurringTransactionForm
 
   function handleSubmit({ value }: { value: FormState }) {
     const description = value.description.trim();
+    const baseInput = {
+      type: value.type,
+      amount: value.amount.trim(),
+      accountId: value.accountId,
+      categoryId: value.categoryId,
+      period: value.period,
+      interval: value.interval,
+      startDate: new Date(`${value.startDate}T00:00:00`),
+      description,
+    };
+
+    if (isEditing) {
+      // Send every field on update so clearing the description clears it
+      // server-side and the schedule always reflects the form state.
+      updateRecurringTransaction.mutate(
+        { id: recurringTransaction.id, ...baseInput },
+        { onSuccess: () => onSuccess?.(), onError: handleMutationError }
+      );
+      return;
+    }
+
     createRecurringTransaction.mutate(
       {
-        type: value.type,
-        amount: value.amount.trim(),
-        accountId: value.accountId,
-        categoryId: value.categoryId,
-        startDate: new Date(`${value.startDate}T00:00:00`),
-        period: value.period,
-        interval: value.interval,
+        ...baseInput,
         description: description === '' ? undefined : description,
       },
       { onSuccess: () => onSuccess?.(), onError: handleMutationError }

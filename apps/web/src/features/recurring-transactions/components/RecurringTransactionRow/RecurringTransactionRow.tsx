@@ -12,11 +12,15 @@ import {
 
 export interface RecurringTransactionRowProps {
   recurringTransaction: RecurringTransaction;
+  onEdit?: (recurringTransaction: RecurringTransaction) => void;
+  onDelete?: (recurringTransaction: RecurringTransaction) => void;
   onSkip?: (recurringTransaction: RecurringTransaction) => void;
 }
 
 export function RecurringTransactionRow({
   recurringTransaction,
+  onEdit,
+  onDelete,
   onSkip,
 }: RecurringTransactionRowProps) {
   const isExpense = recurringTransaction.type === 'expense';
@@ -43,9 +47,11 @@ export function RecurringTransactionRow({
         {formatMoney(signedAmount, recurringTransaction.accountCurrency)}
       </Table.Cell>
       <Table.Cell>
-        {onSkip !== undefined && (
+        {onEdit !== undefined && onDelete !== undefined && onSkip !== undefined && (
           <RecurringTransactionActions
             recurringTransaction={recurringTransaction}
+            onEdit={onEdit}
+            onDelete={onDelete}
             onSkip={onSkip}
           />
         )}

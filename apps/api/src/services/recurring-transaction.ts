@@ -15,12 +15,12 @@ import {
   RecurrencePeriod,
 } from '@prometheus/domain';
 import type { RecurrencePeriod as DomainRecurrencePeriod } from '@prometheus/domain';
-import type { RecurringTransaction as PrismaRecurringTransaction } from '@prisma/client';
+import type { Prisma, RecurringTransaction as PrismaRecurringTransaction } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
 import { minorUnitsToDecimal, parseAmountToMinorUnits } from '../lib/money.js';
 import { mapPrismaTransactionType, mapDomainTransactionType } from '../lib/transaction-type.js';
-import { resolveTransactionExchangeRate } from './transaction.js';
+import { amountFitsCurrency, resolveTransactionExchangeRate } from './transaction.js';
 
 export type CreateRecurringTransactionInput = {
   accountId: string;
@@ -64,6 +64,23 @@ export type RecurringTransactionValidationError =
 export type CreateRecurringTransactionResult =
   | { ok: true; recurringTransaction: RecurringTransactionRecord }
   | { ok: false; error: RecurringTransactionValidationError };
+
+export type UpdateRecurringTransactionInput = {
+  type?: 'income' | 'expense';
+  amount?: string;
+  accountId?: string;
+  categoryId?: string;
+  interval?: number;
+  period?: DomainRecurrencePeriod;
+  startDate?: Date;
+  description?: string;
+};
+
+export type UpdateRecurringTransactionResult =
+  | { ok: true; recurringTransaction: RecurringTransactionRecord }
+  | { ok: false; error: RecurringTransactionValidationError | 'not-found' };
+
+export type DeleteRecurringTransactionResult = { ok: true } | { ok: false; error: 'not-found' };
 
 // The tRPC layer validates first.
 function unexpectedValidationError(reason: string): Error {
@@ -230,6 +247,132 @@ export async function createRecurringTransaction(
   });
 
   return { ok: true, recurringTransaction: mapRecurringTransactionToRecord(recurringTransaction) };
+}
+
+export async function updateRecurringTransaction(
+  recurringTransactionId: string,
+  householdId: string,
+  input: UpdateRecurringTransactionInput
+): Promise<UpdateRecurringTransactionResult> {
+  const prisma = getPrisma();
+  const existing = await prisma.recurringTransaction.findFirst({
+    where: { id: recurringTransactionId, householdId },
+    include: { account: true, category: true },
+  });
+  if (existing === null) {
+    return { ok: false, error: 'not-found' };
+  }
+
+  let targetAccount = existing.account;
+  if (input.accountId !== undefined && input.accountId !== existing.accountId) {
+    const account = await findAccountInHousehold(input.accountId, householdId);
+    if (account === null) {
+      return { ok: false, error: 'account-not-found' };
+    }
+    targetAccount = account;
+  }
+
+  let targetCategoryId = existing.categoryId;
+  let targetCategoryType: PrismaRecurringTransaction['type'] = existing.type;
+  if (input.categoryId !== undefined && input.categoryId !== existing.categoryId) {
+    const category = await findCategoryInHousehold(input.categoryId, householdId);
+    if (category === null) {
+      return { ok: false, error: 'category-not-found' };
+    }
+    targetCategoryId = category.id;
+    targetCategoryType = category.type;
+  }
+
+  const targetType =
+    input.type === undefined ? existing.type : mapDomainTransactionType(input.type);
+  if (targetCategoryType !== targetType) {
+    return { ok: false, error: 'type-mismatch' };
+  }
+
+  const targetCurrency = targetAccount.currency;
+  if (!isCurrencyCode(targetCurrency)) {
+    throw unexpectedValidationError(`unsupported-currency:${targetCurrency}`);
+  }
+
+  const updateData: Prisma.RecurringTransactionUncheckedUpdateInput = {};
+
+  if (input.type !== undefined) {
+    updateData.type = targetType;
+  }
+  if (input.accountId !== undefined) {
+    updateData.accountId = targetAccount.id;
+  }
+  if (input.categoryId !== undefined) {
+    updateData.categoryId = targetCategoryId;
+  }
+  if (input.period !== undefined) {
+    if (!isRecurrencePeriod(input.period)) {
+      return { ok: false, error: 'invalid-period' };
+    }
+    updateData.period = mapDomainRecurrencePeriod(input.period);
+  }
+  if (input.interval !== undefined) {
+    if (!Number.isInteger(input.interval) || input.interval < 1) {
+      return { ok: false, error: 'invalid-interval' };
+    }
+    updateData.interval = input.interval;
+  }
+  if (input.startDate !== undefined) {
+    updateData.startDate = input.startDate;
+  }
+  if (input.description !== undefined) {
+    updateData.description = input.description;
+  }
+
+  if (input.amount !== undefined) {
+    const amountResult = parseAmountToMinorUnits(input.amount, targetCurrency);
+    if (!amountResult.ok) {
+      return { ok: false, error: 'invalid-amount' };
+    }
+    updateData.amount = amountResult.minorUnits;
+  } else if (input.accountId !== undefined && input.accountId !== existing.accountId) {
+    // When changing accounts without a new amount, verify the existing amount
+    // fits the target account's currency exponent.
+    const compatible = amountFitsCurrency(
+      existing.amount,
+      existing.account.currency,
+      targetAccount.currency
+    );
+    if (!compatible) {
+      return { ok: false, error: 'invalid-amount' };
+    }
+  }
+
+  const updated = await prisma.recurringTransaction.update({
+    where: { id: recurringTransactionId },
+    data: updateData,
+    include: { account: true, category: true },
+  });
+
+  return { ok: true, recurringTransaction: mapRecurringTransactionToRecord(updated) };
+}
+
+export async function deleteRecurringTransaction(
+  recurringTransactionId: string,
+  householdId: string,
+  removeGenerated: boolean
+): Promise<DeleteRecurringTransactionResult> {
+  const prisma = getPrisma();
+  const existing = await prisma.recurringTransaction.findFirst({
+    where: { id: recurringTransactionId, householdId },
+  });
+  if (existing === null) {
+    return { ok: false, error: 'not-found' };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (removeGenerated) {
+      await tx.transaction.deleteMany({ where: { recurringTransactionId } });
+    }
+    await tx.recurringTransaction.delete({ where: { id: recurringTransactionId } });
+  });
+
+  return { ok: true };
 }
 
 export async function listRecurringTransactionsForHousehold(

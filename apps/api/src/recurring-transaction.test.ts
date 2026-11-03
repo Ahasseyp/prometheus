@@ -104,7 +104,8 @@ describe.sequential('recurring transaction procedures', () => {
       accountId: account.id,
       categoryId: groceries.id,
       startDate: new Date('2026-01-01T00:00:00.000Z'),
-      frequency: 'monthly',
+      period: 'month',
+      interval: 1,
       description: 'Rent',
     });
 
@@ -112,7 +113,8 @@ describe.sequential('recurring transaction procedures', () => {
     expect(created.amount).toBe('42.50');
     expect(created.accountId).toBe(account.id);
     expect(created.categoryId).toBe(groceries.id);
-    expect(created.frequency).toBe('monthly');
+    expect(created.period).toBe('month');
+    expect(created.interval).toBe(1);
     expect(created.accountName).toBe('Checking');
     expect(created.accountCurrency).toBe('USD');
     expect(created.categoryName).toBe('Groceries');
@@ -140,7 +142,8 @@ describe.sequential('recurring transaction procedures', () => {
         accountId: account.id,
         categoryId: salary.id,
         startDate: new Date('2026-01-01T00:00:00.000Z'),
-        frequency: 'monthly',
+        period: 'month',
+        interval: 1,
       })
     ).rejects.toThrow();
   });
@@ -160,7 +163,8 @@ describe.sequential('recurring transaction procedures', () => {
       accountId: account.id,
       categoryId: groceries.id,
       startDate: new Date('2026-01-01T00:00:00.000Z'),
-      frequency: 'monthly',
+      period: 'month',
+      interval: 1,
     });
 
     await registerAndCreateHousehold(makeTestEmail('recurring-isolation-2'), 'Secure-password-4');

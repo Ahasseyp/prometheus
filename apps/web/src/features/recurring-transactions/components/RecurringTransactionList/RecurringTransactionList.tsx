@@ -11,6 +11,7 @@ export interface RecurringTransactionListProps {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  onAdd?: () => void;
 }
 
 export function RecurringTransactionList({
@@ -18,6 +19,7 @@ export function RecurringTransactionList({
   isLoading,
   isError,
   onRetry,
+  onAdd,
 }: RecurringTransactionListProps) {
   if (isLoading) {
     return <RecurringTransactionListSkeleton />;
@@ -33,7 +35,7 @@ export function RecurringTransactionList({
   }
 
   if (recurringTransactions === undefined || recurringTransactions.length === 0) {
-    return <RecurringTransactionsEmptyState />;
+    return <RecurringTransactionsEmptyState onAdd={onAdd} />;
   }
 
   return (
@@ -41,7 +43,8 @@ export function RecurringTransactionList({
       <Table.Header>
         <Table.Row>
           <Table.Head>Schedule</Table.Head>
-          <Table.Head>Frequency</Table.Head>
+          <Table.Head>Account</Table.Head>
+          <Table.Head>Repeats</Table.Head>
           <Table.Head>Next occurrence</Table.Head>
           <Table.Head className="text-right">Amount</Table.Head>
         </Table.Row>

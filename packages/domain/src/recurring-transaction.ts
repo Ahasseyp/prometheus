@@ -2,17 +2,19 @@ import type { AccountId, CategoryId, HouseholdId, RecurringTransactionId } from 
 import type { Result } from './types.js';
 import { createTimestamps } from './timestamps.js';
 
-export const RecurrenceFrequency = {
-  Weekly: 'weekly',
-  Monthly: 'monthly',
-  Yearly: 'yearly',
+export const RecurrencePeriod = {
+  Week: 'week',
+  Month: 'month',
+  Year: 'year',
 } as const;
 
-export type RecurrenceFrequency = (typeof RecurrenceFrequency)[keyof typeof RecurrenceFrequency];
+export type RecurrencePeriod = (typeof RecurrencePeriod)[keyof typeof RecurrencePeriod];
 
-export function isRecurrenceFrequency(value: string): value is RecurrenceFrequency {
-  return Object.values(RecurrenceFrequency).includes(value as RecurrenceFrequency);
+export function isRecurrencePeriod(value: string): value is RecurrencePeriod {
+  return Object.values(RecurrencePeriod).includes(value as RecurrencePeriod);
 }
+
+export const DEFAULT_RECURRENCE_INTERVAL = 1;
 
 /**
  * A schedule that defines repeated income or expense Transactions, used to
@@ -27,7 +29,8 @@ export type RecurringTransaction = {
   readonly type: 'income' | 'expense';
   readonly amountMinorUnits: bigint;
   readonly startDate: Date;
-  readonly frequency: RecurrenceFrequency;
+  readonly period: RecurrencePeriod;
+  readonly interval: number;
   readonly description: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -35,13 +38,15 @@ export type RecurringTransaction = {
 
 export type RecurringTransactionError =
   | { type: 'invalid-type'; typeValue: string }
-  | { type: 'invalid-frequency'; frequencyValue: string }
+  | { type: 'invalid-period'; periodValue: string }
+  | { type: 'invalid-interval'; intervalValue: number }
   | { type: 'non-positive-amount' }
   | { type: 'invalid-start-date' };
 
 /**
  * Creates a Recurring Transaction value object, validating the transaction
- * type, frequency, positive amount, and a real start date.
+ * type, recurrence period, positive interval, positive amount, and a real start
+ * date.
  */
 export function createRecurringTransaction(params: {
   id: RecurringTransactionId;
@@ -51,7 +56,8 @@ export function createRecurringTransaction(params: {
   type: string;
   amountMinorUnits: bigint;
   startDate: Date;
-  frequency: string;
+  period: string;
+  interval: number;
   description?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -63,10 +69,17 @@ export function createRecurringTransaction(params: {
     };
   }
 
-  if (!isRecurrenceFrequency(params.frequency)) {
+  if (!isRecurrencePeriod(params.period)) {
     return {
       ok: false,
-      error: { type: 'invalid-frequency', frequencyValue: params.frequency },
+      error: { type: 'invalid-period', periodValue: params.period },
+    };
+  }
+
+  if (!Number.isInteger(params.interval) || params.interval < 1) {
+    return {
+      ok: false,
+      error: { type: 'invalid-interval', intervalValue: params.interval },
     };
   }
 
@@ -88,7 +101,8 @@ export function createRecurringTransaction(params: {
       type: params.type,
       amountMinorUnits: params.amountMinorUnits,
       startDate: params.startDate,
-      frequency: params.frequency,
+      period: params.period,
+      interval: params.interval,
       description: params.description ?? '',
       ...createTimestamps({ createdAt: params.createdAt, updatedAt: params.updatedAt }),
     },

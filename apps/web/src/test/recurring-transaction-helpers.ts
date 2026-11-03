@@ -10,7 +10,8 @@ export type RecurringTransactionFixture = {
   type: 'income' | 'expense';
   amount: string;
   startDate: string;
-  frequency: 'weekly' | 'monthly' | 'yearly';
+  period: 'week' | 'month' | 'year';
+  interval: number;
   nextDate: string;
   description: string;
   accountName: string;
@@ -31,7 +32,8 @@ export function makeRecurringTransaction(
     type: 'expense',
     amount: '42.50',
     startDate: '2026-01-01T00:00:00.000Z',
-    frequency: 'monthly',
+    period: 'month',
+    interval: 1,
     nextDate: '2026-11-01T00:00:00.000Z',
     description: 'Rent',
     accountName: 'Everyday Checking',
@@ -53,4 +55,23 @@ export function mockRecurringTransactionListResponse(data: unknown) {
 
 export function mockRecurringTransactionListError() {
   server.use(http.get('/api/trpc/recurringTransaction.list', () => HttpResponse.error()));
+}
+
+export function mockCreateRecurringTransactionResponse(data: unknown) {
+  server.use(
+    http.post('/api/trpc/recurringTransaction.create', () => {
+      return HttpResponse.json({ result: { data } });
+    })
+  );
+}
+
+export function mockCreateRecurringTransactionError(message = 'Something went wrong.') {
+  server.use(
+    http.post('/api/trpc/recurringTransaction.create', () => {
+      return HttpResponse.json(
+        { error: { message, code: -32600, data: { code: 'BAD_REQUEST', httpStatus: 400 } } },
+        { status: 400 }
+      );
+    })
+  );
 }

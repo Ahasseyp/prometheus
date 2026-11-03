@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RecurrenceFrequency, TransactionType } from '@prometheus/domain';
+import { RecurrencePeriod, TransactionType } from '@prometheus/domain';
 
 import {
   createRecurringTransaction,
@@ -14,7 +14,9 @@ const transactionTypeSchema = z
     message: 'Select income or expense.',
   });
 
-const recurrenceFrequencySchema = z.nativeEnum(RecurrenceFrequency);
+const recurrencePeriodSchema = z.nativeEnum(RecurrencePeriod);
+
+const recurrenceIntervalSchema = z.coerce.number().int().min(1, 'Interval must be at least 1.');
 
 const amountSchema = z.string().refine((value) => value.trim().length > 0, {
   message: 'Enter an amount.',
@@ -28,7 +30,8 @@ const recurringTransactionResponseSchema = z.object({
   type: transactionTypeSchema,
   amount: z.string(),
   startDate: z.date(),
-  frequency: recurrenceFrequencySchema,
+  period: recurrencePeriodSchema,
+  interval: z.number().int().min(1),
   nextDate: z.date(),
   description: z.string(),
   accountName: z.string(),
@@ -44,7 +47,8 @@ const createRecurringTransactionInputSchema = z.object({
   type: transactionTypeSchema,
   amount: amountSchema,
   startDate: z.coerce.date(),
-  frequency: recurrenceFrequencySchema,
+  period: recurrencePeriodSchema,
+  interval: recurrenceIntervalSchema,
   description: z.string().optional(),
 });
 
@@ -62,6 +66,11 @@ const recurringTransactionErrorMappings: Record<
   'invalid-amount': {
     code: 'BAD_REQUEST',
     message: 'Enter a positive amount valid for the account’s currency.',
+  },
+  'invalid-period': { code: 'BAD_REQUEST', message: 'Select a valid recurrence period.' },
+  'invalid-interval': {
+    code: 'BAD_REQUEST',
+    message: 'Interval must be a whole number of at least 1.',
   },
 };
 

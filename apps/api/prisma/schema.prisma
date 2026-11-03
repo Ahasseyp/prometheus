@@ -220,21 +220,24 @@ enum BudgetPeriod {
 }
 
 model RecurringTransaction {
-  id          String              @id @default(uuid()) @db.Uuid
-  householdId String              @db.Uuid
-  accountId   String              @db.Uuid
-  categoryId  String              @db.Uuid
+  id          String           @id @default(uuid()) @db.Uuid
+  householdId String           @db.Uuid
+  accountId   String           @db.Uuid
+  categoryId  String           @db.Uuid
   type        TransactionType
   // Amount is stored in minor units of the Account Currency and is always
   // positive; the type carries the direction (issue #29).
   amount      BigInt
   // The first occurrence date; later occurrences anchor to this date (same
   // weekday / same day-of-month clamped / same month-day).
-  startDate   DateTime            @db.Date
-  frequency   RecurrenceFrequency
-  description String              @default("")
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @default(now()) @updatedAt
+  startDate   DateTime         @db.Date
+  // Period granularity: week / month / year.
+  period      RecurrencePeriod
+  // How many periods between occurrences (1 = every period, 2 = every other).
+  interval    Int
+  description String           @default("")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
 
   household        Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account          Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
@@ -245,10 +248,10 @@ model RecurringTransaction {
   @@index([householdId])
 }
 
-enum RecurrenceFrequency {
-  WEEKLY
-  MONTHLY
-  YEARLY
+enum RecurrencePeriod {
+  WEEK
+  MONTH
+  YEAR
 }
 
 model SkippedInstance {

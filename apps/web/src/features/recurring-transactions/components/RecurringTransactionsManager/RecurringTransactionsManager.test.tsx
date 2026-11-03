@@ -1,19 +1,37 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { makeAccount, mockAccountListResponse } from '@/test/account-helpers.js';
+import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
+import { mockMatchMedia } from '@/test/match-media.js';
 import { createQueryClientWrapper } from '@/test/providers.js';
 import {
   makeRecurringTransaction,
+  mockCreateRecurringTransactionResponse,
   mockRecurringTransactionListResponse,
 } from '@/test/recurring-transaction-helpers.js';
 
 import { RecurringTransactionsManager } from './RecurringTransactionsManager.js';
+
+const checkingAccount = makeAccount({
+  id: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+  name: 'Everyday Checking',
+});
+
+const groceries = makeCategory({ id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', name: 'Groceries' });
 
 function renderManager() {
   return render(<RecurringTransactionsManager />, { wrapper: createQueryClientWrapper() });
 }
 
 describe('RecurringTransactionsManager', () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    mockAccountListResponse([checkingAccount]);
+    mockCategoryListResponse([groceries]);
+  });
+
   it('renders recurring transactions from the list endpoint', async () => {
     mockRecurringTransactionListResponse([
       makeRecurringTransaction({ description: 'Rent' }),
@@ -36,5 +54,38 @@ describe('RecurringTransactionsManager', () => {
     renderManager();
 
     expect(await screen.findByText('No recurring transactions yet')).toBeInTheDocument();
+  });
+
+  it('creates a new schedule and shows it in the list', async () => {
+    const user = userEvent.setup();
+    const createdRecurringTransaction = makeRecurringTransaction({
+      id: 'created-r1',
+      description: 'Weekly groceries',
+      period: 'week',
+      interval: 1,
+      amount: '75.00',
+    });
+
+    const list: ReturnType<typeof makeRecurringTransaction>[] = [];
+    mockRecurringTransactionListResponse(list);
+    mockCreateRecurringTransactionResponse(createdRecurringTransaction);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Add recurring' }));
+
+    await user.type(screen.getByLabelText('Amount'), '75.00');
+    await user.click(screen.getByRole('combobox', { name: 'Account' }));
+    await user.click(await screen.findByRole('option', { name: 'Everyday Checking' }));
+    await user.click(screen.getByRole('combobox', { name: 'Category' }));
+    await user.click(await screen.findByRole('option', { name: 'Groceries' }));
+
+    // Switch to weekly period.
+    await user.click(screen.getByRole('button', { name: 'weeks' }));
+
+    list.push(createdRecurringTransaction);
+    await user.click(screen.getByRole('button', { name: 'Add schedule' }));
+
+    await waitFor(() => expect(screen.getByText('Weekly groceries')).toBeInTheDocument());
+    expect(screen.getByText('Every week')).toBeInTheDocument();
   });
 });

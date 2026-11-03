@@ -44,14 +44,28 @@ function ComboboxInput({
   disabled = false,
   showTrigger = true,
   showClear = false,
+  passwordManagerIgnore = false,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean;
   showClear?: boolean;
+  passwordManagerIgnore?: boolean;
 }) {
+  const passwordManagerProps = passwordManagerIgnore
+    ? {
+        autoComplete: props.autoComplete ?? 'off',
+        'data-1p-ignore': 'true',
+        'data-lpignore': 'true',
+      }
+    : {};
+
   return (
     <InputGroup className={cn('w-auto', className)}>
-      <ComboboxPrimitive.Input render={<InputGroup.Input disabled={disabled} />} {...props} />
+      <ComboboxPrimitive.Input
+        render={<InputGroup.Input disabled={disabled} />}
+        {...props}
+        {...passwordManagerProps}
+      />
       <InputGroup.Addon align="inline-end">
         {showTrigger && (
           <InputGroup.Button

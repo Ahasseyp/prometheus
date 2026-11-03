@@ -41,8 +41,9 @@ export { createGoal, createGoalContribution, isContributionFundingType } from '.
 export type { Goal, GoalContribution, GoalContributionError, GoalError } from './goal.js';
 export {
   createRecurringTransaction,
-  isRecurrenceFrequency,
-  RecurrenceFrequency,
+  DEFAULT_RECURRENCE_INTERVAL,
+  isRecurrencePeriod,
+  RecurrencePeriod,
 } from './recurring-transaction.js';
 export type { RecurringTransaction, RecurringTransactionError } from './recurring-transaction.js';
 export { createTransaction, TransactionType } from './transaction.js';

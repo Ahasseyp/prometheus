@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { getSignedTransactionAmount, getTransactionIcon } from '@/lib/transaction-presentation.js';
 
 import { Button } from '@/components/ui/button.js';
 import { formatMoney } from '@/lib/format-money.js';
@@ -17,10 +17,10 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
 
 export function TransactionCard({ transaction, onSelect }: TransactionCardProps) {
   const isExpense = transaction.type === 'expense';
-  const Icon = isExpense ? ArrowDownLeft : ArrowUpRight;
+  const Icon = getTransactionIcon(isExpense);
   // The stored amount is always positive; the sign comes from the type. The
   // minus is part of the formatted value, not just the color.
-  const signedAmount = isExpense ? `-${transaction.amount}` : transaction.amount;
+  const signedAmount = getSignedTransactionAmount(isExpense, transaction.amount);
   const label = transaction.description || transaction.categoryName;
   const detailLabel = getTransactionDetailLabel(transaction);
 

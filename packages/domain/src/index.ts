@@ -23,6 +23,8 @@ export {
   makeCategoryId,
   makeGoalContributionId,
   makeGoalId,
+  makeRecurringTransactionId,
+  makeSkippedInstanceId,
   makeTransactionId,
 } from './ids.js';
 export type {
@@ -31,10 +33,18 @@ export type {
   CategoryId,
   GoalContributionId,
   GoalId,
+  RecurringTransactionId,
+  SkippedInstanceId,
   TransactionId,
 } from './ids.js';
 export { createGoal, createGoalContribution, isContributionFundingType } from './goal.js';
 export type { Goal, GoalContribution, GoalContributionError, GoalError } from './goal.js';
+export {
+  createRecurringTransaction,
+  isRecurrenceFrequency,
+  RecurrenceFrequency,
+} from './recurring-transaction.js';
+export type { RecurringTransaction, RecurringTransactionError } from './recurring-transaction.js';
 export { createTransaction, TransactionType } from './transaction.js';
 export type { Transaction, TransactionError } from './transaction.js';
 export { createCategory } from './category.js';

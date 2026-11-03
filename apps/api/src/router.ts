@@ -9,6 +9,7 @@ import { exchangeRateRouter } from './exchange-rate.js';
 import { goalContributionRouter } from './goal-contribution.js';
 import { goalRouter } from './goal.js';
 import { householdRouter } from './household.js';
+import { recurringTransactionRouter } from './recurring-transaction.js';
 import { registrationRouter } from './registration.js';
 import { reportingRouter } from './reporting.js';
 import { transactionRouter } from './transaction.js';
@@ -33,6 +34,7 @@ export const appRouter = router({
   goal: goalRouter,
   goalContribution: goalContributionRouter,
   household: householdRouter,
+  recurringTransaction: recurringTransactionRouter,
   registration: registrationRouter,
   reporting: reportingRouter,
   transaction: transactionRouter,

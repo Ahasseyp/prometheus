@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 
 import {
-  createMoney,
   createTransaction as createTransactionEntity,
   currencyFor,
   isCurrencyCode,
@@ -14,7 +13,7 @@ import type { TransactionType as DomainTransactionType } from '@prometheus/domai
 import { Prisma } from '@prisma/client';
 import type { Account, Category, Transaction, Transfer } from '@prisma/client';
 
-import { minorUnitsToDecimal } from '../lib/money.js';
+import { minorUnitsToDecimal, parseAmountToMinorUnits } from '../lib/money.js';
 import { getPrisma } from '../prisma.js';
 import { mapDomainTransactionType, mapPrismaTransactionType } from '../lib/transaction-type.js';
 import { findAccountInHousehold } from './account.js';
@@ -163,30 +162,6 @@ export function mapTransactionToRecord(transaction: TransactionWithRelations): T
 async function findCategoryInHousehold(categoryId: string, householdId: string) {
   const prisma = getPrisma();
   return prisma.category.findFirst({ where: { id: categoryId, householdId } });
-}
-
-export function parseAmountToMinorUnits(
-  amount: string,
-  accountCurrency: string
-): { ok: true; minorUnits: bigint } | { ok: false } {
-  const currency = accountCurrency;
-  if (!isCurrencyCode(currency)) {
-    throw unexpectedValidationError(`unsupported-currency:${currency}`);
-  }
-
-  // Validates the decimal against the Account Currency's exponent.
-  const moneyResult = createMoney(amount, currency);
-  if (!moneyResult.ok) {
-    return { ok: false };
-  }
-
-  // Amounts are stored unsigned; the Transaction Type carries direction.
-  const minorUnits = moneyResult.value.toMinorUnits();
-  if (minorUnits <= 0n) {
-    return { ok: false };
-  }
-
-  return { ok: true, minorUnits };
 }
 
 export async function loanBalanceRemainsNonNegative(

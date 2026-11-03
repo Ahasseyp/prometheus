@@ -178,6 +178,11 @@ describe.sequential('goal contribution procedures', () => {
 
     const usdAccount = await setupFundedAccount('100.00', 'USD');
     const eurAccount = await setupFundedAccount('100.00', 'EUR');
+    const creditCard = await client.account.create.mutate({
+      name: 'Visa',
+      type: AccountType.CreditCard,
+      currency: 'USD',
+    });
     const usdGoal = await client.goal.create.mutate({
       name: 'USD Goal',
       target: '1000.00',
@@ -211,6 +216,15 @@ describe.sequential('goal contribution procedures', () => {
       client.goalContribution.create.mutate({
         goalId: eurGoal.id,
         accountId: usdAccount.id,
+        amount: '10.00',
+      })
+    ).rejects.toThrow();
+
+    // Debt accounts can never fund a Goal, even with matching Currency.
+    await expect(
+      client.goalContribution.create.mutate({
+        goalId: usdGoal.id,
+        accountId: creditCard.id,
         amount: '10.00',
       })
     ).rejects.toThrow();
@@ -317,6 +331,60 @@ describe.sequential('goal contribution procedures', () => {
     await expect(client.goalContribution.get.query({ id: contribution.id })).rejects.toThrow();
 
     const fetched = await client.goal.get.query({ id: secondGoal.id });
+    expect(fetched.savedAmount).toBe('0.00');
+  });
+
+  it('rejects funding from debt accounts', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('contribution-debt-1'),
+      'Secure-password-10'
+    );
+    if (context === null) return;
+
+    const incomeCategory = await client.category.create.mutate({
+      name: 'Income',
+      type: TransactionType.Income,
+    });
+    const creditCard = await client.account.create.mutate({
+      name: 'Visa',
+      type: AccountType.CreditCard,
+      currency: 'USD',
+    });
+    await client.transaction.create.mutate({
+      type: TransactionType.Income,
+      amount: '1000.00',
+      accountId: creditCard.id,
+      categoryId: incomeCategory.id,
+      date: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const loan = await client.account.create.mutate({
+      name: 'Car Loan',
+      type: AccountType.Loan,
+      currency: 'USD',
+    });
+    const goal = await client.goal.create.mutate({
+      name: 'Debt-funded Goal',
+      target: '1000.00',
+      currency: 'USD',
+      deadline: new Date('2027-06-30T00:00:00.000Z'),
+    });
+
+    await expect(
+      client.goalContribution.create.mutate({
+        goalId: goal.id,
+        accountId: creditCard.id,
+        amount: '10.00',
+      })
+    ).rejects.toThrow();
+    await expect(
+      client.goalContribution.create.mutate({
+        goalId: goal.id,
+        accountId: loan.id,
+        amount: '10.00',
+      })
+    ).rejects.toThrow();
+
+    const fetched = await client.goal.get.query({ id: goal.id });
     expect(fetched.savedAmount).toBe('0.00');
   });
 

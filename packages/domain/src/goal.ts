@@ -1,3 +1,4 @@
+import { AccountType } from './account.js';
 import type { AccountId, GoalContributionId, GoalId, HouseholdId } from './ids.js';
 import type { Money, Result } from './types.js';
 import { createTimestamps } from './timestamps.js';
@@ -77,6 +78,19 @@ export type GoalContribution = {
 };
 
 export type GoalContributionError = { type: 'non-positive-amount' };
+
+// A Contribution earmarks money you have; funding one from debt (Credit Card,
+// Loan) would mean borrowing toward the Goal.
+const contributionFundingTypes: readonly AccountType[] = [
+  AccountType.Checking,
+  AccountType.Savings,
+  AccountType.Cash,
+  AccountType.Investment,
+];
+
+export function isContributionFundingType(type: AccountType): boolean {
+  return contributionFundingTypes.includes(type);
+}
 
 /**
  * Creates a Goal Contribution value object, validating that the amount is

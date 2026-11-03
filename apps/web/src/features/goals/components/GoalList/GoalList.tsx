@@ -1,23 +1,43 @@
-import { Table } from '@/components/ui/table.js';
+import type { UseQueryResult } from '@tanstack/react-query';
 
-import type { Goal } from '@/features/goals/gateways/goals.js';
-import { GoalActions } from '@/features/goals/components/GoalActions/GoalActions.js';
+import type { Account } from '@/features/accounts/gateways/accounts.js';
+import { GoalCard } from '@/features/goals/components/GoalCard/GoalCard.js';
 import { GoalListSkeleton } from '@/features/goals/components/GoalListSkeleton/GoalListSkeleton.js';
-import { GoalProgress } from '@/features/goals/components/GoalProgress/GoalProgress.js';
 import { GoalsEmptyState } from '@/features/goals/components/GoalsEmptyState/GoalsEmptyState.js';
 import { GoalsErrorState } from '@/features/goals/components/GoalsErrorState/GoalsErrorState.js';
-import { getGoalDeadlineLabel } from '@/features/goals/lib/goal-presentation.js';
+import type {
+  Goal,
+  GoalContribution,
+  GoalContributionListOutput,
+} from '@/features/goals/gateways/goals.js';
 
 export interface GoalListProps {
   goals?: Goal[];
+  accounts: Account[];
+  contributionsByGoal: Map<string, UseQueryResult<GoalContributionListOutput, Error>>;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
-  onEdit?: (goal: Goal) => void;
-  onDelete?: (goal: Goal) => void;
+  onContribute: (goal: Goal) => void;
+  onEdit: (goal: Goal) => void;
+  onDelete: (goal: Goal) => void;
+  onEditContribution: (goal: Goal, contribution: GoalContribution) => void;
+  onDeleteContribution: (goal: Goal, contribution: GoalContribution) => void;
 }
 
-export function GoalList({ goals, isLoading, isError, onRetry, onEdit, onDelete }: GoalListProps) {
+export function GoalList({
+  goals,
+  accounts,
+  contributionsByGoal,
+  isLoading,
+  isError,
+  onRetry,
+  onContribute,
+  onEdit,
+  onDelete,
+  onEditContribution,
+  onDeleteContribution,
+}: GoalListProps) {
   if (isLoading) {
     return <GoalListSkeleton />;
   }
@@ -30,43 +50,30 @@ export function GoalList({ goals, isLoading, isError, onRetry, onEdit, onDelete 
     return <GoalsEmptyState />;
   }
 
-  const showActions = onEdit !== undefined && onDelete !== undefined;
-
   return (
-    <Table>
-      <Table.Header>
-        <Table.Row>
-          <Table.Head>Goal</Table.Head>
-          <Table.Head>Deadline</Table.Head>
-          {showActions && (
-            <Table.Head className="w-12">
-              <span className="sr-only">Actions</span>
-            </Table.Head>
-          )}
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {goals.map((goal) => (
-          <Table.Row key={goal.id}>
-            <Table.Cell className="w-full min-w-72">
-              <GoalProgress goal={goal} />
-            </Table.Cell>
-            <Table.Cell className="align-top text-muted-foreground">
-              {getGoalDeadlineLabel(goal.deadline)}
-            </Table.Cell>
-            {showActions && (
-              <Table.Cell className="align-top">
-                <GoalActions
-                  label={goal.name}
-                  goal={goal}
-                  onEdit={() => onEdit(goal)}
-                  onDelete={() => onDelete(goal)}
-                />
-              </Table.Cell>
-            )}
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
+    <div className="grid gap-4 xl:grid-cols-2">
+      {goals.map((goal) => (
+        <GoalCard
+          key={goal.id}
+          goal={goal}
+          accounts={accounts}
+          contributions={contributionsByGoal.get(goal.id) ?? idleContributionsQuery}
+          onContribute={onContribute}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onEditContribution={onEditContribution}
+          onDeleteContribution={onDeleteContribution}
+        />
+      ))}
+    </div>
   );
 }
+
+// Goals and their contributions load in parallel; a goal renders with an idle
+// query for the moment before its contribution query mounts.
+const idleContributionsQuery = {
+  data: undefined,
+  isPending: true,
+  isError: false,
+  refetch: () => Promise.reject(new Error('Contribution query not mounted')),
+} as UseQueryResult<GoalContributionListOutput, Error>;

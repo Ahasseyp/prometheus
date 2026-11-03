@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createGoal, createGoalContribution } from './goal.js';
+import { AccountType } from './account.js';
+import { createGoal, createGoalContribution, isContributionFundingType } from './goal.js';
 import { makeAccountId, makeGoalContributionId, makeGoalId, makeHouseholdId } from './ids.js';
 import { createMoney } from './money.js';
 
@@ -35,6 +36,25 @@ describe('createGoalContribution', () => {
       const result = createGoalContribution({ ...validContributionParams, amount });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.error.type).toBe('non-positive-amount');
+    }
+  });
+});
+
+describe('isContributionFundingType', () => {
+  it('allows asset accounts that hold money you have', () => {
+    for (const type of [
+      AccountType.Checking,
+      AccountType.Savings,
+      AccountType.Cash,
+      AccountType.Investment,
+    ]) {
+      expect(isContributionFundingType(type)).toBe(true);
+    }
+  });
+
+  it('rejects debt accounts', () => {
+    for (const type of [AccountType.CreditCard, AccountType.Loan]) {
+      expect(isContributionFundingType(type)).toBe(false);
     }
   });
 });

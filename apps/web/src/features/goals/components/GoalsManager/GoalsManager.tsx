@@ -1,26 +1,46 @@
+import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
 
 import { Button } from '@/components/ui/button.js';
-import { Card } from '@/components/ui/card.js';
-import { useIsMobile } from '@/hooks/use-mobile.js';
-import { useGoals, type Goal } from '@/features/goals/gateways/goals.js';
-import { GoalCard } from '@/features/goals/components/GoalCard/GoalCard.js';
-import { GoalFormDialog } from '@/features/goals/components/GoalFormDialog/GoalFormDialog.js';
+import { useAccounts } from '@/features/accounts/gateways/accounts.js';
+import {
+  useGoalContributionLists,
+  useGoals,
+  type Goal,
+  type GoalContribution,
+} from '@/features/goals/gateways/goals.js';
 import { GoalList } from '@/features/goals/components/GoalList/GoalList.js';
+import { GoalFormDialog } from '@/features/goals/components/GoalFormDialog/GoalFormDialog.js';
 import { DeleteGoalDialog } from '@/features/goals/components/DeleteGoalDialog/DeleteGoalDialog.js';
+import { ContributionFormDialog } from '@/features/goals/components/ContributionFormDialog/ContributionFormDialog.js';
+import { DeleteContributionDialog } from '@/features/goals/components/DeleteContributionDialog/DeleteContributionDialog.js';
 
 export function GoalsManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>(undefined);
   const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
-  const isMobile = useIsMobile();
+  const [contributionDialog, setContributionDialog] = useState<
+    | { mode: 'add'; goal: Goal }
+    | { mode: 'edit'; goal: Goal; contribution: GoalContribution }
+    | null
+  >(null);
+  const [deletingContribution, setDeletingContribution] = useState<{
+    goal: Goal;
+    contribution: GoalContribution;
+  } | null>(null);
   const {
     data: goals,
     isPending: isGoalsPending,
     isError: isGoalsError,
     refetch: refetchGoals,
   } = useGoals();
+  const { data: accounts } = useAccounts();
+  const goalIds = useMemo(() => goals?.map((goal) => goal.id) ?? [], [goals]);
+  const contributionQueries = useGoalContributionLists(goalIds);
+  const contributionsByGoal = useMemo(
+    () => new Map(goalIds.map((goalId, index) => [goalId, contributionQueries[index]])),
+    [goalIds, contributionQueries]
+  );
   const isLoading = isGoalsPending;
   const isError = !isLoading && isGoalsError;
 
@@ -34,19 +54,11 @@ export function GoalsManager() {
     setFormOpen(true);
   }
 
-  function openDeleteConfirmation(goal: Goal) {
-    setDeletingGoal(goal);
-  }
-
   function handleFormOpenChange(nextOpen: boolean) {
     setFormOpen(nextOpen);
     if (!nextOpen) {
       setEditingGoal(undefined);
     }
-  }
-
-  function handleDeleteDialogClose() {
-    setDeletingGoal(null);
   }
 
   return (
@@ -59,39 +71,49 @@ export function GoalsManager() {
         </Button>
       </header>
 
-      <Card>
-        <Card.Header>
-          <Card.Title>Savings goals</Card.Title>
-          <Card.Description>Earmark money from your accounts toward a target.</Card.Description>
-        </Card.Header>
-        <Card.Content className="flex min-h-[28rem] flex-col gap-4">
-          {isMobile ? (
-            <GoalCard
-              goals={goals}
-              isLoading={isLoading}
-              isError={isError}
-              onRetry={() => void refetchGoals()}
-              onEdit={openEditForm}
-              onDelete={openDeleteConfirmation}
-            />
-          ) : (
-            <GoalList
-              goals={goals}
-              isLoading={isLoading}
-              isError={isError}
-              onRetry={() => void refetchGoals()}
-              onEdit={openEditForm}
-              onDelete={openDeleteConfirmation}
-            />
-          )}
-        </Card.Content>
-      </Card>
+      <GoalList
+        goals={goals}
+        accounts={accounts ?? []}
+        contributionsByGoal={contributionsByGoal}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetchGoals()}
+        onContribute={(goal) => setContributionDialog({ mode: 'add', goal })}
+        onEdit={openEditForm}
+        onDelete={setDeletingGoal}
+        onEditContribution={(goal, contribution) =>
+          setContributionDialog({ mode: 'edit', goal, contribution })
+        }
+        onDeleteContribution={(goal, contribution) =>
+          setDeletingContribution({ goal, contribution })
+        }
+      />
 
       <GoalFormDialog open={formOpen} onOpenChange={handleFormOpenChange} goal={editingGoal} />
       <DeleteGoalDialog
         goal={deletingGoal}
         label={deletingGoal?.name ?? ''}
-        onClose={handleDeleteDialogClose}
+        onClose={() => setDeletingGoal(null)}
+      />
+      <ContributionFormDialog
+        open={contributionDialog !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setContributionDialog(null);
+          }
+        }}
+        goal={contributionDialog?.goal ?? null}
+        accounts={accounts ?? []}
+        contribution={
+          contributionDialog?.mode === 'edit' ? contributionDialog.contribution : undefined
+        }
+      />
+      <DeleteContributionDialog
+        contribution={deletingContribution?.contribution ?? null}
+        label={
+          deletingContribution ? `the ${deletingContribution.contribution.amount} contribution` : ''
+        }
+        onClose={() => setDeletingContribution(null)}
       />
     </div>
   );

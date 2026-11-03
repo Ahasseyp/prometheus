@@ -53,6 +53,11 @@ const saveGoalContributionErrorMappings = {
     code: 'NOT_FOUND',
     message: 'Account not found in this household.',
   },
+  'account-type-not-allowed': {
+    code: 'BAD_REQUEST',
+    message:
+      'Contributions can only be funded from checking, savings, cash, or investment accounts.',
+  },
   'currency-mismatch': {
     code: 'BAD_REQUEST',
     message: 'The account currency must match the goal currency.',

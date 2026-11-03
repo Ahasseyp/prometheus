@@ -4,6 +4,7 @@ import {
   createGoalContribution as createGoalContributionEntity,
   createMoney,
   createMoneyFromMinorUnits,
+  isContributionFundingType,
   isCurrencyCode,
   makeAccountId,
   makeGoalContributionId,
@@ -15,7 +16,7 @@ import type { Account, Goal, GoalContribution } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
 import { expectMoney, minorUnitsToDecimal } from '../lib/money.js';
-import { getUnallocatedBalance } from './account.js';
+import { getUnallocatedBalance, mapPrismaAccountType } from './account.js';
 
 export type CreateGoalContributionInput = {
   goalId: string;
@@ -42,6 +43,7 @@ export type GoalContributionValidationError =
   | 'invalid-data'
   | 'goal-not-found'
   | 'account-not-found'
+  | 'account-type-not-allowed'
   | 'currency-mismatch'
   | 'insufficient-unallocated';
 
@@ -105,6 +107,11 @@ async function validateFundingAccount(
   const account = await prisma.account.findFirst({ where: { id: accountId, householdId } });
   if (account === null) {
     return { ok: false, error: 'account-not-found' };
+  }
+  // Funding a Goal from debt would mean borrowing toward it; only asset
+  // Accounts (checking, savings, cash, investment) can contribute.
+  if (!isContributionFundingType(mapPrismaAccountType(account.type))) {
+    return { ok: false, error: 'account-type-not-allowed' };
   }
   if (account.currency !== goal.currency) {
     return { ok: false, error: 'currency-mismatch' };

@@ -33,7 +33,7 @@ export type {
   GoalId,
   TransactionId,
 } from './ids.js';
-export { createGoal, createGoalContribution } from './goal.js';
+export { createGoal, createGoalContribution, isContributionFundingType } from './goal.js';
 export type { Goal, GoalContribution, GoalContributionError, GoalError } from './goal.js';
 export { createTransaction, TransactionType } from './transaction.js';
 export type { Transaction, TransactionError } from './transaction.js';

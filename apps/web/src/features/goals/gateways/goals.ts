@@ -60,7 +60,9 @@ export function useDeleteGoal() {
 
   return useMutation({
     mutationFn: (input: DeleteGoalInput) => trpc.goal.delete.mutate(input),
-    onSuccess: () => invalidateGoals(queryClient),
+    // Deleting a Goal cascades its Contributions, returning earmarked Money
+    // to Account Unallocated Balances.
+    onSuccess: () => invalidateGoalData(queryClient),
   });
 }
 

@@ -123,9 +123,12 @@ docker compose exec db createdb -U prometheus prometheus_test
 Apply migrations to the test database and run the API test suite:
 
 ```bash
-DATABASE_URL=$(grep DATABASE_URL .env.test.local | cut -d '=' -f2-) pnpm db:migrate:deploy
+pnpm db:migrate:test
 DATABASE_URL=$(grep DATABASE_URL .env.test.local | cut -d '=' -f2-) pnpm --filter @prometheus/api test
 ```
+
+The development database gets migrations with `pnpm db:migrate:dev` (or
+`pnpm db:migrate` for the interactive `migrate dev`).
 
 ## Pre-commit checks
 

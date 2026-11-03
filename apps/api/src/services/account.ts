@@ -32,6 +32,8 @@ export type AccountWithBalance = {
   type: DomainAccountType;
   currency: string;
   balance: string;
+  unallocatedBalance: string;
+  earmarkedBalance: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -85,7 +87,7 @@ function createMoneyInAccountCurrency(
 // Balance is derived from the transaction ledger: income adds, expense
 // subtracts (issue #24). Sums are Money values in the Account Currency and
 // are only formatted to decimal strings at the response boundary.
-export async function sumAccountBalances(
+async function sumAccountBalances(
   accounts: Array<Pick<Account, 'id' | 'currency'>>
 ): Promise<Map<string, Money>> {
   const balances = new Map<string, Money>();
@@ -123,13 +125,81 @@ export async function sumAccountBalances(
   return balances;
 }
 
-function mapAccountToWithBalance(
-  account: Account,
-  balances: Map<string, Money>
-): AccountWithBalance {
+// Earmarked is the portion of an Account's Balance that its active Goal
+// Contributions earmark (issue #28); the Unallocated Balance is the
+// remainder. Sums are Money values in the Account Currency.
+async function sumEarmarkedAmounts(
+  accounts: Array<Pick<Account, 'id' | 'currency'>>
+): Promise<Map<string, Money>> {
+  const earmarked = new Map<string, Money>();
+  for (const account of accounts) {
+    earmarked.set(account.id, createMoneyInAccountCurrency(0n, account));
+  }
+  if (accounts.length === 0) {
+    return earmarked;
+  }
+
+  const prisma = getPrisma();
+  const grouped = await prisma.goalContribution.groupBy({
+    by: ['accountId'],
+    where: { accountId: { in: accounts.map((account) => account.id) } },
+    _sum: { amount: true },
+  });
+
+  const currencies = new Map(accounts.map((account) => [account.id, account.currency]));
+  for (const row of grouped) {
+    const currency = currencies.get(row.accountId);
+    if (currency === undefined) {
+      throw unexpectedValidationError('earmarked-for-unknown-account');
+    }
+    earmarked.set(row.accountId, createMoneyInAccountCurrency(row._sum.amount ?? 0n, { currency }));
+  }
+
+  return earmarked;
+}
+
+// The Unallocated Balance with one Contribution excluded (on edit) measures
+// the Account as if that Contribution were already removed.
+export async function getUnallocatedBalance(
+  account: Pick<Account, 'id' | 'currency'>,
+  excludeContributionId?: string
+): Promise<Money> {
+  const prisma = getPrisma();
+  const earmarked = await prisma.goalContribution.aggregate({
+    where: {
+      accountId: account.id,
+      ...(excludeContributionId !== undefined ? { id: { not: excludeContributionId } } : {}),
+    },
+    _sum: { amount: true },
+  });
+
+  const balances = await sumAccountBalances([account]);
   const balance = balances.get(account.id);
   if (balance === undefined) {
     throw unexpectedValidationError('missing-balance');
+  }
+
+  const earmarkedMoney = createMoneyInAccountCurrency(earmarked._sum.amount ?? 0n, account);
+  const unallocated = balance.subtract(earmarkedMoney);
+  if (!unallocated.ok) {
+    throw unexpectedValidationError(unallocated.error.type);
+  }
+  return unallocated.value;
+}
+
+function mapAccountToWithBalance(
+  account: Account,
+  balances: Map<string, Money>,
+  earmarkedAmounts: Map<string, Money>
+): AccountWithBalance {
+  const balance = balances.get(account.id);
+  const earmarked = earmarkedAmounts.get(account.id);
+  if (balance === undefined || earmarked === undefined) {
+    throw unexpectedValidationError('missing-balance');
+  }
+  const unallocated = balance.subtract(earmarked);
+  if (!unallocated.ok) {
+    throw unexpectedValidationError(unallocated.error.type);
   }
   return {
     id: account.id,
@@ -138,9 +208,26 @@ function mapAccountToWithBalance(
     type: mapPrismaAccountType(account.type),
     currency: account.currency,
     balance: balance.toDecimal(),
+    unallocatedBalance: unallocated.value.toDecimal(),
+    earmarkedBalance: earmarked.toDecimal(),
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
   };
+}
+
+async function mapAccountsToWithBalance(accounts: Account[]): Promise<AccountWithBalance[]> {
+  const balances = await sumAccountBalances(accounts);
+  const earmarkedAmounts = await sumEarmarkedAmounts(accounts);
+  return accounts.map((account) => mapAccountToWithBalance(account, balances, earmarkedAmounts));
+}
+
+async function mapAccountToWithBalanceFresh(account: Account): Promise<AccountWithBalance> {
+  const accounts = await mapAccountsToWithBalance([account]);
+  const mapped = accounts[0];
+  if (mapped === undefined) {
+    throw unexpectedValidationError('missing-account-record');
+  }
+  return mapped;
 }
 
 export async function createAccount(
@@ -171,7 +258,7 @@ export async function createAccount(
     },
   });
 
-  return mapAccountToWithBalance(account, await sumAccountBalances([account]));
+  return mapAccountToWithBalanceFresh(account);
 }
 
 export async function listAccountsForHousehold(householdId: string): Promise<AccountWithBalance[]> {
@@ -181,8 +268,7 @@ export async function listAccountsForHousehold(householdId: string): Promise<Acc
     orderBy: { createdAt: 'asc' },
   });
 
-  const balances = await sumAccountBalances(accounts);
-  return accounts.map((account) => mapAccountToWithBalance(account, balances));
+  return mapAccountsToWithBalance(accounts);
 }
 
 export async function findAccountInHousehold(accountId: string, householdId: string) {
@@ -203,7 +289,7 @@ export async function findAccountById(
     return null;
   }
 
-  return mapAccountToWithBalance(account, await sumAccountBalances([account]));
+  return mapAccountToWithBalanceFresh(account);
 }
 
 export async function updateAccount(
@@ -233,7 +319,7 @@ export async function updateAccount(
       where: { id: accountId, householdId },
       data: updateData,
     });
-    return mapAccountToWithBalance(account, await sumAccountBalances([account]));
+    return mapAccountToWithBalanceFresh(account);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return null;

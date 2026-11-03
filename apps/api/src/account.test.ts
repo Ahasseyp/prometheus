@@ -4,7 +4,7 @@ import type { Server } from 'http';
 import type { AppRouter } from './router.js';
 import { createCookieJarFetch } from './test/cookies.js';
 import { cleanupTestData, makeTestEmail, startTestServer } from './test/server.js';
-import { AccountType } from '@prometheus/domain';
+import { AccountType, TransactionType } from '@prometheus/domain';
 
 describe.sequential('account procedures', () => {
   let server: Server;
@@ -249,5 +249,73 @@ describe.sequential('account procedures', () => {
     });
 
     expect(account.type).toBe(AccountType.Loan);
+  });
+
+  it('splits the Balance into Unallocated and Earmarked amounts', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('account-allocation-1'),
+      'Secure-password-10'
+    );
+    if (context === null) return;
+
+    const incomeCategory = await client.category.create.mutate({
+      name: 'Income',
+      type: TransactionType.Income,
+    });
+    const account = await client.account.create.mutate({
+      name: 'Savings',
+      type: AccountType.Savings,
+      currency: 'USD',
+    });
+
+    // No Contributions yet: everything is Unallocated.
+    let fetched = await client.account.get.query({ id: account.id });
+    expect(fetched.balance).toBe('0.00');
+    expect(fetched.unallocatedBalance).toBe('0.00');
+    expect(fetched.earmarkedBalance).toBe('0.00');
+
+    await client.transaction.create.mutate({
+      type: TransactionType.Income,
+      amount: '1000.00',
+      accountId: account.id,
+      categoryId: incomeCategory.id,
+      date: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const goal = await client.goal.create.mutate({
+      name: 'Emergency Fund',
+      target: '500.00',
+      currency: 'USD',
+      deadline: new Date('2027-06-30T00:00:00.000Z'),
+    });
+    const contribution = await client.goalContribution.create.mutate({
+      goalId: goal.id,
+      accountId: account.id,
+      amount: '250.00',
+    });
+
+    // Balance = Unallocated + Earmarked across list and get.
+    const list = await client.account.list.query();
+    const listed = list.find((a) => a.id === account.id);
+    expect(listed?.balance).toBe('1000.00');
+    expect(listed?.earmarkedBalance).toBe('250.00');
+    expect(listed?.unallocatedBalance).toBe('750.00');
+
+    fetched = await client.account.get.query({ id: account.id });
+    expect(fetched.earmarkedBalance).toBe('250.00');
+    expect(fetched.unallocatedBalance).toBe('750.00');
+
+    const updated = await client.account.update.mutate({
+      id: account.id,
+      name: 'Renamed Savings',
+    });
+    expect(updated.earmarkedBalance).toBe('250.00');
+    expect(updated.unallocatedBalance).toBe('750.00');
+
+    // Deleting the Contribution restores the full Balance as Unallocated.
+    await client.goalContribution.delete.mutate({ id: contribution.id });
+    fetched = await client.account.get.query({ id: account.id });
+    expect(fetched.balance).toBe('1000.00');
+    expect(fetched.earmarkedBalance).toBe('0.00');
+    expect(fetched.unallocatedBalance).toBe('1000.00');
   });
 });

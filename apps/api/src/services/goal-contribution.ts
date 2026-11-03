@@ -15,7 +15,7 @@ import type { Account, Goal, GoalContribution } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
 import { expectMoney, minorUnitsToDecimal } from '../lib/money.js';
-import { sumAccountBalances } from './account.js';
+import { getUnallocatedBalance } from './account.js';
 
 export type CreateGoalContributionInput = {
   goalId: string;
@@ -94,37 +94,6 @@ function moneyInCurrency(minorUnits: bigint, currency: string): Money {
     throw unexpectedValidationError(`unsupported-currency:${currency}`);
   }
   return expectMoney(createMoneyFromMinorUnits(minorUnits, currency));
-}
-
-// The Unallocated Balance is the Account's ledger Balance minus everything
-// its active Goal Contributions earmark (issue #28). Excluding a Contribution
-// (on edit) measures the balance as if that Contribution were already gone.
-async function getUnallocatedBalance(
-  account: Pick<Account, 'id' | 'currency'>,
-  excludeContributionId?: string
-): Promise<Money> {
-  const prisma = getPrisma();
-  const earmarked = await prisma.goalContribution.aggregate({
-    where: {
-      accountId: account.id,
-      ...(excludeContributionId !== undefined ? { id: { not: excludeContributionId } } : {}),
-    },
-    _sum: { amount: true },
-  });
-
-  const balances = await sumAccountBalances([account]);
-  const balance = balances.get(account.id);
-  if (balance === undefined) {
-    throw unexpectedValidationError('missing-balance');
-  }
-
-  const unallocated = balance.subtract(
-    moneyInCurrency(earmarked._sum.amount ?? 0n, account.currency)
-  );
-  if (!unallocated.ok) {
-    throw unexpectedValidationError(unallocated.error.type);
-  }
-  return unallocated.value;
 }
 
 async function validateFundingAccount(

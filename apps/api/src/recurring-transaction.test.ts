@@ -2,9 +2,11 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
+import { AccountType, TransactionType } from '@prometheus/domain';
+
 import { createCookieJarFetch } from './test/cookies.js';
 import { cleanupTestData, makeTestEmail, startTestServer } from './test/server.js';
-import { AccountType, TransactionType } from '@prometheus/domain';
+import { getPrisma } from './prisma.js';
 
 describe.sequential('recurring transaction procedures', () => {
   let server: Server;
@@ -86,6 +88,22 @@ describe.sequential('recurring transaction procedures', () => {
     const category = categories.find((c) => c.name === name);
     expect(category).toBeDefined();
     return category!;
+  }
+
+  function startOfUtcDay(date: Date): Date {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  }
+
+  function daysAgo(days: number): Date {
+    const today = startOfUtcDay(new Date());
+    today.setUTCDate(today.getUTCDate() - days);
+    return today;
+  }
+
+  function addDays(date: Date, days: number): Date {
+    const next = startOfUtcDay(new Date(date));
+    next.setUTCDate(next.getUTCDate() + days);
+    return next;
   }
 
   it('creates a recurring transaction and lists it with a computed next date', async () => {
@@ -171,5 +189,129 @@ describe.sequential('recurring transaction procedures', () => {
 
     const list = await client.recurringTransaction.list.query();
     expect(list).toHaveLength(0);
+  });
+
+  it('generates due transaction instances when listing recurring transactions', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-generate-1'),
+      'Secure-password-5'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '10.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    // Calling the list procedure triggers lazy generation.
+    const list = await client.recurringTransaction.list.query();
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe(created.id);
+    expect(new Date(list[0].nextDate).getTime()).toBeGreaterThan(
+      startOfUtcDay(new Date()).getTime()
+    );
+
+    const transactions = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+    expect(transactions).toHaveLength(3);
+
+    const expectedDates = [0, 7, 14].map((offset) => addDays(startDate, offset));
+    expect(transactions.map((t) => new Date(t.date).getTime()).sort()).toEqual(
+      expectedDates.map((d) => d.getTime()).sort()
+    );
+    for (const transaction of transactions) {
+      expect(transaction.amount).toBe('10.00');
+      expect(transaction.accountId).toBe(account.id);
+      expect(transaction.categoryId).toBe(groceries.id);
+    }
+  });
+
+  it('is idempotent when generating recurring transaction instances', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-idempotent-1'),
+      'Secure-password-6'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(7);
+
+    await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '12.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await client.recurringTransaction.list.query();
+    const firstRun = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+
+    await client.recurringTransaction.list.query();
+    const secondRun = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+
+    expect(secondRun).toHaveLength(firstRun.length);
+    expect(secondRun.map((t) => t.id).sort()).toEqual(firstRun.map((t) => t.id).sort());
+  });
+
+  it('does not generate skipped occurrences', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('recurring-skip-1'),
+      'Secure-password-7'
+    );
+    if (context === null) return;
+
+    const account = await createUsdAccount('Checking');
+    const groceries = await findSystemCategory('Groceries');
+    const startDate = daysAgo(14);
+    const skippedDate = addDays(startDate, 7);
+
+    const created = await client.recurringTransaction.create.mutate({
+      type: TransactionType.Expense,
+      amount: '15.00',
+      accountId: account.id,
+      categoryId: groceries.id,
+      startDate,
+      period: 'week',
+      interval: 1,
+    });
+
+    await getPrisma().skippedInstance.create({
+      data: {
+        recurringTransactionId: created.id,
+        date: skippedDate,
+      },
+    });
+
+    await client.recurringTransaction.list.query();
+
+    const transactions = await client.transaction.list.query({
+      from: startDate,
+      to: daysAgo(0),
+    });
+    expect(transactions).toHaveLength(2);
+    expect(transactions.some((t) => new Date(t.date).getTime() === skippedDate.getTime())).toBe(
+      false
+    );
   });
 });

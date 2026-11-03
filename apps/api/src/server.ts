@@ -9,6 +9,7 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { z } from 'zod';
 
 import { startExchangeRateRefreshSchedule } from './exchange-rates/scheduler.js';
+import { startRecurringTransactionGenerationSchedule } from './recurring-transactions/scheduler.js';
 import { appRouter } from './router.js';
 import { createContext } from './trpc.js';
 
@@ -72,4 +73,7 @@ if (isMainModule) {
     console.log(`API server ready at http://localhost:${port}`);
   });
   startExchangeRateRefreshSchedule();
+  startRecurringTransactionGenerationSchedule().catch((error) => {
+    console.error('Failed to generate recurring transaction instances at startup:', error);
+  });
 }

@@ -1,14 +1,17 @@
 import crypto from 'node:crypto';
 
 import {
-  anchoredPeriodFor,
   createRecurringTransaction as createRecurringTransactionEntity,
+  createTransaction as createTransactionEntity,
+  dueRecurringOccurrences,
   isCurrencyCode,
   isRecurrencePeriod,
   makeAccountId,
   makeCategoryId,
   makeHouseholdId,
   makeRecurringTransactionId,
+  makeTransactionId,
+  nextRecurringOccurrenceAfter,
   RecurrencePeriod,
 } from '@prometheus/domain';
 import type { RecurrencePeriod as DomainRecurrencePeriod } from '@prometheus/domain';
@@ -17,6 +20,7 @@ import type { RecurringTransaction as PrismaRecurringTransaction } from '@prisma
 import { getPrisma } from '../prisma.js';
 import { minorUnitsToDecimal, parseAmountToMinorUnits } from '../lib/money.js';
 import { mapPrismaTransactionType, mapDomainTransactionType } from '../lib/transaction-type.js';
+import { resolveTransactionExchangeRate } from './transaction.js';
 
 export type CreateRecurringTransactionInput = {
   accountId: string;
@@ -94,85 +98,6 @@ function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function addUtcMonths(date: Date, months: number): Date {
-  const next = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
-  const day = Math.min(
-    date.getUTCDate(),
-    daysInUtcMonth(next.getUTCFullYear(), next.getUTCMonth())
-  );
-  next.setUTCDate(day);
-  return next;
-}
-
-function daysInUtcMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-}
-
-function addUtcYears(date: Date, years: number): Date {
-  const next = new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), 1));
-  const day = Math.min(
-    date.getUTCDate(),
-    daysInUtcMonth(next.getUTCFullYear(), next.getUTCMonth())
-  );
-  next.setUTCDate(day);
-  return next;
-}
-
-function addUtcWeeks(date: Date, weeks: number): Date {
-  const next = new Date(date);
-  next.setUTCDate(next.getUTCDate() + weeks * 7);
-  return next;
-}
-
-function periodStartForDate(startDate: Date, period: DomainRecurrencePeriod, date: Date): Date {
-  // For interval > 1 we still anchor each step to the startDate so the same
-  // weekday / day-of-month is preserved.
-  if (period === RecurrencePeriod.Week) {
-    return anchoredPeriodFor(startDate, date, 'weekly').start;
-  }
-  if (period === RecurrencePeriod.Month) {
-    return anchoredPeriodFor(startDate, date, 'monthly').start;
-  }
-  return anchoredPeriodFor(startDate, date, 'yearly').start;
-}
-
-function nextOccurrenceOnOrAfter(
-  startDate: Date,
-  period: DomainRecurrencePeriod,
-  interval: number,
-  reference: Date
-): Date {
-  // Fast path: if the reference is before or on the startDate, the next due
-  // occurrence is the startDate itself.
-  const anchor = startOfUtcDay(startDate);
-  const ref = startOfUtcDay(reference);
-  if (ref <= anchor) {
-    return anchor;
-  }
-
-  // Walk forward in interval-sized jumps from the startDate until we land on or
-  // past the reference date. This is cheap for small intervals; we keep the math
-  // anchored to startDate rather than jumping from today so the day-of-month /
-  // weekday is preserved.
-  let next = startOfUtcDay(anchor);
-  while (true) {
-    const candidate = startOfUtcDay(
-      period === RecurrencePeriod.Week
-        ? addUtcWeeks(next, interval)
-        : period === RecurrencePeriod.Month
-          ? addUtcMonths(next, interval)
-          : addUtcYears(next, interval)
-    );
-    if (candidate > ref) {
-      return periodStartForDate(startDate, period, next);
-    }
-    if (candidate.getTime() === ref.getTime()) {
-      return periodStartForDate(startDate, period, candidate);
-    }
-    next = candidate;
-  }
-}
-
 function getToday(): Date {
   return startOfUtcDay(new Date());
 }
@@ -197,7 +122,7 @@ function mapRecurringTransactionToRecord(
   }
 
   const period = mapPrismaRecurrencePeriod(recurringTransaction.period);
-  const nextDate = nextOccurrenceOnOrAfter(
+  const nextDate = nextRecurringOccurrenceAfter(
     recurringTransaction.startDate,
     period,
     recurringTransaction.interval,
@@ -310,6 +235,8 @@ export async function createRecurringTransaction(
 export async function listRecurringTransactionsForHousehold(
   householdId: string
 ): Promise<RecurringTransactionRecord[]> {
+  await generateDueInstances(householdId);
+
   const prisma = getPrisma();
   const recurringTransactions = await prisma.recurringTransaction.findMany({
     where: { householdId },
@@ -318,4 +245,105 @@ export async function listRecurringTransactionsForHousehold(
   });
 
   return recurringTransactions.map(mapRecurringTransactionToRecord);
+}
+
+async function buildTransactionInstanceData(
+  schedule: PrismaRecurringTransaction & {
+    account: { currency: string };
+    category: { name: string };
+    household: { reportingCurrency: string };
+  },
+  date: Date
+) {
+  const currency = schedule.account.currency;
+  if (!isCurrencyCode(currency)) {
+    throw unexpectedValidationError(`unsupported-currency:${currency}`);
+  }
+
+  const type = mapPrismaTransactionType(schedule.type) as 'income' | 'expense';
+  const entityResult = createTransactionEntity({
+    id: makeTransactionId(crypto.randomUUID()),
+    householdId: makeHouseholdId(schedule.householdId),
+    accountId: makeAccountId(schedule.accountId),
+    categoryId: makeCategoryId(schedule.categoryId),
+    type,
+    amountMinorUnits: schedule.amount,
+    date,
+    description: schedule.description,
+  });
+
+  if (!entityResult.ok) {
+    throw unexpectedValidationError(`invalid-transaction-entity:${entityResult.error.type}`);
+  }
+
+  const validated = entityResult.value;
+  let reportingCurrency: string | null = null;
+  let exchangeRate: string | null = null;
+
+  if (currency === schedule.household.reportingCurrency) {
+    reportingCurrency = currency;
+    exchangeRate = '1';
+  } else {
+    const rate = await resolveTransactionExchangeRate(currency, schedule.householdId, date);
+    if (rate !== null) {
+      reportingCurrency = rate.reportingCurrency;
+      exchangeRate = rate.exchangeRate;
+    }
+  }
+
+  return {
+    id: validated.id,
+    householdId: validated.householdId,
+    accountId: validated.accountId,
+    categoryId: validated.categoryId,
+    type: mapDomainTransactionType(validated.type),
+    amount: validated.amountMinorUnits,
+    date: validated.date,
+    description: validated.description,
+    recurringTransactionId: schedule.id,
+    reportingCurrency,
+    exchangeRate,
+  };
+}
+
+export async function generateDueInstances(householdId?: string): Promise<void> {
+  const prisma = getPrisma();
+  const recurringTransactions = await prisma.recurringTransaction.findMany({
+    where: householdId === undefined ? {} : { householdId },
+    include: { account: true, category: true, household: true },
+  });
+
+  const today = getToday();
+
+  for (const schedule of recurringTransactions) {
+    const generatedRows = await prisma.transaction.findMany({
+      where: { recurringTransactionId: schedule.id },
+      select: { date: true },
+    });
+    const skippedRows = await prisma.skippedInstance.findMany({
+      where: { recurringTransactionId: schedule.id },
+      select: { date: true },
+    });
+
+    const dueDates = dueRecurringOccurrences({
+      startDate: schedule.startDate,
+      period: mapPrismaRecurrencePeriod(schedule.period),
+      interval: schedule.interval,
+      referenceDate: today,
+      generatedDates: generatedRows.map((row) => row.date),
+      skippedDates: skippedRows.map((row) => row.date),
+    });
+
+    if (dueDates.length === 0) {
+      continue;
+    }
+
+    const creates: ReturnType<typeof prisma.transaction.create>[] = [];
+    for (const date of dueDates) {
+      const data = await buildTransactionInstanceData(schedule, date);
+      creates.push(prisma.transaction.create({ data }));
+    }
+
+    await prisma.$transaction(creates);
+  }
 }

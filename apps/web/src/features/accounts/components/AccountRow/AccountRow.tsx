@@ -5,7 +5,8 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu.js';
 
 import { ACCOUNT_TYPE_META } from '@/features/accounts/lib/account-types.js';
 import { signedMinorUnits } from '@/features/accounts/lib/account-totals.js';
-import { formatMinorUnits, formatMoney } from '@/lib/format-money.js';
+import { formatMinorUnits, formatMoney, getCurrencyExponent } from '@/lib/format-money.js';
+import { decimalStringToMinorUnits } from '@/lib/money-parser.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { cn } from '@/lib/utils.js';
 
@@ -36,6 +37,12 @@ export function AccountRow({
       ? formatMoney(convertedBalance, reportingCurrency)
       : formatMinorUnits(signedBalance, account.currency);
   const showActions = onEdit !== undefined && onDelete !== undefined;
+  // Goal Contributions earmark part of the Balance; the subline only appears
+  // in Account-currency mode so it never competes with the converted balance.
+  const exponent = getCurrencyExponent(account.currency);
+  const earmarkedMinorUnits = decimalStringToMinorUnits(account.earmarkedBalance, exponent);
+  const unallocatedMinorUnits = decimalStringToMinorUnits(account.unallocatedBalance, exponent);
+  const showAllocationSplit = !showConverted && earmarkedMinorUnits > 0n;
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
@@ -49,16 +56,24 @@ export function AccountRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <p
-          className={cn(
-            'text-sm font-semibold',
-            // The minus sign comes from the currency formatting; color is only a
-            // reinforcement so the state never relies on color alone.
-            isNegative ? 'text-destructive' : 'text-foreground'
+        <div className="flex flex-col items-end gap-0.5">
+          <p
+            className={cn(
+              'text-sm font-semibold',
+              // The minus sign comes from the currency formatting; color is only a
+              // reinforcement so the state never relies on color alone.
+              isNegative ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {displayedBalance}
+          </p>
+          {showAllocationSplit && (
+            <p className="text-xs text-muted-foreground">
+              {formatMinorUnits(unallocatedMinorUnits, account.currency)} unallocated ·{' '}
+              {formatMinorUnits(earmarkedMinorUnits, account.currency)} earmarked
+            </p>
           )}
-        >
-          {displayedBalance}
-        </p>
+        </div>
         {showActions && (
           <DropdownMenu>
             <DropdownMenu.Trigger

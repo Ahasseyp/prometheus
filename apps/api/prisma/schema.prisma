@@ -42,12 +42,14 @@ model Household {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now()) @updatedAt
 
-  memberships  HouseholdMembership[]
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[]
-  transfers    Transfer[]
-  budgets      Budget[]
+  memberships   HouseholdMembership[]
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  transfers     Transfer[]
+  budgets       Budget[]
+  goals         Goal[]
+  contributions GoalContribution[]
 }
 
 model ExchangeRate {
@@ -72,8 +74,9 @@ model Account {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @default(now()) @updatedAt
 
-  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  household     Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  contributions GoalContribution[]
 
   @@index([householdId])
 }
@@ -129,9 +132,9 @@ model Category {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @default(now()) @updatedAt
 
-  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children     Category[]    @relation("CategoryHierarchy")
+  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  parent       Category?        @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children     Category[]       @relation("CategoryHierarchy")
   transactions Transaction[]
   budgets      BudgetCategory[]
 
@@ -159,11 +162,11 @@ model Transaction {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @default(now()) @updatedAt
 
-  household             Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  account               Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  category              Category?   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  transferSource        Transfer[]  @relation("TransferSource")
-  transferDestination   Transfer[]  @relation("TransferDestination")
+  household           Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account             Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category            Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transferSource      Transfer[] @relation("TransferSource")
+  transferDestination Transfer[] @relation("TransferDestination")
 
   @@index([householdId])
   @@index([accountId])
@@ -221,6 +224,51 @@ model BudgetCategory {
   @@index([categoryId])
 }
 
+// A Goal earmarks Money from Account Balances through Goal Contributions
+// without creating Transactions (issue #28). The target is stored in minor
+// units of the Goal Currency and is always positive; the saved amount is
+// derived from Goal Contributions. The Currency is fixed after creation
+// (ADR-0002) and the deadline is a pure calendar date.
+model Goal {
+  id          String   @id @default(uuid()) @db.Uuid
+  householdId String   @db.Uuid
+  name        String
+  target      BigInt
+  currency    String
+  deadline    DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  contributions GoalContribution[]
+
+  @@index([householdId])
+}
+
+// A Goal Contribution earmarks Money from an Account's Unallocated Balance
+// for a Goal without creating a Transaction (issue #28). The amount is stored
+// in minor units of the Goal Currency (which must match the funding
+// Account's Currency) and is always positive. Deleting the Goal or the
+// Account cascades its Contributions.
+model GoalContribution {
+  id          String   @id @default(uuid()) @db.Uuid
+  householdId String   @db.Uuid
+  goalId      String   @db.Uuid
+  accountId   String   @db.Uuid
+  amount      BigInt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  goal      Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@index([goalId])
+  @@index([accountId])
+}
+
 // A Transfer is a first-class record linking one source Transaction and one
 // destination Transaction; both are written or removed in one database
 // transaction (issue #26). Cross-currency Transfers store the direct
@@ -234,9 +282,9 @@ model Transfer {
   createdAt                DateTime @default(now())
   updatedAt                DateTime @default(now()) @updatedAt
 
-  household                Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  sourceTransaction        Transaction @relation("TransferSource", fields: [sourceTransactionId], references: [id], onDelete: Cascade)
-  destinationTransaction   Transaction @relation("TransferDestination", fields: [destinationTransactionId], references: [id], onDelete: Cascade)
+  household              Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  sourceTransaction      Transaction @relation("TransferSource", fields: [sourceTransactionId], references: [id], onDelete: Cascade)
+  destinationTransaction Transaction @relation("TransferDestination", fields: [destinationTransactionId], references: [id], onDelete: Cascade)
 
   @@index([householdId])
 }

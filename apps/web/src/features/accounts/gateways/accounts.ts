@@ -50,6 +50,9 @@ export function useDeleteAccount() {
     mutationFn: (input: DeleteAccountInput) => trpc.account.delete.mutate(input),
     onSuccess: () => {
       void invalidateAccounts(queryClient);
+      // Deleting an Account cascades its Goal Contributions, changing Goal
+      // saved amounts (issue #28).
+      void queryClient.invalidateQueries({ queryKey: ['goals'] });
     },
   });
 }

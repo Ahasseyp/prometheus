@@ -9,6 +9,8 @@ export type AccountFixture = {
   type: string;
   currency: string;
   balance: string;
+  unallocatedBalance: string;
+  earmarkedBalance: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -21,6 +23,8 @@ export function makeAccount(overrides: Partial<AccountFixture> = {}): AccountFix
     type: 'checking',
     currency: 'USD',
     balance: '0',
+    unallocatedBalance: '0',
+    earmarkedBalance: '0',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

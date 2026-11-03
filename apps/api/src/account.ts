@@ -28,6 +28,8 @@ const accountResponseSchema = z.object({
   type: accountTypeSchema,
   currency: z.string(),
   balance: z.string(),
+  unallocatedBalance: z.string(),
+  earmarkedBalance: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

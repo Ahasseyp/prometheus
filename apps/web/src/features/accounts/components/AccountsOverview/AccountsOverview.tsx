@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AccountsOverviewCard } from '@/features/accounts/components/AccountsOverviewCard/AccountsOverviewCard.js';
 import { AccountSummary } from '@/features/accounts/components/AccountSummary/AccountSummary.js';
 import { BudgetsOverviewCard } from '@/features/budgets/components/BudgetsOverviewCard/BudgetsOverviewCard.js';
+import { GoalsOverviewCard } from '@/features/goals/components/GoalsOverviewCard/GoalsOverviewCard.js';
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdState.js';
 import { useReportingSummary } from '@/features/reporting/gateways/reporting.js';
@@ -40,6 +41,8 @@ export function AccountsOverview() {
       />
 
       <BudgetsOverviewCard />
+
+      <GoalsOverviewCard />
     </div>
   );
 }

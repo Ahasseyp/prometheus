@@ -8,6 +8,7 @@ import { TransactionsPage } from './pages/transactions.js';
 import { CategoriesPage } from './pages/categories.js';
 import { BudgetsPage } from './pages/budgets.js';
 import { GoalsPage } from './pages/goals.js';
+import { RecurringTransactionsPage } from './pages/recurring-transactions.js';
 import { SettingsPage } from './pages/settings.js';
 import { RegisterPage } from './pages/register.js';
 
@@ -63,6 +64,13 @@ const goalsRoute = createRoute({
   staticData: { title: 'Goals' },
 });
 
+const recurringTransactionsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/recurring-transactions',
+  component: RecurringTransactionsPage,
+  staticData: { title: 'Recurring' },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/settings',
@@ -90,6 +98,7 @@ const routeTree = rootRoute.addChildren([
     categoriesRoute,
     budgetsRoute,
     goalsRoute,
+    recurringTransactionsRoute,
     settingsRoute,
   ]),
   loginRoute,

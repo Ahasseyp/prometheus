@@ -23,6 +23,8 @@ export {
   makeCategoryId,
   makeGoalContributionId,
   makeGoalId,
+  makeRecurringTransactionId,
+  makeSkippedInstanceId,
   makeTransactionId,
 } from './ids.js';
 export type {
@@ -31,10 +33,19 @@ export type {
   CategoryId,
   GoalContributionId,
   GoalId,
+  RecurringTransactionId,
+  SkippedInstanceId,
   TransactionId,
 } from './ids.js';
 export { createGoal, createGoalContribution, isContributionFundingType } from './goal.js';
 export type { Goal, GoalContribution, GoalContributionError, GoalError } from './goal.js';
+export {
+  createRecurringTransaction,
+  DEFAULT_RECURRENCE_INTERVAL,
+  isRecurrencePeriod,
+  RecurrencePeriod,
+} from './recurring-transaction.js';
+export type { RecurringTransaction, RecurringTransactionError } from './recurring-transaction.js';
 export { createTransaction, TransactionType } from './transaction.js';
 export type { Transaction, TransactionError } from './transaction.js';
 export { createCategory } from './category.js';
@@ -43,5 +54,9 @@ export { BudgetPeriod, createBudget, isBudgetPeriod } from './budget.js';
 export type { Budget, BudgetError } from './budget.js';
 export { anchoredPeriodBoundsAt, anchoredPeriodFor } from './budget-period.js';
 export type { PeriodBounds } from './budget-period.js';
+export {
+  dueRecurringTransactionInstances,
+  nextRecurringTransactionInstanceDateAfter,
+} from './recurrence.js';
 export { passwordSchema } from './password.js';
 export type { Password } from './password.js';

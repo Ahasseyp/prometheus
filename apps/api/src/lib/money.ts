@@ -1,4 +1,4 @@
-import { createMoneyFromMinorUnits } from '@prometheus/domain';
+import { createMoney, createMoneyFromMinorUnits, isCurrencyCode } from '@prometheus/domain';
 import type { CurrencyCode, Money, Result } from '@prometheus/domain';
 
 /**
@@ -15,4 +15,32 @@ export function expectMoney(result: Result<Money>): Money {
     throw new Error(`Unexpected money conversion failure: ${result.error.type}`);
   }
   return result.value;
+}
+
+/**
+ * Parses a positive decimal amount into minor units for the given currency.
+ * Returns { ok: false } when the decimal is invalid, exceeds the currency
+ * exponent, or is not positive. Throws when the currency code is unsupported;
+ * callers should validate the account exists first. Used by Transaction,
+ * Transfer, and Recurring Transaction creation paths.
+ */
+export function parseAmountToMinorUnits(
+  amount: string,
+  accountCurrency: string
+): { ok: true; minorUnits: bigint } | { ok: false } {
+  if (!isCurrencyCode(accountCurrency)) {
+    throw new Error(`Unexpected unsupported account currency: ${accountCurrency}`);
+  }
+  const moneyResult = createMoney(amount.trim(), accountCurrency);
+  if (!moneyResult.ok) {
+    if (moneyResult.error.type === 'unsupported-currency') {
+      throw new Error(`Unexpected unsupported account currency: ${accountCurrency}`);
+    }
+    return { ok: false };
+  }
+  const minorUnits = moneyResult.value.toMinorUnits();
+  if (minorUnits <= 0n) {
+    return { ok: false };
+  }
+  return { ok: true, minorUnits };
 }

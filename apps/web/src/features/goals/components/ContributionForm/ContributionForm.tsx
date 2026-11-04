@@ -177,9 +177,7 @@ export function ContributionForm({
                   aria-invalid={fieldProps['aria-invalid']}
                   // Keep password managers (1Password, LastPass) away from an
                   // input they mistake for a login field.
-                  autoComplete="off"
-                  data-1p-ignore="true"
-                  data-lpignore="true"
+                  passwordManagerIgnore
                 />
                 <Combobox.Content>
                   <Combobox.List>

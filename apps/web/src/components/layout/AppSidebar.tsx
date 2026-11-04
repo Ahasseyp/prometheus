@@ -1,4 +1,12 @@
-import { ArrowLeftRight, LayoutDashboard, PiggyBank, Tags, Target, Wallet } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  CalendarClock,
+  LayoutDashboard,
+  PiggyBank,
+  Tags,
+  Target,
+  Wallet,
+} from 'lucide-react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 
 import { Sidebar } from '@/components/ui/sidebar.js';
@@ -18,6 +26,7 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/budgets', label: 'Budgets', icon: PiggyBank },
+  { to: '/recurring-transactions', label: 'Recurring', icon: CalendarClock },
   { to: '/goals', label: 'Goals', icon: Target },
 ];
 

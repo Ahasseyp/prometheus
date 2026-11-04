@@ -331,6 +331,9 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
                   placeholder="Select a category"
                   onBlur={fieldProps.onBlur}
                   aria-invalid={fieldProps['aria-invalid']}
+                  // Keep password managers (1Password, LastPass) away from an
+                  // input they mistake for a login field.
+                  passwordManagerIgnore
                 />
                 <Combobox.Content>
                   <Combobox.List>

@@ -1,4 +1,11 @@
-import { ArrowLeftRight, Bot, LayoutDashboard, PiggyBank, Target } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Bot,
+  CalendarClock,
+  LayoutDashboard,
+  PiggyBank,
+  Target,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 
@@ -20,6 +27,7 @@ const tabs = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/budgets', label: 'Budgets', icon: PiggyBank },
+  { to: '/recurring-transactions', label: 'Recurring', icon: CalendarClock },
   { to: '/goals', label: 'Goals', icon: Target },
 ];
 

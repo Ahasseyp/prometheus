@@ -2,12 +2,12 @@ import { convertMoney, createMoneyFromMinorUnits, isCurrencyCode } from '@promet
 import type { Transfer } from '@prisma/client';
 
 import { getPrisma } from '../prisma.js';
+import { parseAmountToMinorUnits } from '../lib/money.js';
 import { findAccountInHousehold } from './account.js';
 import {
   amountFitsCurrency,
   loanBalanceRemainsNonNegative,
   mapTransactionToRecord,
-  parseAmountToMinorUnits,
   resolveTransactionExchangeRate,
   transactionInclude,
 } from './transaction.js';

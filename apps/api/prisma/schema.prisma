@@ -42,14 +42,15 @@ model Household {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now()) @updatedAt
 
-  memberships   HouseholdMembership[]
-  accounts      Account[]
-  categories    Category[]
-  transactions  Transaction[]
-  transfers     Transfer[]
-  budgets       Budget[]
-  goals         Goal[]
-  contributions GoalContribution[]
+  memberships           HouseholdMembership[]
+  accounts              Account[]
+  categories            Category[]
+  transactions          Transaction[]
+  transfers             Transfer[]
+  budgets               Budget[]
+  recurringTransactions RecurringTransaction[]
+  goals                 Goal[]
+  contributions         GoalContribution[]
 }
 
 model ExchangeRate {
@@ -74,9 +75,10 @@ model Account {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @default(now()) @updatedAt
 
-  household     Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
-  contributions GoalContribution[]
+  household             Household              @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  recurringTransactions RecurringTransaction[]
+  transactions          Transaction[]
+  contributions         GoalContribution[]
 
   @@index([householdId])
 }
@@ -132,11 +134,12 @@ model Category {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @default(now()) @updatedAt
 
-  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  parent       Category?        @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children     Category[]       @relation("CategoryHierarchy")
-  transactions Transaction[]
-  budgets      BudgetCategory[]
+  household             Household              @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  parent                Category?              @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children              Category[]             @relation("CategoryHierarchy")
+  recurringTransactions RecurringTransaction[]
+  transactions          Transaction[]
+  budgets               BudgetCategory[]
 
   @@index([householdId])
   @@index([parentId])
@@ -152,6 +155,7 @@ model Transaction {
   householdId            String          @db.Uuid
   accountId              String          @db.Uuid
   categoryId             String?         @db.Uuid
+  recurringTransactionId String?         @db.Uuid
   type                   TransactionType
   amount                 BigInt
   date                   DateTime
@@ -162,15 +166,17 @@ model Transaction {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @default(now()) @updatedAt
 
-  household           Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  account             Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  category            Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  transferSource      Transfer[] @relation("TransferSource")
-  transferDestination Transfer[] @relation("TransferDestination")
+  household            Household             @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account              Account               @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category             Category?             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  recurringTransaction RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+  transferSource       Transfer[]            @relation("TransferSource")
+  transferDestination  Transfer[]            @relation("TransferDestination")
 
   @@index([householdId])
   @@index([accountId])
   @@index([householdId, date])
+  @@index([recurringTransactionId])
 }
 
 // TRANSFER is reserved but never persisted: a Transfer is a pair of linked
@@ -211,6 +217,54 @@ enum BudgetPeriod {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+model RecurringTransaction {
+  id          String           @id @default(uuid()) @db.Uuid
+  householdId String           @db.Uuid
+  accountId   String           @db.Uuid
+  categoryId  String           @db.Uuid
+  type        TransactionType
+  // Amount is stored in minor units of the Account Currency and is always
+  // positive; the type carries the direction (issue #29).
+  amount      BigInt
+  // The first occurrence date; later occurrences anchor to this date (same
+  // weekday / same day-of-month clamped / same month-day).
+  startDate   DateTime         @db.Date
+  // Period granularity: week / month / year.
+  period      RecurrencePeriod
+  // How many periods between occurrences (1 = every period, 2 = every other).
+  interval    Int
+  description String           @default("")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  household        Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category         Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  skippedInstances SkippedInstance[]
+  transactions     Transaction[]
+
+  @@index([householdId])
+}
+
+enum RecurrencePeriod {
+  WEEK
+  MONTH
+  YEAR
+}
+
+model SkippedInstance {
+  id                     String   @id @default(uuid()) @db.Uuid
+  recurringTransactionId String   @db.Uuid
+  // The occurrence date that was skipped, not the moment the skip was recorded.
+  date                   DateTime @db.Date
+  createdAt              DateTime @default(now())
+
+  recurringTransaction RecurringTransaction @relation(fields: [recurringTransactionId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringTransactionId, date])
+  @@index([recurringTransactionId])
 }
 
 model BudgetCategory {

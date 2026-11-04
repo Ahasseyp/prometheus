@@ -29,6 +29,12 @@ export type GoalId = Brand<string, 'GoalId'>;
 /** A UUID that identifies a Goal Contribution. */
 export type GoalContributionId = Brand<string, 'GoalContributionId'>;
 
+/** A UUID that identifies a Recurring Transaction. */
+export type RecurringTransactionId = Brand<string, 'RecurringTransactionId'>;
+
+/** A UUID that identifies a Skipped Instance. */
+export type SkippedInstanceId = Brand<string, 'SkippedInstanceId'>;
+
 export function makeUserId(value: string): UserId {
   return value as UserId;
 }
@@ -63,4 +69,12 @@ export function makeGoalId(value: string): GoalId {
 
 export function makeGoalContributionId(value: string): GoalContributionId {
   return value as GoalContributionId;
+}
+
+export function makeRecurringTransactionId(value: string): RecurringTransactionId {
+  return value as RecurringTransactionId;
+}
+
+export function makeSkippedInstanceId(value: string): SkippedInstanceId {
+  return value as SkippedInstanceId;
 }

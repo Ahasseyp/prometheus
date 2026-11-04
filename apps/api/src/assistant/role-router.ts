@@ -46,7 +46,7 @@ Return ONLY a single JSON object. Do not wrap it in markdown code fences. Use th
   "account": "string",            // optional
   "category": "string",           // optional
   "description": "string",        // optional
-  "date": "YYYY-MM-DD",           // optional
+  "date": "YYYY-MM-DD",           // optional, ONLY when the user explicitly states one (e.g. "yesterday", "last Friday", "on Nov 5"). NEVER guess, infer, or invent a date — if no date is stated, omit this field entirely.
   // For add-transfer (omit "type"):
   "fromAccount": "string",        // optional
   "toAccount": "string",          // optional
@@ -59,6 +59,7 @@ Conventions:
 - "category" is a short noun for what it was for (e.g. "groceries", "movies").
 - "description" is a short cleaned-up Title Case label for the entry (e.g. "Movies", "Groceries run") — never copy the raw message verbatim.
 - If the prompt includes candidate category or account lists and one candidate clearly fits semantically, use that candidate's exact name (e.g. "movies" → "Entertainment"). Only keep the user's own wording when no candidate fits.
+- Never output "date" unless the user explicitly states one in the conversation. Use the provided today's date only to resolve relative dates ("yesterday", "last Friday"); do not output a date otherwise.
 - If the prompt includes a conversation history, treat the whole conversation as ONE command: earlier messages carry the original intent, later messages answer the assistant's questions. Merge everything into a single extraction.
 - For transfers, omit "type".
 - For unsupported, include only "kind" and "reason".
@@ -86,6 +87,14 @@ function buildPrompt(text: string, history?: ConversationMessage[], hints?: Extr
       .join('\n');
     parts.push(`Conversation so far:\n${transcript}`);
   }
+
+  // Give the model today's date so relative dates ("yesterday", "last Friday")
+  // resolve correctly. It is still told to omit "date" when none is stated.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
+  parts.push(`Today's date is ${today}.`);
 
   parts.push(`Latest user message:\n${text}`);
   return parts.join('\n\n');

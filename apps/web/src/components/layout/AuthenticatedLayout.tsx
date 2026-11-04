@@ -10,6 +10,7 @@ import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdSta
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { CreateHouseholdCard } from '@/features/household/components/CreateHouseholdCard/CreateHouseholdCard.js';
 import { TransactionFormDialog } from '@/features/transactions/components/TransactionFormDialog/TransactionFormDialog.js';
+import type { TransactionFormDefaults } from '@/features/transactions/components/TransactionForm/TransactionForm.js';
 
 import { AppSidebar } from './AppSidebar.js';
 import { AssistantDialog } from './AssistantDialog.js';
@@ -45,6 +46,8 @@ export function AuthenticatedLayout() {
   const [assistantSeed, setAssistantSeed] = React.useState<{ id: number; text: string } | null>(
     null
   );
+  const [transactionDefaults, setTransactionDefaults] =
+    React.useState<TransactionFormDefaults | null>(null);
   const [addTransactionOpen, setAddTransactionOpen] = React.useState(false);
   const { data: accounts } = useAccounts();
   const pageTitle = useRouteTitle();
@@ -132,6 +135,11 @@ export function AuthenticatedLayout() {
         open={assistantSheetOpen}
         onOpenChange={setAssistantSheetOpen}
         seed={assistantSeed}
+        onEditInForm={(values) => {
+          setTransactionDefaults(values);
+          setAddTransactionOpen(true);
+          setAssistantSheetOpen(false);
+        }}
       />
       <AssistantDialog
         open={assistantOpen}
@@ -145,8 +153,12 @@ export function AuthenticatedLayout() {
       />
       <TransactionFormDialog
         open={addTransactionOpen}
-        onOpenChange={setAddTransactionOpen}
+        onOpenChange={(open) => {
+          setAddTransactionOpen(open);
+          if (!open) setTransactionDefaults(null);
+        }}
         accounts={accounts}
+        defaultValues={transactionDefaults ?? undefined}
       />
     </SidebarProvider>
   );

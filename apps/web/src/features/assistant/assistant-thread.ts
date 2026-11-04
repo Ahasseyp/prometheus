@@ -1,3 +1,6 @@
+import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import type { Transfer } from '@/features/transfers/gateways/transfers.js';
+
 import type { ConversationMessage, ResolvedCommand } from './gateways/assistant.js';
 
 export type UserThreadMessage = {
@@ -5,14 +8,29 @@ export type UserThreadMessage = {
   text: string;
 };
 
+export type CreatedThreadContent = {
+  kind: 'created';
+  created: Transaction | Transfer;
+};
+
 export type AssistantThreadMessage = {
   role: 'assistant';
-  content: ResolvedCommand | { kind: 'text'; text: string };
+  content: ResolvedCommand | CreatedThreadContent | { kind: 'text'; text: string };
 };
 
 export type ThreadMessage = UserThreadMessage | AssistantThreadMessage;
 
-function summarizeCommand(content: ResolvedCommand): string {
+function summarizeCommand(content: ResolvedCommand | CreatedThreadContent): string {
+  if (content.kind === 'created') {
+    const tx =
+      'sourceTransaction' in content.created ? content.created.sourceTransaction : content.created;
+    return (
+      `Created a ${tx.type} of ${tx.amount} ${tx.accountCurrency}` +
+      (tx.categoryName ? ` under category ${tx.categoryName}` : '') +
+      '.'
+    );
+  }
+
   switch (content.kind) {
     case 'add-transaction':
       return (

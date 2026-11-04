@@ -285,6 +285,89 @@ describe('AuthenticatedLayout', () => {
     });
   });
 
+  it('switches the assistant dialog to chat when free-form text is submitted', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/spent 300 pesos on groceries/i)).toBeInTheDocument();
+  });
+
+  it('returns the assistant from chat mode to palette on Escape without closing', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/add, ask, check, do/i)).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
+  });
+
+  it('returns the assistant from chat mode to palette when the chat composer is empty and Backspace is pressed', async () => {
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+    });
+
+    const composer = screen.getByTestId('assistant-chat-input');
+    await user.click(composer);
+    await user.keyboard('{Backspace}');
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
+  });
+
   it('renders the household creation card inline when the user has no household', async () => {
     const { router } = await renderAuthenticatedLayout({
       initialEntries: ['/'],

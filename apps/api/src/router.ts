@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getPrisma } from './prisma.js';
 import { publicProcedure, router } from './trpc.js';
 import { accountRouter } from './account.js';
+import { assistantRouter } from './assistant.js';
 import { authRouter } from './auth.js';
 import { budgetRouter } from './budget.js';
 import { categoryRouter } from './category.js';
@@ -27,6 +28,7 @@ export const appRouter = router({
   }),
 
   account: accountRouter,
+  assistant: assistantRouter,
   auth: authRouter,
   budget: budgetRouter,
   category: categoryRouter,

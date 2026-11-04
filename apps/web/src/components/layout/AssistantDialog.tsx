@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/use-theme.js';
 import { Command } from '@/components/ui/command.js';
 import { AssistantChat } from '@/features/assistant/components/AssistantChat/AssistantChat.js';
 import type { ThreadMessage } from '@/features/assistant/assistant-thread.js';
+import { useSubmitAssistantCommand } from '@/features/assistant/gateways/assistant.js';
 
 type AssistantMode = 'palette' | 'chat';
 
@@ -33,6 +34,7 @@ type AssistantDialogProps = {
 export function AssistantDialog({ open, onOpenChange, onAddTransaction }: AssistantDialogProps) {
   const navigate = useNavigate({ from: '/' });
   const { setTheme } = useTheme();
+  const submitCommand = useSubmitAssistantCommand();
   const [mode, setMode] = React.useState<AssistantMode>('palette');
   const [thread, setThread] = React.useState<ThreadMessage[]>([]);
   const [inputValue, setInputValue] = React.useState('');
@@ -66,8 +68,8 @@ export function AssistantDialog({ open, onOpenChange, onAddTransaction }: Assist
 
   function startChat(text: string) {
     setMode('chat');
-    setThread((prev) => [...prev, { role: 'user', text }]);
     setInputValue('');
+    handleChatSubmit(text);
   }
 
   function handleOpenChange(value: boolean, eventDetails: DialogRoot.ChangeEventDetails) {
@@ -112,6 +114,14 @@ export function AssistantDialog({ open, onOpenChange, onAddTransaction }: Assist
 
   function handleChatSubmit(text: string) {
     setThread((prev) => [...prev, { role: 'user', text }]);
+    submitCommand.mutate(
+      { text },
+      {
+        onSuccess: (data) => {
+          setThread((prev) => [...prev, { role: 'assistant', content: data }]);
+        },
+      }
+    );
   }
 
   return (
@@ -126,7 +136,7 @@ export function AssistantDialog({ open, onOpenChange, onAddTransaction }: Assist
         <AssistantChat
           messages={thread}
           onSubmit={handleChatSubmit}
-          pending={false}
+          pending={submitCommand.isPending}
           onBack={returnToPalette}
         />
       ) : (

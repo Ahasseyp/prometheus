@@ -28,6 +28,7 @@ import { mockAccountListResponse } from '@/test/account-helpers.js';
 import { mockBudgetListResponse } from '@/test/budget-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
+import { mockAssistantSubmitCommandResponse } from '@/test/assistant-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -286,6 +287,17 @@ describe('AuthenticatedLayout', () => {
   });
 
   it('switches the assistant dialog to chat when free-form text is submitted', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountName: 'Checking',
+      categoryName: 'Groceries',
+      description: 'spent 300 pesos on groceries',
+      date: new Date().toISOString(),
+    });
+
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
 
@@ -296,30 +308,38 @@ describe('AuthenticatedLayout', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/spent 300 pesos on groceries/i)).toBeInTheDocument();
+    expect(screen.getByText('Expense')).toBeInTheDocument();
+    expect(screen.getByText(/300 MXN/i)).toBeInTheDocument();
   });
 
   it('returns the assistant from chat mode to palette on Escape without closing', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'needs-clarification',
+      understood: 'I understood you spent 300 MXN.',
+      missing: ['category'],
+      question: 'Which category did you mean?',
+    });
+
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
 
     await user.keyboard('{Meta>}k{/Meta}');
 
     const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
-    await user.type(input, 'spent 300 pesos on groceries');
+    await user.type(input, 'spent 300 pesos on subscriptions');
     await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+      expect(screen.getByText(/Need a bit more detail/i)).toBeInTheDocument();
     });
 
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Need a bit more detail/i)).not.toBeInTheDocument();
     });
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -338,11 +358,22 @@ describe('AuthenticatedLayout', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Need a bit more detail/i)).not.toBeInTheDocument();
     expect(screen.getByText('Add a transaction')).toBeInTheDocument();
   });
 
   it('returns the assistant from chat mode to palette when the chat composer is empty and Backspace is pressed', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountName: 'Checking',
+      categoryName: 'Groceries',
+      description: 'spent 300 pesos on groceries',
+      date: new Date().toISOString(),
+    });
+
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
 
@@ -353,7 +384,7 @@ describe('AuthenticatedLayout', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.getByTestId('assistant-chat-stub')).toBeInTheDocument();
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
     });
 
     const composer = screen.getByTestId('assistant-chat-input');
@@ -361,7 +392,7 @@ describe('AuthenticatedLayout', () => {
     await user.keyboard('{Backspace}');
 
     await waitFor(() => {
-      expect(screen.queryByTestId('assistant-chat-stub')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('assistant-command-card')).not.toBeInTheDocument();
     });
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();

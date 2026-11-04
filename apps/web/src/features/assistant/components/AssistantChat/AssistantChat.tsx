@@ -1,25 +1,54 @@
 import * as React from 'react';
+import { ArrowUpIcon, SparklesIcon } from 'lucide-react';
 
+import { Bubble } from '@/components/ui/bubble.js';
 import { Button } from '@/components/ui/button.js';
 import { Card } from '@/components/ui/card.js';
-import type { ThreadMessage } from '@/features/assistant/assistant-thread.js';
+import { Empty } from '@/components/ui/empty.js';
+import { InputGroup } from '@/components/ui/input-group.js';
+import { Message } from '@/components/ui/message.js';
+import { MessageScroller } from '@/components/ui/message-scroller.js';
+import { Spinner } from '@/components/ui/spinner.js';
+import type {
+  AssistantThreadMessage,
+  ThreadMessage,
+} from '@/features/assistant/assistant-thread.js';
 
 export interface AssistantChatProps {
   messages: ThreadMessage[];
   onSubmit(text: string): void;
   pending: boolean;
-  onBack?(): void;
 }
 
-function CommandCard({ command }: { command: ThreadMessage & { role: 'assistant' } }) {
-  const { content } = command;
-
-  if (content.kind === 'text') {
+function AssistantTurn({ message, index }: { message: ThreadMessage; index: number }) {
+  if (message.role === 'user') {
     return (
-      <div className="rounded-lg bg-muted p-3 text-sm">
-        <p className="text-muted-foreground">{content.text}</p>
-      </div>
+      <MessageScroller.Item messageId={`user-${index}`} scrollAnchor>
+        <Message align="end">
+          <Message.Content>
+            <Bubble align="end" variant="muted">
+              <Bubble.Content>{message.text}</Bubble.Content>
+            </Bubble>
+          </Message.Content>
+        </Message>
+      </MessageScroller.Item>
     );
+  }
+
+  return (
+    <MessageScroller.Item messageId={`assistant-${index}`}>
+      <Message>
+        <Message.Content>
+          <CommandCard content={message.content} />
+        </Message.Content>
+      </Message>
+    </MessageScroller.Item>
+  );
+}
+
+function CommandCard({ content }: { content: AssistantThreadMessage['content'] }) {
+  if (content.kind === 'text') {
+    return <p className="text-sm text-muted-foreground">{content.text}</p>;
   }
 
   if (content.kind === 'needs-clarification') {
@@ -29,7 +58,6 @@ function CommandCard({ command }: { command: ThreadMessage & { role: 'assistant'
           <Card.Title className="text-base">Need a bit more detail</Card.Title>
         </Card.Header>
         <Card.Content className="space-y-2 text-sm">
-          <p>{content.understood}</p>
           <p>{content.question}</p>
           {content.options !== undefined && content.options.length > 0 && (
             <ul className="list-inside list-disc text-muted-foreground">
@@ -105,51 +133,81 @@ function CommandCard({ command }: { command: ThreadMessage & { role: 'assistant'
   );
 }
 
-export function AssistantChat({ messages, onSubmit, pending, onBack }: AssistantChatProps) {
+export function AssistantChat({ messages, onSubmit, pending }: AssistantChatProps) {
   const [text, setText] = React.useState('');
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const canSend = text.trim().length > 0 && !pending;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed || pending) return;
-    onSubmit(trimmed);
+    if (!canSend) return;
+    onSubmit(text.trim());
     setText('');
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Backspace' && text === '') {
-      event.preventDefault();
-      onBack?.();
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <div className="flex max-h-80 flex-col gap-3 overflow-y-auto">
-        {messages.map((message, index) =>
-          message.role === 'user' ? (
-            <div
-              key={index}
-              className="self-end rounded-lg bg-primary px-3 py-2 text-primary-foreground text-sm"
-            >
-              {message.text}
-            </div>
+    <MessageScroller.Provider autoScroll>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 px-4">
+          {messages.length === 0 ? (
+            <Empty className="h-full">
+              <Empty.Header>
+                <Empty.Media variant="icon">
+                  <SparklesIcon />
+                </Empty.Media>
+                <Empty.Title>Assistant</Empty.Title>
+                <Empty.Description>
+                  Add transactions or transfers in plain words, and I&apos;ll fill in the details.
+                </Empty.Description>
+              </Empty.Header>
+            </Empty>
           ) : (
-            <CommandCard key={index} command={message} />
-          )
-        )}
+            <MessageScroller>
+              <MessageScroller.Viewport>
+                <MessageScroller.Content aria-busy={pending} className="py-4">
+                  {messages.map((message, index) => (
+                    <AssistantTurn key={index} message={message} index={index} />
+                  ))}
+                </MessageScroller.Content>
+              </MessageScroller.Viewport>
+              <MessageScroller.Button />
+            </MessageScroller>
+          )}
+        </div>
+        <div className="p-4 pt-2">
+          <form ref={formRef} onSubmit={handleSubmit}>
+            <InputGroup>
+              <InputGroup.Textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                placeholder="Reply…"
+                aria-label="Message the assistant"
+                data-testid="assistant-chat-input"
+                disabled={pending}
+                className="min-h-14"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    formRef.current?.requestSubmit();
+                  }
+                }}
+              />
+              <InputGroup.Addon align="block-end">
+                <InputGroup.Button
+                  type="submit"
+                  variant="default"
+                  size="icon-sm"
+                  disabled={!canSend}
+                  className="ml-auto"
+                  aria-label="Send"
+                >
+                  {pending ? <Spinner /> : <ArrowUpIcon />}
+                </InputGroup.Button>
+              </InputGroup.Addon>
+            </InputGroup>
+          </form>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="mt-2">
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Reply or press Backspace when empty to return"
-          className="w-full rounded-md border border-input px-3 py-2 text-sm"
-          data-testid="assistant-chat-input"
-          disabled={pending}
-        />
-      </form>
-    </div>
+    </MessageScroller.Provider>
   );
 }

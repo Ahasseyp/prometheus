@@ -121,9 +121,58 @@ describe.sequential('assistant procedures', () => {
       accountName: 'Checking',
       categoryId: groceries.id,
       categoryName: 'Groceries',
-      description: 'spent 300 pesos on groceries',
+      description: 'Groceries',
       date: expect.any(String),
     });
+  });
+
+  it('completes a clarification turn using the conversation history', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('assistant-followup'),
+      'Secure-password-4'
+    );
+    if (context === null) return;
+
+    const account = await client.account.create.mutate({
+      name: 'Checking',
+      type: AccountType.Checking,
+      currency: 'USD',
+    });
+    const groceries = await findSystemCategory('Groceries');
+
+    // Force the fake extractor so the clarification turn is deterministic.
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const first = await client.assistant.submitCommand.mutate({
+        text: 'spent 300 pesos',
+      });
+      expect(first.kind).toBe('needs-clarification');
+      if (first.kind !== 'needs-clarification') return;
+
+      const followUp = await client.assistant.submitCommand.mutate({
+        text: 'groceries',
+        history: [
+          { role: 'user', text: 'spent 300 pesos' },
+          { role: 'assistant', text: first.question },
+        ],
+      });
+
+      expect(followUp).toEqual({
+        kind: 'add-transaction',
+        type: 'expense',
+        amount: '300',
+        currency: 'MXN',
+        accountId: account.id,
+        accountName: 'Checking',
+        categoryId: groceries.id,
+        categoryName: 'Groceries',
+        description: 'Groceries',
+        date: expect.any(String),
+      });
+    } finally {
+      if (anthropicKey !== undefined) process.env.ANTHROPIC_API_KEY = anthropicKey;
+    }
   });
 
   it('returns a clarification card when the category is missing', async () => {
@@ -182,7 +231,7 @@ describe.sequential('assistant procedures', () => {
       fromAccountName: 'Checking',
       toAccountId: savings.id,
       toAccountName: 'Savings',
-      description: 'transfer 100 from checking to savings',
+      description: 'Checking to Savings',
       date: expect.any(String),
     });
   });

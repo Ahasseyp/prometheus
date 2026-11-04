@@ -286,7 +286,7 @@ describe('AuthenticatedLayout', () => {
     });
   });
 
-  it('switches the assistant dialog to chat when free-form text is submitted', async () => {
+  it('opens the assistant sheet with the submitted command when free-form text is entered', async () => {
     mockAssistantSubmitCommandResponse({
       kind: 'add-transaction',
       type: 'expense',
@@ -294,7 +294,7 @@ describe('AuthenticatedLayout', () => {
       currency: 'MXN',
       accountName: 'Checking',
       categoryName: 'Groceries',
-      description: 'spent 300 pesos on groceries',
+      description: 'Groceries',
       date: new Date().toISOString(),
     });
 
@@ -311,11 +311,15 @@ describe('AuthenticatedLayout', () => {
       expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
     });
 
+    // The palette dialog closes; the chat lives in the sheet.
+    expect(screen.queryByPlaceholderText(/add, ask, check, do/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Assistant' })).toBeInTheDocument();
+    expect(screen.getByText('spent 300 pesos on groceries')).toBeInTheDocument();
     expect(screen.getByText('Expense')).toBeInTheDocument();
     expect(screen.getByText(/300 MXN/i)).toBeInTheDocument();
   });
 
-  it('returns the assistant from chat mode to palette on Escape without closing', async () => {
+  it('closes the assistant sheet with Escape and resets the thread', async () => {
     mockAssistantSubmitCommandResponse({
       kind: 'needs-clarification',
       understood: 'I understood you spent 300 MXN.',
@@ -339,30 +343,20 @@ describe('AuthenticatedLayout', () => {
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(screen.queryByText(/Need a bit more detail/i)).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/add, ask, check, do/i)).toBeInTheDocument();
-
-    await user.keyboard('{Escape}');
-
-    await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
+    // Reopening the palette shows a fresh palette; the sheet state was reset.
     await user.keyboard('{Meta>}k{/Meta}');
 
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/add, ask, check, do/i)).toBeInTheDocument();
     });
-
     expect(screen.queryByText(/Need a bit more detail/i)).not.toBeInTheDocument();
     expect(screen.getByText('Add a transaction')).toBeInTheDocument();
   });
 
-  it('returns the assistant from chat mode to palette when the chat composer is empty and Backspace is pressed', async () => {
+  it('sends follow-up replies in the assistant sheet', async () => {
     mockAssistantSubmitCommandResponse({
       kind: 'add-transaction',
       type: 'expense',
@@ -370,7 +364,7 @@ describe('AuthenticatedLayout', () => {
       currency: 'MXN',
       accountName: 'Checking',
       categoryName: 'Groceries',
-      description: 'spent 300 pesos on groceries',
+      description: 'Groceries',
       date: new Date().toISOString(),
     });
 
@@ -388,15 +382,13 @@ describe('AuthenticatedLayout', () => {
     });
 
     const composer = screen.getByTestId('assistant-chat-input');
-    await user.click(composer);
-    await user.keyboard('{Backspace}');
+    await user.type(composer, 'actually make that 400');
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.queryByTestId('assistant-command-card')).not.toBeInTheDocument();
+      expect(screen.getByText('actually make that 400')).toBeInTheDocument();
     });
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
+    expect(screen.getAllByTestId('assistant-command-card')).toHaveLength(2);
   });
 
   it('renders the household creation card inline when the user has no household', async () => {

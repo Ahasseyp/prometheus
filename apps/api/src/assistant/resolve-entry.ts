@@ -55,6 +55,25 @@ function findMatch(
     return { kind: 'ambiguous', candidates: partial.map((m) => m.name) };
   }
 
+  // Token-overlap fallback: pick the item that shares the most word stems with
+  // the target ("movie night" → "Movies") when there is a single clear winner.
+  const stem = (token: string) => (token.length > 3 ? token.replace(/s$/, '') : token);
+  const targetStems = new Set(target.split(/\s+/).filter(Boolean).map(stem));
+  if (targetStems.size > 0) {
+    const scored = items
+      .map((item) => {
+        const stems = normalizeName(item.name).split(/\s+/).filter(Boolean).map(stem);
+        const overlap = stems.filter((t) => targetStems.has(t)).length;
+        return { item, overlap };
+      })
+      .filter((s) => s.overlap > 0)
+      .sort((a, b) => b.overlap - a.overlap);
+
+    if (scored.length > 0 && (scored.length === 1 || scored[0].overlap > scored[1].overlap)) {
+      return { kind: 'matched', id: scored[0].item.id, name: scored[0].item.name };
+    }
+  }
+
   return { kind: 'unmatched' };
 }
 
@@ -123,7 +142,7 @@ function resolveTransaction(
     options.push({ field: 'account', values: accountMatch.candidates });
   }
 
-  if (categoryMatch.kind === 'unmatched' || categoryMatch.kind === 'ambiguous') {
+  if (categoryMatch.kind !== 'matched') {
     missing.push('category');
     if (categoryMatch.kind === 'ambiguous') {
       options.push({ field: 'category', values: categoryMatch.candidates });

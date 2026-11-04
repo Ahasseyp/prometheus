@@ -13,6 +13,7 @@ import { TransactionFormDialog } from '@/features/transactions/components/Transa
 
 import { AppSidebar } from './AppSidebar.js';
 import { AssistantDialog } from './AssistantDialog.js';
+import { AssistantSheet } from './AssistantSheet.js';
 import { MobileNav } from './MobileNav.js';
 import { UserMenu } from './UserMenu.js';
 
@@ -40,6 +41,10 @@ export function AuthenticatedLayout() {
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const navigate = useNavigate({ from: '/' });
   const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const [assistantSheetOpen, setAssistantSheetOpen] = React.useState(false);
+  const [assistantSeed, setAssistantSeed] = React.useState<{ id: number; text: string } | null>(
+    null
+  );
   const [addTransactionOpen, setAddTransactionOpen] = React.useState(false);
   const { data: accounts } = useAccounts();
   const pageTitle = useRouteTitle();
@@ -123,10 +128,20 @@ export function AuthenticatedLayout() {
         </main>
       </Sidebar.Inset>
       <MobileNav onOpenAssistant={() => setAssistantOpen(true)} />
+      <AssistantSheet
+        open={assistantSheetOpen}
+        onOpenChange={setAssistantSheetOpen}
+        seed={assistantSeed}
+      />
       <AssistantDialog
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
         onAddTransaction={() => setAddTransactionOpen(true)}
+        onStartChat={(text) => {
+          setAssistantOpen(false);
+          setAssistantSeed({ id: Date.now(), text });
+          setAssistantSheetOpen(true);
+        }}
       />
       <TransactionFormDialog
         open={addTransactionOpen}

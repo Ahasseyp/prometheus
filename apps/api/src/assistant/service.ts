@@ -5,8 +5,13 @@ import { getPrisma } from '../prisma.js';
 import type { ResolvedCommand } from './add-command.js';
 import { parseEntry } from './parse-entry.js';
 import { resolveEntry, type HouseholdContext } from './resolve-entry.js';
+import type { ConversationMessage } from './role-router.js';
 
-export async function submitCommand(householdId: string, text: string): Promise<ResolvedCommand> {
+export async function submitCommand(
+  householdId: string,
+  text: string,
+  history: ConversationMessage[] = []
+): Promise<ResolvedCommand> {
   const prisma = getPrisma();
   const [household, accounts, categories] = await Promise.all([
     prisma.household.findUnique({ where: { id: householdId } }),
@@ -35,6 +40,13 @@ export async function submitCommand(householdId: string, text: string): Promise<
       })),
   };
 
-  const extracted = await parseEntry(text);
+  const extracted = await parseEntry(text, {
+    history,
+    hints: {
+      accounts: context.accounts.map((a) => a.name),
+      expenseCategories: context.categories.filter((c) => c.type === 'expense').map((c) => c.name),
+      incomeCategories: context.categories.filter((c) => c.type === 'income').map((c) => c.name),
+    },
+  });
   return resolveEntry(extracted, context);
 }

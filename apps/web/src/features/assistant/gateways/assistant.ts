@@ -5,7 +5,8 @@ import type { AppRouter } from '@prometheus/api/router';
 import { trpc } from '@/gateways/trpc.js';
 
 export type ResolvedCommand = inferRouterOutputs<AppRouter>['assistant']['submitCommand'];
-export type SubmitCommandInput = { text: string };
+export type ConversationMessage = { role: 'user' | 'assistant'; text: string };
+export type SubmitCommandInput = { text: string; history?: ConversationMessage[] };
 
 export function useSubmitAssistantCommand() {
   return useMutation({

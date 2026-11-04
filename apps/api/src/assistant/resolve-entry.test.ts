@@ -43,6 +43,23 @@ describe('resolveEntry', () => {
     });
   });
 
+  it('fuzzy-matches a category when the wording is close but not exact', () => {
+    const extracted = {
+      kind: 'add-transaction' as const,
+      type: 'expense' as const,
+      amount: '45',
+      account: 'checking',
+      category: 'weekly groceries',
+    };
+
+    const result = resolveEntry(extracted, context);
+
+    expect(result.kind).toBe('add-transaction');
+    if (result.kind !== 'add-transaction') return;
+    expect(result.categoryId).toBe('cat-1');
+    expect(result.categoryName).toBe('Groceries');
+  });
+
   it('auto-picks the only account when no account is named', () => {
     const singleAccountContext: HouseholdContext = {
       reportingCurrency: 'USD',

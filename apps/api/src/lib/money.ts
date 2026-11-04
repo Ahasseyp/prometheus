@@ -1,4 +1,4 @@
-import { createMoney, createMoneyFromMinorUnits } from '@prometheus/domain';
+import { createMoney, createMoneyFromMinorUnits, isCurrencyCode } from '@prometheus/domain';
 import type { CurrencyCode, Money, Result } from '@prometheus/domain';
 
 /**
@@ -28,7 +28,10 @@ export function parseAmountToMinorUnits(
   amount: string,
   accountCurrency: string
 ): { ok: true; minorUnits: bigint } | { ok: false } {
-  const moneyResult = createMoney(amount.trim(), accountCurrency as CurrencyCode);
+  if (!isCurrencyCode(accountCurrency)) {
+    throw new Error(`Unexpected unsupported account currency: ${accountCurrency}`);
+  }
+  const moneyResult = createMoney(amount.trim(), accountCurrency);
   if (!moneyResult.ok) {
     if (moneyResult.error.type === 'unsupported-currency') {
       throw new Error(`Unexpected unsupported account currency: ${accountCurrency}`);

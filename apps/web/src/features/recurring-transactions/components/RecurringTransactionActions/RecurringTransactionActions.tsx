@@ -35,7 +35,7 @@ export function RecurringTransactionActions({
           </DropdownMenu.Item>
           <DropdownMenu.Item onClick={() => onSkip(recurringTransaction)}>
             <SkipForward aria-hidden="true" />
-            Skip next occurrence
+            Skip next Transaction Instance
           </DropdownMenu.Item>
           <DropdownMenu.Item variant="destructive" onClick={() => onDelete(recurringTransaction)}>
             <Trash2 aria-hidden="true" />

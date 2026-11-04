@@ -342,6 +342,12 @@ export async function listTransactionsForHousehold(
   householdId: string,
   filters: TransactionFilters
 ): Promise<TransactionRecord[]> {
+  // Ensure Recurring Transaction Instances up to today are materialized before
+  // the list is returned (issue #29). Use a dynamic import to avoid a circular
+  // dependency with the recurring-transaction service.
+  const { generateDueInstances } = await import('./recurring-transaction.js');
+  await generateDueInstances(householdId);
+
   const prisma = getPrisma();
   const dateFilter: Prisma.DateTimeFilter = {};
   if (filters.from !== undefined) {

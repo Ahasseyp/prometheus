@@ -11,7 +11,7 @@ import {
 import { RecurringTransactionList } from '@/features/recurring-transactions/components/RecurringTransactionList/RecurringTransactionList.js';
 import { RecurringTransactionFormDialog } from '@/features/recurring-transactions/components/RecurringTransactionFormDialog/RecurringTransactionFormDialog.js';
 import { DeleteRecurringTransactionDialog } from '@/features/recurring-transactions/components/DeleteRecurringTransactionDialog/DeleteRecurringTransactionDialog.js';
-import { SkipRecurringOccurrenceDialog } from '@/features/recurring-transactions/components/SkipRecurringOccurrenceDialog/SkipRecurringOccurrenceDialog.js';
+import { SkipRecurringTransactionInstanceDialog } from '@/features/recurring-transactions/components/SkipRecurringTransactionInstanceDialog/SkipRecurringTransactionInstanceDialog.js';
 
 export function RecurringTransactionsManager() {
   const { data: recurringTransactions, isPending, isError, refetch } = useRecurringTransactions();
@@ -69,7 +69,7 @@ export function RecurringTransactionsManager() {
         onOpenChange={handleFormOpenChange}
         recurringTransaction={editingTransaction}
       />
-      <SkipRecurringOccurrenceDialog
+      <SkipRecurringTransactionInstanceDialog
         recurringTransaction={skippingTransaction}
         onClose={() => setSkippingTransaction(null)}
       />

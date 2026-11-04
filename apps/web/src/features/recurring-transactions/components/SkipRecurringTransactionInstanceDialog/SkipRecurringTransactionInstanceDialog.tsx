@@ -5,31 +5,31 @@ import { Dialog } from '@/components/ui/dialog.js';
 import { Spinner } from '@/components/ui/spinner.js';
 import { FormError } from '@/components/form/FormError.js';
 import {
-  useSkipRecurringTransaction,
+  useSkipRecurringTransactionInstance,
   type RecurringTransaction,
 } from '@/features/recurring-transactions/gateways/recurring-transactions.js';
 import { getRecurringTransactionMutationErrorMessage } from '@/features/recurring-transactions/lib/recurring-transaction-errors.js';
 import { formatRecurringTransactionDate } from '@/features/recurring-transactions/lib/recurring-transaction-presentation.js';
 
-export interface SkipRecurringOccurrenceDialogProps {
+export interface SkipRecurringTransactionInstanceDialogProps {
   recurringTransaction: RecurringTransaction | null;
   onClose: () => void;
 }
 
-export function SkipRecurringOccurrenceDialog({
+export function SkipRecurringTransactionInstanceDialog({
   recurringTransaction,
   onClose,
-}: SkipRecurringOccurrenceDialogProps) {
-  const { mutate, isPending } = useSkipRecurringTransaction();
+}: SkipRecurringTransactionInstanceDialogProps) {
+  const { mutate, isPending } = useSkipRecurringTransactionInstance();
   const [error, setError] = useState<string | null>(null);
 
   if (recurringTransaction === null) {
     return null;
   }
 
-  const transaction = recurringTransaction;
-  const label = transaction.description || transaction.categoryName;
-  const nextDate = formatRecurringTransactionDate(transaction.nextDate);
+  const recurringTransactionToSkip = recurringTransaction;
+  const label = recurringTransactionToSkip.description || recurringTransactionToSkip.categoryName;
+  const nextDate = formatRecurringTransactionDate(recurringTransactionToSkip.nextDate);
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
@@ -41,7 +41,7 @@ export function SkipRecurringOccurrenceDialog({
 
   function handleSkip() {
     mutate(
-      { id: transaction.id },
+      { id: recurringTransactionToSkip.id },
       {
         onSuccess: () => onClose(),
         onError: (mutationError) =>
@@ -54,10 +54,10 @@ export function SkipRecurringOccurrenceDialog({
     <Dialog open={true} onOpenChange={handleOpenChange}>
       <Dialog.Content>
         <Dialog.Header>
-          <Dialog.Title>Skip next occurrence?</Dialog.Title>
+          <Dialog.Title>Skip next Transaction Instance?</Dialog.Title>
           <Dialog.Description>
-            Skip the {nextDate} occurrence of “{label}”. The schedule will continue as normal after
-            that date.
+            Skip the {nextDate} Transaction Instance of “{label}”. The schedule will continue as
+            normal after that date.
           </Dialog.Description>
         </Dialog.Header>
         {error && <FormError message={error} />}
@@ -70,7 +70,7 @@ export function SkipRecurringOccurrenceDialog({
                 Skipping…
               </>
             ) : (
-              'Skip occurrence'
+              'Skip instance'
             )}
           </Button>
         </Dialog.Footer>

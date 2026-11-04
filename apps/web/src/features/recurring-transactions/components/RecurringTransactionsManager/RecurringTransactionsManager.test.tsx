@@ -11,7 +11,7 @@ import {
   mockCreateRecurringTransactionResponse,
   mockDeleteRecurringTransactionResponse,
   mockRecurringTransactionListResponse,
-  mockSkipRecurringTransactionResponse,
+  mockSkipRecurringTransactionInstanceResponse,
   mockUpdateRecurringTransactionResponse,
 } from '@/test/recurring-transaction-helpers.js';
 
@@ -94,7 +94,7 @@ describe('RecurringTransactionsManager', () => {
     await user.click(await screen.findByRole('option', { name: 'Groceries' }));
 
     // Switch to weekly period.
-    await user.click(screen.getByRole('button', { name: 'weeks' }));
+    await user.click(screen.getByRole('button', { name: 'Weeks' }));
 
     list.push(createdRecurringTransaction);
     await user.click(screen.getByRole('button', { name: 'Add schedule' }));
@@ -103,7 +103,7 @@ describe('RecurringTransactionsManager', () => {
     expect(screen.getByText('Every week')).toBeInTheDocument();
   });
 
-  it('skips the next occurrence of a schedule', async () => {
+  it('skips the next Transaction Instance of a schedule', async () => {
     const user = userEvent.setup();
     const recurringTransaction = makeRecurringTransaction({ description: 'Rent' });
     const updatedRecurringTransaction = makeRecurringTransaction({
@@ -112,19 +112,21 @@ describe('RecurringTransactionsManager', () => {
     });
 
     mockRecurringTransactionListResponse([recurringTransaction]);
-    mockSkipRecurringTransactionResponse({
+    mockSkipRecurringTransactionInstanceResponse({
       id: recurringTransaction.id,
       skippedDate: recurringTransaction.nextDate,
     });
     renderManager();
 
     await user.click(await screen.findByRole('button', { name: 'Actions for Rent' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Skip next occurrence' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Skip next Transaction Instance' })
+    );
 
     // Simulate the backend invalidating the list query by returning the
     // updated schedule on the next fetch.
     mockRecurringTransactionListResponse([updatedRecurringTransaction]);
-    await user.click(screen.getByRole('button', { name: 'Skip occurrence' }));
+    await user.click(screen.getByRole('button', { name: 'Skip instance' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

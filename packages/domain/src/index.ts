@@ -54,6 +54,9 @@ export { BudgetPeriod, createBudget, isBudgetPeriod } from './budget.js';
 export type { Budget, BudgetError } from './budget.js';
 export { anchoredPeriodBoundsAt, anchoredPeriodFor } from './budget-period.js';
 export type { PeriodBounds } from './budget-period.js';
-export { dueRecurringOccurrences, nextRecurringOccurrenceAfter } from './recurrence.js';
+export {
+  dueRecurringTransactionInstances,
+  nextRecurringTransactionInstanceDateAfter,
+} from './recurrence.js';
 export { passwordSchema } from './password.js';
 export type { Password } from './password.js';

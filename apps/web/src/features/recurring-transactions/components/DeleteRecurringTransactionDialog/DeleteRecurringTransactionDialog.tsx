@@ -29,8 +29,9 @@ export function DeleteRecurringTransactionDialog({
     return null;
   }
 
-  const transaction = recurringTransaction;
-  const label = transaction.description || transaction.categoryName;
+  const recurringTransactionToDelete = recurringTransaction;
+  const label =
+    recurringTransactionToDelete.description || recurringTransactionToDelete.categoryName;
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
@@ -46,7 +47,7 @@ export function DeleteRecurringTransactionDialog({
 
   function handleDelete() {
     mutate(
-      { id: transaction.id, removeGenerated },
+      { id: recurringTransactionToDelete.id, removeGenerated },
       {
         onSuccess: () => onClose(),
         onError: (mutationError) =>

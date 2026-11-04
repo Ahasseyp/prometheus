@@ -92,7 +92,7 @@ export function mockDeleteRecurringTransactionResponse(data: unknown = { ok: tru
   );
 }
 
-export function mockSkipRecurringTransactionResponse(data: unknown) {
+export function mockSkipRecurringTransactionInstanceResponse(data: unknown) {
   server.use(
     http.post('/api/trpc/recurringTransaction.skip', () => {
       return HttpResponse.json({ result: { data } });

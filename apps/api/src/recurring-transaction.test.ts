@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { Server } from 'http';
@@ -274,7 +276,7 @@ describe.sequential('recurring transaction procedures', () => {
     expect(secondRun.map((t) => t.id).sort()).toEqual(firstRun.map((t) => t.id).sort());
   });
 
-  it('does not generate skipped occurrences', async () => {
+  it('does not generate skipped Transaction Instances', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('recurring-skip-1'),
       'Secure-password-7'
@@ -315,7 +317,7 @@ describe.sequential('recurring transaction procedures', () => {
     );
   });
 
-  it('records a skipped instance for the next upcoming occurrence', async () => {
+  it('records a skipped instance for the next upcoming Transaction Instance', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('recurring-skip-next-1'),
       'Secure-password-8'
@@ -359,7 +361,7 @@ describe.sequential('recurring transaction procedures', () => {
     ).toBe(false);
   });
 
-  it('is idempotent when skipping the same occurrence twice', async () => {
+  it('is idempotent when skipping the same Transaction Instance twice', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('recurring-skip-idempotent-1'),
       'Secure-password-9'
@@ -492,7 +494,7 @@ describe.sequential('recurring transaction procedures', () => {
     expect(afterDelete).toHaveLength(beforeDelete.length);
   });
 
-  it('deletes a schedule and removes generated transactions when requested', async () => {
+  it('deletes a schedule and removes future generated transactions when requested', async () => {
     const context = await registerAndCreateHousehold(
       makeTestEmail('recurring-delete-remove-1'),
       'Secure-password-13'
@@ -517,12 +519,35 @@ describe.sequential('recurring transaction procedures', () => {
     const beforeDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
     expect(beforeDelete.length).toBeGreaterThan(0);
 
+    // Advance the generation reference so a future instance exists, then
+    // verify only that future instance is removed while past ones remain.
+    const futureDate = await getPrisma().$transaction(async (tx) => {
+      const next = await tx.transaction.create({
+        data: {
+          id: crypto.randomUUID(),
+          type: 'EXPENSE',
+          amount: 2000n,
+          date: addDays(daysAgo(0), 7),
+          description: 'Future generated',
+          reportingCurrency: 'USD',
+          exchangeRate: '1',
+          household: { connect: { id: context.household.id } },
+          account: { connect: { id: account.id } },
+          category: { connect: { id: groceries.id } },
+          recurringTransaction: { connect: { id: created.id } },
+        },
+      });
+      return next.date;
+    });
     await client.recurringTransaction.delete.mutate({ id: created.id, removeGenerated: true });
 
     const schedules = await client.recurringTransaction.list.query();
     expect(schedules.some((s) => s.id === created.id)).toBe(false);
 
-    const afterDelete = await client.transaction.list.query({ from: startDate, to: daysAgo(0) });
-    expect(afterDelete).toHaveLength(0);
+    const afterDelete = await client.transaction.list.query({ from: startDate, to: futureDate });
+    expect(afterDelete).toHaveLength(beforeDelete.length);
+    expect(afterDelete.every((tx) => new Date(tx.date).getTime() < futureDate.getTime())).toBe(
+      true
+    );
   });
 });

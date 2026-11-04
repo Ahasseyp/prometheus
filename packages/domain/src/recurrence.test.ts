@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { RecurrencePeriod } from './recurring-transaction.js';
-import { dueRecurringOccurrences, nextRecurringOccurrenceAfter } from './recurrence.js';
+import {
+  dueRecurringTransactionInstances,
+  nextRecurringTransactionInstanceDateAfter,
+} from './recurrence.js';
 
 const startDate = new Date('2026-01-15T00:00:00.000Z');
 
@@ -9,9 +12,9 @@ function utcDate(isoDate: string): Date {
   return new Date(`${isoDate}T00:00:00.000Z`);
 }
 
-describe('dueRecurringOccurrences', () => {
+describe('dueRecurringTransactionInstances', () => {
   it('returns the start date when it is on the reference date', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -21,8 +24,8 @@ describe('dueRecurringOccurrences', () => {
     expect(result).toEqual([startDate]);
   });
 
-  it('returns occurrences on or before the reference date for monthly intervals', () => {
-    const result = dueRecurringOccurrences({
+  it('returns instance dates on or before the reference date for monthly intervals', () => {
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -33,7 +36,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('respects intervals greater than one', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 2,
@@ -44,7 +47,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('counts weekly periods in seven-day strides from the start date', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate: utcDate('2026-01-05'),
       period: RecurrencePeriod.Week,
       interval: 1,
@@ -55,7 +58,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('supports multi-week intervals', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate: utcDate('2026-01-05'),
       period: RecurrencePeriod.Week,
       interval: 2,
@@ -65,9 +68,9 @@ describe('dueRecurringOccurrences', () => {
     expect(result).toEqual([utcDate('2026-01-05'), utcDate('2026-01-19'), utcDate('2026-02-02')]);
   });
 
-  it('clamps monthly occurrences at month end', () => {
+  it('clamps monthly instance dates at month end', () => {
     const jan31 = utcDate('2026-01-31');
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate: jan31,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -82,9 +85,9 @@ describe('dueRecurringOccurrences', () => {
     ]);
   });
 
-  it('clamps yearly occurrences in non-leap years', () => {
+  it('clamps yearly instance dates in non-leap years', () => {
     const feb29 = utcDate('2024-02-29');
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate: feb29,
       period: RecurrencePeriod.Year,
       interval: 1,
@@ -100,7 +103,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('returns nothing when the reference date is before the start date', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -111,7 +114,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('excludes already generated dates', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -123,7 +126,7 @@ describe('dueRecurringOccurrences', () => {
   });
 
   it('excludes skipped dates', () => {
-    const result = dueRecurringOccurrences({
+    const result = dueRecurringTransactionInstances({
       startDate,
       period: RecurrencePeriod.Month,
       interval: 1,
@@ -136,7 +139,7 @@ describe('dueRecurringOccurrences', () => {
 
   it('throws when the interval is not a positive integer', () => {
     expect(() =>
-      dueRecurringOccurrences({
+      dueRecurringTransactionInstances({
         startDate,
         period: RecurrencePeriod.Month,
         interval: 0,
@@ -146,9 +149,9 @@ describe('dueRecurringOccurrences', () => {
   });
 });
 
-describe('nextRecurringOccurrenceAfter', () => {
+describe('nextRecurringTransactionInstanceDateAfter', () => {
   it('returns the start date when it is after the reference date', () => {
-    const result = nextRecurringOccurrenceAfter(
+    const result = nextRecurringTransactionInstanceDateAfter(
       startDate,
       RecurrencePeriod.Month,
       1,
@@ -158,8 +161,8 @@ describe('nextRecurringOccurrenceAfter', () => {
     expect(result).toEqual(startDate);
   });
 
-  it('returns the first occurrence strictly after the reference date', () => {
-    const result = nextRecurringOccurrenceAfter(
+  it('returns the first instance date strictly after the reference date', () => {
+    const result = nextRecurringTransactionInstanceDateAfter(
       startDate,
       RecurrencePeriod.Month,
       1,
@@ -170,7 +173,7 @@ describe('nextRecurringOccurrenceAfter', () => {
   });
 
   it('uses the interval when advancing past the reference date', () => {
-    const result = nextRecurringOccurrenceAfter(
+    const result = nextRecurringTransactionInstanceDateAfter(
       startDate,
       RecurrencePeriod.Month,
       2,
@@ -181,7 +184,7 @@ describe('nextRecurringOccurrenceAfter', () => {
   });
 
   it('clamps monthly results at month end', () => {
-    const result = nextRecurringOccurrenceAfter(
+    const result = nextRecurringTransactionInstanceDateAfter(
       utcDate('2026-01-31'),
       RecurrencePeriod.Month,
       1,
@@ -193,7 +196,12 @@ describe('nextRecurringOccurrenceAfter', () => {
 
   it('throws when the interval is not a positive integer', () => {
     expect(() =>
-      nextRecurringOccurrenceAfter(startDate, RecurrencePeriod.Month, 1.5, utcDate('2026-01-14'))
+      nextRecurringTransactionInstanceDateAfter(
+        startDate,
+        RecurrencePeriod.Month,
+        1.5,
+        utcDate('2026-01-14')
+      )
     ).toThrow('Recurrence interval must be a positive integer');
   });
 });

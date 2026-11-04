@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import {
   createRecurringTransaction as createRecurringTransactionEntity,
   createTransaction as createTransactionEntity,
-  dueRecurringOccurrences,
+  dueRecurringTransactionInstances,
   isCurrencyCode,
   isRecurrencePeriod,
   makeAccountId,
@@ -11,7 +11,7 @@ import {
   makeHouseholdId,
   makeRecurringTransactionId,
   makeTransactionId,
-  nextRecurringOccurrenceAfter,
+  nextRecurringTransactionInstanceDateAfter,
   RecurrencePeriod,
 } from '@prometheus/domain';
 import type { RecurrencePeriod as DomainRecurrencePeriod } from '@prometheus/domain';
@@ -139,7 +139,7 @@ function mapRecurringTransactionToRecord(
   }
 
   const period = mapPrismaRecurrencePeriod(recurringTransaction.period);
-  const nextDate = nextRecurringOccurrenceAfter(
+  const nextDate = nextRecurringTransactionInstanceDateAfter(
     recurringTransaction.startDate,
     period,
     recurringTransaction.interval,
@@ -367,7 +367,9 @@ export async function deleteRecurringTransaction(
 
   await prisma.$transaction(async (tx) => {
     if (removeGenerated) {
-      await tx.transaction.deleteMany({ where: { recurringTransactionId } });
+      await tx.transaction.deleteMany({
+        where: { recurringTransactionId, date: { gt: getToday() } },
+      });
     }
     await tx.recurringTransaction.delete({ where: { id: recurringTransactionId } });
   });
@@ -390,14 +392,14 @@ export async function listRecurringTransactionsForHousehold(
   return recurringTransactions.map(mapRecurringTransactionToRecord);
 }
 
-export type SkipRecurringOccurrenceResult =
+export type SkipRecurringTransactionInstanceResult =
   | { ok: true; skippedDate: Date }
-  | { ok: false; error: 'schedule-not-found' | 'already-generated' | 'past-occurrence' };
+  | { ok: false; error: 'not-found' | 'already-generated' | 'past-instance' };
 
-export async function skipNextRecurringOccurrence(
+export async function skipNextRecurringTransactionInstance(
   recurringTransactionId: string,
   householdId: string
-): Promise<SkipRecurringOccurrenceResult> {
+): Promise<SkipRecurringTransactionInstanceResult> {
   const prisma = getPrisma();
   const schedule = await prisma.recurringTransaction.findFirst({
     where: { id: recurringTransactionId, householdId },
@@ -405,22 +407,22 @@ export async function skipNextRecurringOccurrence(
   });
 
   if (schedule === null) {
-    return { ok: false, error: 'schedule-not-found' };
+    return { ok: false, error: 'not-found' };
   }
 
   const today = getToday();
-  const nextDate = nextRecurringOccurrenceAfter(
+  const nextDate = nextRecurringTransactionInstanceDateAfter(
     schedule.startDate,
     mapPrismaRecurrencePeriod(schedule.period),
     schedule.interval,
     today
   );
 
-  // Only the upcoming occurrence may be skipped; by definition it is on or
+  // Only the upcoming Transaction Instance may be skipped; by definition it is on or
   // after today. Anything strictly before today has already been generated
   // (generation runs before skip), so disallow skipping it.
   if (nextDate < today) {
-    return { ok: false, error: 'past-occurrence' };
+    return { ok: false, error: 'past-instance' };
   }
 
   const existingTransaction = await prisma.transaction.findFirst({
@@ -525,7 +527,7 @@ export async function generateDueInstances(householdId?: string): Promise<void> 
       select: { date: true },
     });
 
-    const dueDates = dueRecurringOccurrences({
+    const dueDates = dueRecurringTransactionInstances({
       startDate: schedule.startDate,
       period: mapPrismaRecurrencePeriod(schedule.period),
       interval: schedule.interval,

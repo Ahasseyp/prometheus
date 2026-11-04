@@ -15,7 +15,7 @@ export function RecurringTransactionListSkeleton({
           <Table.Head>Schedule</Table.Head>
           <Table.Head>Account</Table.Head>
           <Table.Head>Repeats</Table.Head>
-          <Table.Head>Next occurrence</Table.Head>
+          <Table.Head>Next Transaction Instance</Table.Head>
           <Table.Head className="text-right">Amount</Table.Head>
           <Table.Head>
             <span className="sr-only">Actions</span>

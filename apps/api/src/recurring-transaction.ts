@@ -6,13 +6,13 @@ import {
   createRecurringTransaction,
   deleteRecurringTransaction,
   listRecurringTransactionsForHousehold,
-  skipNextRecurringOccurrence,
+  skipNextRecurringTransactionInstance,
   updateRecurringTransaction,
 } from './services/recurring-transaction.js';
 import type {
   DeleteRecurringTransactionResult,
   RecurringTransactionValidationError,
-  SkipRecurringOccurrenceResult,
+  SkipRecurringTransactionInstanceResult,
 } from './services/recurring-transaction.js';
 import { getHouseholdId, protectedProcedure, router, throwServiceError } from './trpc.js';
 
@@ -62,18 +62,18 @@ const createRecurringTransactionInputSchema = z.object({
   description: z.string().optional(),
 });
 
-const skipRecurringOccurrenceErrorMappings: Record<
-  Exclude<SkipRecurringOccurrenceResult, { ok: true }>['error'],
+const skipRecurringTransactionInstanceErrorMappings: Record<
+  Exclude<SkipRecurringTransactionInstanceResult, { ok: true }>['error'],
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
 > = {
-  'schedule-not-found': { code: 'NOT_FOUND', message: 'Schedule not found.' },
+  'not-found': { code: 'NOT_FOUND', message: 'Recurring transaction not found.' },
   'already-generated': {
     code: 'BAD_REQUEST',
-    message: 'This occurrence has already been generated as a transaction.',
+    message: 'This Transaction Instance has already been generated.',
   },
-  'past-occurrence': {
+  'past-instance': {
     code: 'BAD_REQUEST',
-    message: 'Only the next upcoming occurrence can be skipped.',
+    message: 'Only the next upcoming Transaction Instance can be skipped.',
   },
 };
 
@@ -81,7 +81,7 @@ const deleteRecurringTransactionErrorMappings: Record<
   Exclude<DeleteRecurringTransactionResult, { ok: true }>['error'],
   { code: 'NOT_FOUND'; message: string }
 > = {
-  'not-found': { code: 'NOT_FOUND', message: 'Schedule not found.' },
+  'not-found': { code: 'NOT_FOUND', message: 'Recurring transaction not found.' },
 };
 
 const recurringTransactionErrorMappings: Record<
@@ -146,7 +146,7 @@ export const recurringTransactionRouter = router({
       const result = await updateRecurringTransaction(id, householdId, updateInput);
       if (!result.ok) {
         if (result.error === 'not-found') {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found.' });
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Recurring transaction not found.' });
         }
         throwServiceError(result.error, recurringTransactionErrorMappings);
       }
@@ -175,9 +175,9 @@ export const recurringTransactionRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const householdId = getHouseholdId(ctx, 'recurring transactions');
-      const result = await skipNextRecurringOccurrence(input.id, householdId);
+      const result = await skipNextRecurringTransactionInstance(input.id, householdId);
       if (!result.ok) {
-        throwServiceError(result.error, skipRecurringOccurrenceErrorMappings);
+        throwServiceError(result.error, skipRecurringTransactionInstanceErrorMappings);
       }
       return { id: input.id, skippedDate: result.skippedDate };
     }),

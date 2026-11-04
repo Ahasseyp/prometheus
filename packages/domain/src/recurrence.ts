@@ -19,7 +19,7 @@ function dateKey(date: Date): string {
   return startOfUtcDay(date).toISOString().slice(0, 10);
 }
 
-function recurrenceOccurrenceAtIndex(
+function recurrenceInstanceAtIndex(
   startDate: Date,
   period: DomainRecurrencePeriod,
   interval: number,
@@ -29,14 +29,14 @@ function recurrenceOccurrenceAtIndex(
     .start;
 }
 
-export type DueRecurringOccurrencesInput = {
-  /** The schedule's first occurrence date. */
+export type DueRecurringTransactionInstancesInput = {
+  /** The schedule's first Transaction Instance date. */
   startDate: Date;
   /** Week / month / year. */
   period: DomainRecurrencePeriod;
-  /** How many periods between occurrences; must be a positive integer. */
+  /** How many periods between instances; must be a positive integer. */
   interval: number;
-  /** Generate occurrences on or before this date (exclusive of the next one). */
+  /** Generate instances on or before this date (exclusive of the next one). */
   referenceDate: Date;
   /** Dates that have already been materialized into Transactions. */
   generatedDates?: readonly Date[];
@@ -45,19 +45,19 @@ export type DueRecurringOccurrencesInput = {
 };
 
 /**
- * Returns all due occurrence dates for a Recurring Transaction up to and
- * including `referenceDate`, anchored to `startDate` and excluding already
- * generated and explicitly skipped dates. Occurrences use the same weekday /
- * day-of-month / month-day clamping as budget periods.
+ * Returns all due Transaction Instance dates for a Recurring Transaction up
+ * to and including `referenceDate`, anchored to `startDate` and excluding
+ * already generated and explicitly skipped dates. Instance dates use the same
+ * weekday / day-of-month / month-day clamping as budget periods.
  */
-export function dueRecurringOccurrences({
+export function dueRecurringTransactionInstances({
   startDate,
   period,
   interval,
   referenceDate,
   generatedDates = [],
   skippedDates = [],
-}: DueRecurringOccurrencesInput): Date[] {
+}: DueRecurringTransactionInstancesInput): Date[] {
   if (!Number.isInteger(interval) || interval < 1) {
     throw new Error(`Recurrence interval must be a positive integer, got ${interval}`);
   }
@@ -74,7 +74,7 @@ export function dueRecurringOccurrences({
   const due: Date[] = [];
 
   for (let index = 0; ; index += 1) {
-    const candidate = startOfUtcDay(recurrenceOccurrenceAtIndex(anchor, period, interval, index));
+    const candidate = startOfUtcDay(recurrenceInstanceAtIndex(anchor, period, interval, index));
     if (candidate > reference) {
       break;
     }
@@ -88,10 +88,10 @@ export function dueRecurringOccurrences({
 }
 
 /**
- * Returns the first occurrence date strictly after `referenceDate`. If the
- * schedule itself starts after `referenceDate`, the start date is returned.
+ * Returns the first Transaction Instance date strictly after `referenceDate`.
+ * If the schedule itself starts after `referenceDate`, the start date is returned.
  */
-export function nextRecurringOccurrenceAfter(
+export function nextRecurringTransactionInstanceDateAfter(
   startDate: Date,
   period: DomainRecurrencePeriod,
   interval: number,
@@ -109,7 +109,7 @@ export function nextRecurringOccurrenceAfter(
   }
 
   for (let index = 0; ; index += 1) {
-    const candidate = startOfUtcDay(recurrenceOccurrenceAtIndex(anchor, period, interval, index));
+    const candidate = startOfUtcDay(recurrenceInstanceAtIndex(anchor, period, interval, index));
     if (candidate > reference) {
       return candidate;
     }

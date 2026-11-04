@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { format } from 'date-fns';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -28,6 +29,12 @@ import { mockAccountListResponse } from '@/test/account-helpers.js';
 import { mockBudgetListResponse } from '@/test/budget-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
+import {
+  mockAssistantExecuteCommandError,
+  mockAssistantExecuteCommandResponse,
+  mockAssistantSubmitCommandResponse,
+} from '@/test/assistant-helpers.js';
+import { makeTransaction } from '@/test/transaction-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -283,6 +290,260 @@ describe('AuthenticatedLayout', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
     });
+  });
+
+  it('opens the assistant sheet with the submitted command when free-form text is entered', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountName: 'Checking',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    // The palette dialog closes; the chat lives in the sheet.
+    expect(screen.queryByPlaceholderText(/add, ask, check, do/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Assistant' })).toBeInTheDocument();
+    expect(screen.getByText('spent 300 pesos on groceries')).toBeInTheDocument();
+    expect(screen.getByText('Expense')).toBeInTheDocument();
+    expect(screen.getByText(/300 MXN/i)).toBeInTheDocument();
+  });
+
+  it('closes the assistant sheet with Escape and resets the thread', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'needs-clarification',
+      understood: 'I understood you spent 300 MXN.',
+      missing: ['category'],
+      question: 'Which category did you mean?',
+    });
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on subscriptions');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText(/Need a bit more detail/i)).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // Reopening the palette shows a fresh palette; the sheet state was reset.
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/add, ask, check, do/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Need a bit more detail/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Add a transaction')).toBeInTheDocument();
+  });
+
+  it('creates the transaction when the assistant card is confirmed', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+      accountName: 'Everyday Checking',
+      categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+    mockAssistantExecuteCommandResponse(
+      makeTransaction({ amount: '300', description: 'Groceries' })
+    );
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('assistant-confirm-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-created-card')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Created')).toBeInTheDocument();
+    expect(screen.getByText(/300 USD/i)).toBeInTheDocument();
+  });
+
+  it('maps a creation error to an assistant message instead of a toast', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountId: 'c3d4e5f6-a7b8-9012-cdef-1234567890',
+      accountName: 'Checking',
+      categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+    mockAssistantExecuteCommandError('This transaction would overpay the loan.');
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'paid 300 on my loan');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('assistant-confirm-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('This transaction would overpay the loan.')).toBeInTheDocument();
+    });
+  });
+
+  it('replaces the card with a note when the command is denied', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+      accountName: 'Everyday Checking',
+      categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Deny' }));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('assistant-command-card')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Cancelled.')).toBeInTheDocument();
+  });
+
+  it('opens the transaction form pre-filled from the assistant card', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+      accountName: 'Everyday Checking',
+      categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Edit in form' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: 'Add transaction' })).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Amount')).toHaveValue('300');
+    expect(screen.getByLabelText('Description')).toHaveValue('Groceries');
+    // A command without an explicit date defaults to today, in local time.
+    expect(screen.getByRole('button', { name: 'Transaction date' })).toHaveTextContent(
+      format(new Date(), 'PPP')
+    );
+  });
+
+  it('sends follow-up replies in the assistant sheet', async () => {
+    mockAssistantSubmitCommandResponse({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountName: 'Checking',
+      categoryName: 'Groceries',
+      description: 'Groceries',
+      date: new Date().toISOString(),
+    });
+
+    await renderAuthenticatedLayout({ initialEntries: ['/'] });
+    const user = userEvent.setup();
+
+    await user.keyboard('{Meta>}k{/Meta}');
+
+    const input = await screen.findByPlaceholderText(/add, ask, check, do/i);
+    await user.type(input, 'spent 300 pesos on groceries');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-command-card')).toBeInTheDocument();
+    });
+
+    const composer = screen.getByTestId('assistant-chat-input');
+    await user.type(composer, 'actually make that 400');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText('actually make that 400')).toBeInTheDocument();
+    });
+    expect(screen.getAllByTestId('assistant-command-card')).toHaveLength(2);
   });
 
   it('renders the household creation card inline when the user has no household', async () => {

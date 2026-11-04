@@ -44,13 +44,22 @@ function deriveDestinationAmount(
   return converted.ok ? converted.value.toDecimal() : null;
 }
 
+export type TransferFormDefaults = Partial<TransferFormState>;
+
 export interface TransferFormProps {
   accounts?: Account[];
   transfer?: Transfer;
+  /** Initial values for a new transfer (e.g. pre-filled from the assistant). */
+  defaultValues?: TransferFormDefaults;
   onSuccess: () => void;
 }
 
-export function TransferForm({ accounts, transfer, onSuccess }: TransferFormProps) {
+export function TransferForm({
+  accounts,
+  transfer,
+  defaultValues: defaultValuesProp,
+  onSuccess,
+}: TransferFormProps) {
   const createTransfer = useCreateTransfer();
   const updateTransfer = useUpdateTransfer();
   const isEditing = transfer !== undefined;
@@ -59,7 +68,10 @@ export function TransferForm({ accounts, transfer, onSuccess }: TransferFormProp
   const formSchema = useMemo(() => buildTransferFormSchema(accounts), [accounts]);
   // The form state is initialized once per mount; the dialog unmounts the form
   // when closed, so an edited Transfer refetching cannot clobber user input.
-  const defaultValues = useMemo(() => buildDefaultValues(transfer), [transfer]);
+  const defaultValues = useMemo(
+    () => buildDefaultValues(transfer, defaultValuesProp),
+    [transfer, defaultValuesProp]
+  );
 
   const form = useForm({
     defaultValues,
@@ -317,17 +329,20 @@ type TransferFormState = {
   description: string;
 };
 
-function buildDefaultValues(transfer: Transfer | undefined): TransferFormState {
+function buildDefaultValues(
+  transfer: Transfer | undefined,
+  defaults: TransferFormDefaults | undefined
+): TransferFormState {
   if (transfer === undefined) {
     return {
-      sourceAccountId: '',
-      destinationAccountId: '',
-      amount: '',
-      exchangeRate: '',
+      sourceAccountId: defaults?.sourceAccountId ?? '',
+      destinationAccountId: defaults?.destinationAccountId ?? '',
+      amount: defaults?.amount ?? '',
+      exchangeRate: defaults?.exchangeRate ?? '',
       // The date crosses the form as a `yyyy-MM-dd` string; it is converted to
       // a local Date only when submitted to the API.
-      date: format(new Date(), 'yyyy-MM-dd'),
-      description: '',
+      date: defaults?.date ?? format(new Date(), 'yyyy-MM-dd'),
+      description: defaults?.description ?? '',
     };
   }
 

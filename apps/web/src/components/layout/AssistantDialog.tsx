@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   ArrowLeftRight,
   LayoutDashboard,
@@ -22,28 +23,84 @@ type AssistantDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddTransaction: () => void;
+  onStartChat: (text: string) => void;
 };
 
-export function AssistantDialog({ open, onOpenChange, onAddTransaction }: AssistantDialogProps) {
+export function AssistantDialog({
+  open,
+  onOpenChange,
+  onAddTransaction,
+  onStartChat,
+}: AssistantDialogProps) {
   const navigate = useNavigate({ from: '/' });
   const { setTheme } = useTheme();
+  const [inputValue, setInputValue] = React.useState('');
+  const [hasNavigated, setHasNavigated] = React.useState(false);
 
-  const run = (action: () => void) => {
+  React.useEffect(() => {
+    if (!open) {
+      setInputValue('');
+    }
+  }, [open]);
+
+  function run(action: () => void) {
     action();
     onOpenChange(false);
-  };
+  }
 
-  const navigateTo = (to: string) => {
+  function navigateTo(to: string) {
     run(() => navigate({ to }));
-  };
+  }
 
-  const changeTheme = (value: Theme) => {
+  function changeTheme(value: Theme) {
     run(() => setTheme(value));
-  };
+  }
+
+  function startChat(text: string) {
+    setInputValue('');
+    onStartChat(text);
+  }
+
+  function handleOpenChange(value: boolean) {
+    if (!value) {
+      setInputValue('');
+    }
+    onOpenChange(value);
+  }
+
+  function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      setHasNavigated(true);
+      return;
+    }
+
+    if (event.key !== 'Enter') return;
+
+    const text = inputValue.trim();
+    if (!text) return;
+
+    if (hasNavigated) {
+      setHasNavigated(false);
+      return;
+    }
+
+    event.preventDefault();
+    startChat(text);
+  }
+
+  function handleInputChange(value: string) {
+    setHasNavigated(false);
+    setInputValue(value);
+  }
 
   return (
-    <Command.Dialog open={open} onOpenChange={onOpenChange}>
-      <Command.Input placeholder="add, ask, check, do…" />
+    <Command.Dialog open={open} onOpenChange={handleOpenChange}>
+      <Command.Input
+        value={inputValue}
+        placeholder="add, ask, check, do…"
+        onKeyDown={handleInputKeyDown}
+        onValueChange={handleInputChange}
+      />
       <Command.List>
         <Command.Empty>No commands found.</Command.Empty>
         <Command.Group heading="Suggestions">

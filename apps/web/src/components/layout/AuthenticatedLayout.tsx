@@ -10,9 +10,13 @@ import { useAuthHouseholdState } from '@/features/auth/hooks/useAuthHouseholdSta
 import { useAccounts } from '@/features/accounts/gateways/accounts.js';
 import { CreateHouseholdCard } from '@/features/household/components/CreateHouseholdCard/CreateHouseholdCard.js';
 import { TransactionFormDialog } from '@/features/transactions/components/TransactionFormDialog/TransactionFormDialog.js';
+import type { TransactionFormDefaults } from '@/features/transactions/components/TransactionForm/TransactionForm.js';
+import { TransferFormDialog } from '@/features/transfers/components/TransferFormDialog/TransferFormDialog.js';
+import type { TransferFormDefaults } from '@/features/transfers/components/TransferForm/TransferForm.js';
 
 import { AppSidebar } from './AppSidebar.js';
 import { AssistantDialog } from './AssistantDialog.js';
+import { AssistantSheet } from './AssistantSheet.js';
 import { MobileNav } from './MobileNav.js';
 import { UserMenu } from './UserMenu.js';
 
@@ -40,7 +44,15 @@ export function AuthenticatedLayout() {
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const navigate = useNavigate({ from: '/' });
   const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const [assistantSheetOpen, setAssistantSheetOpen] = React.useState(false);
+  const [assistantSeed, setAssistantSeed] = React.useState<{ id: number; text: string } | null>(
+    null
+  );
+  const [transactionDefaults, setTransactionDefaults] =
+    React.useState<TransactionFormDefaults | null>(null);
   const [addTransactionOpen, setAddTransactionOpen] = React.useState(false);
+  const [transferDefaults, setTransferDefaults] = React.useState<TransferFormDefaults | null>(null);
+  const [addTransferOpen, setAddTransferOpen] = React.useState(false);
   const { data: accounts } = useAccounts();
   const pageTitle = useRouteTitle();
 
@@ -123,15 +135,49 @@ export function AuthenticatedLayout() {
         </main>
       </Sidebar.Inset>
       <MobileNav onOpenAssistant={() => setAssistantOpen(true)} />
+      <AssistantSheet
+        open={assistantSheetOpen}
+        onOpenChange={setAssistantSheetOpen}
+        seed={assistantSeed}
+        onEditInForm={(target) => {
+          if (target.form === 'transfer') {
+            setTransferDefaults(target.values);
+            setAddTransferOpen(true);
+          } else {
+            setTransactionDefaults(target.values);
+            setAddTransactionOpen(true);
+          }
+          setAssistantSheetOpen(false);
+        }}
+      />
       <AssistantDialog
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
         onAddTransaction={() => setAddTransactionOpen(true)}
+        onStartChat={(text) => {
+          setAssistantOpen(false);
+          setAssistantSeed({ id: Date.now(), text });
+          setAssistantSheetOpen(true);
+        }}
       />
       <TransactionFormDialog
         open={addTransactionOpen}
-        onOpenChange={setAddTransactionOpen}
+        onOpenChange={(open) => {
+          setAddTransactionOpen(open);
+          if (!open) setTransactionDefaults(null);
+        }}
         accounts={accounts}
+        defaultValues={transactionDefaults ?? undefined}
+      />
+      <TransferFormDialog
+        open={addTransferOpen}
+        onOpenChange={(open) => {
+          setAddTransferOpen(open);
+          if (!open) setTransferDefaults(null);
+        }}
+        accounts={accounts}
+        transferId={null}
+        defaultValues={transferDefaults ?? undefined}
       />
     </SidebarProvider>
   );

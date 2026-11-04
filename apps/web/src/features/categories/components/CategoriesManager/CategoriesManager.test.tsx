@@ -82,24 +82,27 @@ describe('CategoriesManager', () => {
     expect(screen.getByLabelText(/category name/i)).toHaveValue('Groceries');
   });
 
-  it('offers delete only for custom categories', async () => {
+  it('does not offer delete for system categories', async () => {
+    const user = userEvent.setup();
+    mockCategoryListResponse([groceries]);
+    renderManager();
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Groceries' }));
+    expect(await screen.findByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  it('offers delete for custom categories', async () => {
     const user = userEvent.setup();
     const customCategory = makeCategory({
       id: 'd4e5f6a7-b8c9-0123-defa-234567890123',
       name: 'Custom expense',
       isSystem: false,
     });
-    mockCategoryListResponse([groceries, customCategory]);
+    mockCategoryListResponse([customCategory]);
     renderManager();
 
-    await user.click(await screen.findByRole('button', { name: 'Actions for Groceries' }));
-    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
-    await user.keyboard('{Escape}');
-    await waitFor(() => {
-      expect(screen.queryByRole('menuitem', { name: 'Rename' })).not.toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Actions for Custom expense' }));
+    await user.click(await screen.findByRole('button', { name: 'Actions for Custom expense' }));
     expect(await screen.findByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 });

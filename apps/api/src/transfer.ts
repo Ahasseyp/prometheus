@@ -20,7 +20,7 @@ const exchangeRateSchema = z
   .string()
   .refine(isPositiveDecimal, { message: 'Enter a positive Exchange Rate.' });
 
-const transferResponseSchema = z.object({
+export const transferResponseSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
   exchangeRate: z.string().nullable(),
@@ -52,7 +52,7 @@ const updateTransferInputSchema = transferIdInputSchema.extend({
   description: z.string().optional(),
 });
 
-const transferErrorMappings: Record<
+export const transferErrorMappings: Record<
   TransferErrorCode,
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
 > = {

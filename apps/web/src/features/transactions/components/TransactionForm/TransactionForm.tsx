@@ -50,9 +50,13 @@ const transactionFormSchema = z.object({
 
 type FormState = z.infer<typeof transactionFormSchema>;
 
+export type TransactionFormDefaults = Partial<FormState>;
+
 export interface TransactionFormProps {
   accounts?: Account[];
   transaction?: Transaction;
+  /** Initial values for a new entry (e.g. pre-filled from the assistant). */
+  defaultValues?: TransactionFormDefaults;
   onSuccess?: () => void;
 }
 
@@ -66,7 +70,12 @@ const TYPE_LABELS: Record<FormTransactionType, string> = {
   [TransactionType.Income]: 'Income',
 };
 
-export function TransactionForm({ accounts, transaction, onSuccess }: TransactionFormProps) {
+export function TransactionForm({
+  accounts,
+  transaction,
+  defaultValues,
+  onSuccess,
+}: TransactionFormProps) {
   const isEditing = transaction !== undefined;
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -76,14 +85,14 @@ export function TransactionForm({ accounts, transaction, onSuccess }: Transactio
 
   const form = useForm({
     defaultValues: {
-      type: transaction?.type ?? TransactionType.Expense,
-      amount: transaction?.amount ?? '',
-      accountId: transaction?.accountId ?? '',
-      categoryId: transaction?.categoryId ?? '',
+      type: transaction?.type ?? defaultValues?.type ?? TransactionType.Expense,
+      amount: transaction?.amount ?? defaultValues?.amount ?? '',
+      accountId: transaction?.accountId ?? defaultValues?.accountId ?? '',
+      categoryId: transaction?.categoryId ?? defaultValues?.categoryId ?? '',
       date: transaction
         ? format(new Date(transaction.date), 'yyyy-MM-dd')
-        : format(new Date(), 'yyyy-MM-dd'),
-      description: transaction?.description ?? '',
+        : (defaultValues?.date ?? format(new Date(), 'yyyy-MM-dd')),
+      description: transaction?.description ?? defaultValues?.description ?? '',
       exchangeRate: transaction?.exchangeRate ?? '',
     } satisfies FormState,
     validators: {

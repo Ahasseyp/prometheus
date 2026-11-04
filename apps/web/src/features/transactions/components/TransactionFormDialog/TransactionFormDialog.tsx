@@ -2,7 +2,10 @@ import { Dialog } from '@/components/ui/dialog.js';
 import { Sheet } from '@/components/ui/sheet.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
-import { TransactionForm } from '@/features/transactions/components/TransactionForm/TransactionForm.js';
+import {
+  TransactionForm,
+  type TransactionFormDefaults,
+} from '@/features/transactions/components/TransactionForm/TransactionForm.js';
 import { useIsMobile } from '@/hooks/use-mobile.js';
 
 export interface TransactionFormDialogProps {
@@ -10,6 +13,7 @@ export interface TransactionFormDialogProps {
   onOpenChange: (open: boolean) => void;
   accounts?: Account[];
   transaction?: Transaction;
+  defaultValues?: TransactionFormDefaults;
 }
 
 export function TransactionFormDialog({
@@ -17,6 +21,7 @@ export function TransactionFormDialog({
   onOpenChange,
   accounts,
   transaction,
+  defaultValues,
 }: TransactionFormDialogProps) {
   const isMobile = useIsMobile();
   const isEditing = transaction !== undefined;
@@ -41,6 +46,7 @@ export function TransactionFormDialog({
             <TransactionForm
               accounts={accounts}
               transaction={transaction}
+              defaultValues={defaultValues}
               onSuccess={handleSuccess}
             />
           </div>
@@ -56,7 +62,12 @@ export function TransactionFormDialog({
           <Dialog.Title>{title}</Dialog.Title>
           <Dialog.Description>{description}</Dialog.Description>
         </Dialog.Header>
-        <TransactionForm accounts={accounts} transaction={transaction} onSuccess={handleSuccess} />
+        <TransactionForm
+          accounts={accounts}
+          transaction={transaction}
+          defaultValues={defaultValues}
+          onSuccess={handleSuccess}
+        />
       </Dialog.Content>
     </Dialog>
   );

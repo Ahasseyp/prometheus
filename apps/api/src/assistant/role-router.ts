@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateObject } from 'ai';
+import { generateText } from 'ai';
 import type { z } from 'zod';
 
 import type { ExtractedCommand } from './add-command.js';
@@ -17,20 +17,35 @@ export type AssistantRole = 'entry-extraction';
  */
 export type EntryExtractor = (input: { text: string; schema: z.ZodSchema }) => Promise<unknown>;
 
-const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-4-5';
+const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-4-5-20251001';
 
 const EXTRACTION_SYSTEM = `You extract financial transactions from a user's free-form message.
 
-Return a JSON object matching the requested schema. Use these conventions:
-- Transaction type: "income" or "expense" (lowercase).
-- Transfer type: "add-transfer".
-- Amount: a positive decimal string, e.g. "300" or "49.99".
-- Currency: ISO 4217 three-letter code when you can infer one (USD, MXN, EUR, etc.). Omit if unknown.
-- Account / category names: keep the user's wording, the backend will match them.
-- Date: ISO 8601 YYYY-MM-DD if mentioned; omit if not.
-- Description: a short human-readable summary; default to the original message.
+Return ONLY a single JSON object. Do not wrap it in markdown code fences. Use this exact shape:
 
-If the message is not about adding a transaction/transfer or you cannot extract an amount, return kind "unsupported" with a helpful reason.`;
+{
+  "kind": "add-transaction" | "add-transfer" | "unsupported",
+  // For add-transaction:
+  "type": "income" | "expense",
+  "amount": "300",
+  "currency": "MXN",              // optional ISO 4217 code; omit if unknown
+  "account": "string",            // optional, keep the user's wording
+  "category": "string",           // optional, keep the user's wording
+  "description": "string",      // optional, default to the original message
+  "date": "YYYY-MM-DD",           // optional
+  // For add-transfer (omit "type"):
+  "fromAccount": "string",        // optional
+  "toAccount": "string",          // optional
+  // For unsupported:
+  "reason": "string"
+}
+
+Conventions:
+- Amount must be a positive decimal string (e.g. "300" or "49.99").
+- For transfers, omit "type".
+- For unsupported, include only "kind" and "reason".
+
+If the message is not about adding a transaction/transfer or you cannot extract an amount, return { "kind": "unsupported", "reason": "..." }.`;
 
 export function getModel(role: AssistantRole): EntryExtractor {
   if (role !== 'entry-extraction') {
@@ -50,14 +65,29 @@ export function getModel(role: AssistantRole): EntryExtractor {
   const model = provider(modelName);
 
   return async ({ text, schema }) => {
-    const result = await generateObject({
+    const result = await generateText({
       model,
-      schema,
       system: EXTRACTION_SYSTEM,
       prompt: text,
     });
-    return result.object;
+    const json = extractJsonObject(result.text);
+    return schema.parse(json);
   };
+}
+
+/**
+ * Pull a JSON object out of a model response, tolerating markdown fences and
+ * surrounding whitespace.
+ */
+function extractJsonObject(text: string): unknown {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = fenceMatch?.[1].trim() ?? trimmed;
+  const objectMatch = candidate.match(/\{[\s\S]*\}/);
+  if (!objectMatch) {
+    throw new Error('No JSON object found in model response.');
+  }
+  return JSON.parse(objectMatch[0]);
 }
 
 /**

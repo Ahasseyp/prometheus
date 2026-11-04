@@ -80,7 +80,7 @@ const listTransactionsInputSchema = z.object({
   to: z.coerce.date().optional(),
 });
 
-const transactionErrorMappings: Record<
+export const transactionErrorMappings: Record<
   TransactionErrorCode,
   { code: 'NOT_FOUND' | 'BAD_REQUEST'; message: string }
 > = {

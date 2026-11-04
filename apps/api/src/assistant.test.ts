@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { Prisma } from '@prisma/client';
 import type { Server } from 'http';
 import type { AppRouter } from './router.js';
+import { getPrisma } from './prisma.js';
 import { createCookieJarFetch } from './test/cookies.js';
 import { cleanupTestData, makeTestEmail, startTestServer } from './test/server.js';
 import { AccountType } from '@prometheus/domain';
@@ -234,5 +236,89 @@ describe.sequential('assistant procedures', () => {
       description: 'Checking to Savings',
       date: expect.any(String),
     });
+  });
+
+  it('executes a resolved command, converting the parsed currency into the account currency', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('assistant-execute'),
+      'Secure-password-5'
+    );
+    if (context === null) return;
+
+    const account = await client.account.create.mutate({
+      name: 'Checking',
+      type: AccountType.Checking,
+      currency: 'USD',
+    });
+    const groceries = await findSystemCategory('Groceries');
+
+    // Seed a cached MXN -> USD rate for today so no provider call is needed.
+    const prisma = getPrisma();
+    await prisma.exchangeRate.upsert({
+      where: {
+        baseCurrency_quoteCurrency_date: {
+          baseCurrency: 'MXN',
+          quoteCurrency: 'USD',
+          date: new Date(),
+        },
+      },
+      update: { rate: new Prisma.Decimal('0.05'), provider: 'test' },
+      create: {
+        baseCurrency: 'MXN',
+        quoteCurrency: 'USD',
+        date: new Date(),
+        rate: new Prisma.Decimal('0.05'),
+        provider: 'test',
+      },
+    });
+
+    const result = await client.assistant.executeCommand.mutate({
+      kind: 'add-transaction',
+      type: 'expense',
+      amount: '300',
+      currency: 'MXN',
+      accountId: account.id,
+      categoryId: groceries.id,
+      date: new Date(),
+      description: 'Groceries',
+    });
+
+    if (!('accountName' in result)) throw new Error('expected a transaction response');
+    expect(result.amount).toBe('15.00');
+    expect(result.accountName).toBe('Checking');
+    expect(result.categoryName).toBe('Groceries');
+  });
+
+  it('executes a transfer command between same-currency accounts', async () => {
+    const context = await registerAndCreateHousehold(
+      makeTestEmail('assistant-execute-transfer'),
+      'Secure-password-6'
+    );
+    if (context === null) return;
+
+    const checking = await client.account.create.mutate({
+      name: 'Checking',
+      type: AccountType.Checking,
+      currency: 'USD',
+    });
+    const savings = await client.account.create.mutate({
+      name: 'Savings',
+      type: AccountType.Savings,
+      currency: 'USD',
+    });
+
+    const result = await client.assistant.executeCommand.mutate({
+      kind: 'add-transfer',
+      amount: '100',
+      currency: 'USD',
+      fromAccountId: checking.id,
+      toAccountId: savings.id,
+      date: new Date(),
+    });
+
+    if (!('sourceTransaction' in result)) throw new Error('expected a transfer response');
+    expect(result.sourceTransaction.amount).toBe('100.00');
+    expect(result.sourceTransaction.accountName).toBe('Checking');
+    expect(result.destinationTransaction.accountName).toBe('Savings');
   });
 });

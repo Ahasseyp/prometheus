@@ -4,7 +4,10 @@ import { Spinner } from '@/components/ui/spinner.js';
 import { FormError } from '@/components/form/FormError.js';
 import type { Account } from '@/features/accounts/gateways/accounts.js';
 import { useTransfer } from '@/features/transfers/gateways/transfers.js';
-import { TransferForm } from '@/features/transfers/components/TransferForm/TransferForm.js';
+import {
+  TransferForm,
+  type TransferFormDefaults,
+} from '@/features/transfers/components/TransferForm/TransferForm.js';
 import { useIsMobile } from '@/hooks/use-mobile.js';
 
 export interface TransferFormDialogProps {
@@ -14,6 +17,7 @@ export interface TransferFormDialogProps {
   // When set, the dialog loads the Transfer and edits it; when null, it
   // creates a new one.
   transferId: string | null;
+  defaultValues?: TransferFormDefaults;
 }
 
 export function TransferFormDialog({
@@ -21,6 +25,7 @@ export function TransferFormDialog({
   onOpenChange,
   accounts,
   transferId,
+  defaultValues,
 }: TransferFormDialogProps) {
   const isMobile = useIsMobile();
   const isEditing = transferId !== null;
@@ -49,7 +54,14 @@ export function TransferFormDialog({
     if (isEditing && (isError || transfer === undefined)) {
       return <FormError message="We couldn't load this transfer. Close and try again." />;
     }
-    return <TransferForm accounts={accounts} transfer={transfer} onSuccess={handleSuccess} />;
+    return (
+      <TransferForm
+        accounts={accounts}
+        transfer={transfer}
+        defaultValues={defaultValues}
+        onSuccess={handleSuccess}
+      />
+    );
   }
 
   if (isMobile) {

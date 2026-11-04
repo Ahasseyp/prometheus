@@ -14,6 +14,8 @@ import type {
   AssistantThreadMessage,
   ThreadMessage,
 } from '@/features/assistant/assistant-thread.js';
+import { asSourceTransaction } from '@/features/assistant/assistant-thread.js';
+import type { ResolvedCommand } from '@/features/assistant/gateways/assistant.js';
 
 export interface AssistantChatProps {
   messages: ThreadMessage[];
@@ -74,6 +76,23 @@ function AssistantTurn({
   );
 }
 
+type CommandKind = 'add-transaction' | 'add-transfer';
+type AnyCommand = Extract<ResolvedCommand, { kind: CommandKind }>;
+type CommandField = { label: string; value(command: AnyCommand): string | undefined };
+
+const COMMAND_FIELDS: Record<CommandKind, CommandField[]> = {
+  'add-transaction': [
+    { label: 'Account', value: (c) => ('accountName' in c ? c.accountName : undefined) },
+    { label: 'Category', value: (c) => ('categoryName' in c ? c.categoryName : undefined) },
+    { label: 'Description', value: (c) => ('description' in c ? c.description : undefined) },
+  ],
+  'add-transfer': [
+    { label: 'From', value: (c) => ('fromAccountName' in c ? c.fromAccountName : undefined) },
+    { label: 'To', value: (c) => ('toAccountName' in c ? c.toAccountName : undefined) },
+    { label: 'Description', value: (c) => ('description' in c ? c.description : undefined) },
+  ],
+};
+
 function CommandCard({
   content,
   index,
@@ -95,7 +114,7 @@ function CommandCard({
 
   if (content.kind === 'created') {
     const created = content.created;
-    const tx = 'sourceTransaction' in created ? created.sourceTransaction : created;
+    const tx = asSourceTransaction(created);
     return (
       <Card data-testid="assistant-created-card">
         <Card.Header>
@@ -147,14 +166,16 @@ function CommandCard({
     );
   }
 
-  if (content.kind === 'unsupported') {
+  if (content.kind === 'unsupported' || content.kind === 'error') {
     return (
       <Card>
         <Card.Header>
-          <Card.Title className="text-base">Unsupported</Card.Title>
+          <Card.Title className="text-base">
+            {content.kind === 'error' ? 'Assistant error' : 'Unsupported'}
+          </Card.Title>
         </Card.Header>
         <Card.Content className="text-sm">
-          <p>{content.reason}</p>
+          <p>{content.kind === 'error' ? content.message : content.reason}</p>
         </Card.Content>
       </Card>
     );
@@ -177,31 +198,14 @@ function CommandCard({
             <span className="text-muted-foreground">Amount:</span> {content.amount}{' '}
             {content.currency}
           </p>
-          {'accountName' in content && content.accountName !== undefined && (
-            <p>
-              <span className="text-muted-foreground">Account:</span> {content.accountName}
-            </p>
-          )}
-          {'categoryName' in content && content.categoryName !== undefined && (
-            <p>
-              <span className="text-muted-foreground">Category:</span> {content.categoryName}
-            </p>
-          )}
-          {'fromAccountName' in content && content.fromAccountName !== undefined && (
-            <p>
-              <span className="text-muted-foreground">From:</span> {content.fromAccountName}
-            </p>
-          )}
-          {'toAccountName' in content && content.toAccountName !== undefined && (
-            <p>
-              <span className="text-muted-foreground">To:</span> {content.toAccountName}
-            </p>
-          )}
-          {'description' in content && content.description !== undefined && (
-            <p>
-              <span className="text-muted-foreground">Description:</span> {content.description}
-            </p>
-          )}
+          {COMMAND_FIELDS[content.kind].map(({ label, value }) => {
+            const fieldValue = value(content);
+            return fieldValue === undefined ? null : (
+              <p key={label}>
+                <span className="text-muted-foreground">{label}:</span> {fieldValue}
+              </p>
+            );
+          })}
         </Card.Content>
       </Card>
       {/* AI Elements "Confirmation" pattern: the parsed details live in the
@@ -215,20 +219,17 @@ function CommandCard({
             <Item.Title>Add this {action.toLowerCase()}?</Item.Title>
             <Item.Description>
               {content.amount} {content.currency}
-              {'accountName' in content && content.accountName !== undefined
-                ? ` · ${content.accountName}`
-                : ''}
-              {'categoryName' in content && content.categoryName !== undefined
-                ? ` · ${content.categoryName}`
-                : ''}
+              {COMMAND_FIELDS[content.kind]
+                .map(({ value }) => value(content))
+                .filter((fieldValue) => fieldValue !== undefined)
+                .map((fieldValue) => ` · ${fieldValue}`)
+                .join('')}
             </Item.Description>
           </Item.Content>
           <Item.Actions>
-            {!isTransfer && (
-              <Button variant="ghost" size="sm" onClick={() => onEditInForm(index)}>
-                Edit in form
-              </Button>
-            )}
+            <Button variant="ghost" size="sm" onClick={() => onEditInForm(index)}>
+              Edit in form
+            </Button>
             <Button variant="outline" size="sm" onClick={() => onCancel(index)}>
               Deny
             </Button>

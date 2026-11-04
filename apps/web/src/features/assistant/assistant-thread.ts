@@ -1,7 +1,14 @@
 import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import type { TransactionFormDefaults } from '@/features/transactions/components/TransactionForm/TransactionForm.js';
 import type { Transfer } from '@/features/transfers/gateways/transfers.js';
+import type { TransferFormDefaults } from '@/features/transfers/components/TransferForm/TransferForm.js';
 
 import type { ConversationMessage, ResolvedCommand } from './gateways/assistant.js';
+
+/** Where an assistant card's "Edit in form" escape hatch should land. */
+export type EditInFormTarget =
+  | { form: 'transaction'; values: TransactionFormDefaults }
+  | { form: 'transfer'; values: TransferFormDefaults };
 
 export type UserThreadMessage = {
   role: 'user';
@@ -20,10 +27,14 @@ export type AssistantThreadMessage = {
 
 export type ThreadMessage = UserThreadMessage | AssistantThreadMessage;
 
+/** The Transaction that best represents a created entry (a Transfer's source side). */
+export function asSourceTransaction(created: Transaction | Transfer): Transaction {
+  return 'sourceTransaction' in created ? created.sourceTransaction : created;
+}
+
 function summarizeCommand(content: ResolvedCommand | CreatedThreadContent): string {
   if (content.kind === 'created') {
-    const tx =
-      'sourceTransaction' in content.created ? content.created.sourceTransaction : content.created;
+    const tx = asSourceTransaction(content.created);
     return (
       `Created a ${tx.type} of ${tx.amount} ${tx.accountCurrency}` +
       (tx.categoryName ? ` under category ${tx.categoryName}` : '') +
@@ -50,6 +61,8 @@ function summarizeCommand(content: ResolvedCommand | CreatedThreadContent): stri
       return content.question;
     case 'unsupported':
       return content.reason;
+    case 'error':
+      return content.message;
   }
 }
 

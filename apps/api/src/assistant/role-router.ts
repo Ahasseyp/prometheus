@@ -4,8 +4,6 @@ import type { z } from 'zod';
 
 import type { ExtractedCommand } from './add-command.js';
 
-export type AssistantRole = 'entry-extraction';
-
 /**
  * Entry-extraction seam. Returns an extractor that takes free-form text and a
  * Zod schema and returns a plain object that should validate against the
@@ -100,11 +98,7 @@ function buildPrompt(text: string, history?: ConversationMessage[], hints?: Extr
   return parts.join('\n\n');
 }
 
-export function getModel(role: AssistantRole): EntryExtractor {
-  if (role !== 'entry-extraction') {
-    throw new Error(`Unsupported assistant role: ${role}`);
-  }
-
+export function getEntryExtractor(): EntryExtractor {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn(
@@ -117,14 +111,15 @@ export function getModel(role: AssistantRole): EntryExtractor {
   const provider = createAnthropic({ apiKey });
   const model = provider(modelName);
 
-  return async ({ text, schema, history, hints }) => {
+  return async ({ text, history, hints }) => {
     const result = await generateText({
       model,
       system: EXTRACTION_SYSTEM,
       prompt: buildPrompt(text, history, hints),
     });
-    const json = extractJsonObject(result.text);
-    return schema.parse(json);
+    // Validation happens in parse-entry.ts so extraction garbage is
+    // distinguishable from provider failures.
+    return extractJsonObject(result.text);
   };
 }
 

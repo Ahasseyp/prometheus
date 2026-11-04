@@ -24,7 +24,7 @@ describe('resolveEntry', () => {
       currency: 'MXN',
       account: 'checking',
       category: 'groceries',
-      description: 'spent 300 pesos on groceries',
+      description: 'Groceries',
     };
 
     const result = resolveEntry(extracted, context);
@@ -38,7 +38,7 @@ describe('resolveEntry', () => {
       accountName: 'Checking',
       categoryId: 'cat-1',
       categoryName: 'Groceries',
-      description: 'spent 300 pesos on groceries',
+      description: 'Groceries',
       date: expect.any(Date),
     });
   });

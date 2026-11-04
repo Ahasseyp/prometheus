@@ -77,6 +77,24 @@ function findMatch(
   return { kind: 'unmatched' };
 }
 
+/**
+ * When the user named no account and the household has exactly one, auto-pick
+ * it; otherwise report the field as missing.
+ */
+function autoPickSoleAccount(
+  match: MatchResult,
+  accounts: HouseholdContext['accounts'],
+  missing: string[],
+  field: string
+): MatchResult {
+  if (match.kind !== 'missing') return match;
+  if (accounts.length === 1) {
+    return { kind: 'matched', id: accounts[0].id, name: accounts[0].name };
+  }
+  missing.push(field);
+  return match;
+}
+
 function defaultCurrency(extracted: string | undefined, context: HouseholdContext): string {
   if (extracted && isCurrencyCode(extracted)) return extracted;
   return context.reportingCurrency;
@@ -116,8 +134,9 @@ function resolveTransaction(
   extracted: ExtractedCommand,
   context: HouseholdContext
 ): ResolvedCommand {
-  if (extracted.kind === 'unsupported') return extracted;
-  if (extracted.kind === 'add-transfer') return resolveTransfer(extracted, context);
+  if (extracted.kind !== 'add-transaction') {
+    throw new Error('resolveTransaction called with a non-transaction command');
+  }
 
   let accountMatch = findMatch(extracted.account, context.accounts);
   const eligibleCategories = context.categories.filter((c) => c.type === extracted.type);
@@ -126,18 +145,9 @@ function resolveTransaction(
   const missing: string[] = [];
   const options: { field: string; values: string[] }[] = [];
 
-  if (accountMatch.kind === 'missing') {
-    if (context.accounts.length === 1) {
-      // Auto-pick the only account available.
-      accountMatch = {
-        kind: 'matched',
-        id: context.accounts[0].id,
-        name: context.accounts[0].name,
-      };
-    } else {
-      missing.push('account');
-    }
-  } else if (accountMatch.kind === 'ambiguous') {
+  accountMatch = autoPickSoleAccount(accountMatch, context.accounts, missing, 'account');
+
+  if (accountMatch.kind === 'ambiguous') {
     missing.push('account');
     options.push({ field: 'account', values: accountMatch.candidates });
   }
@@ -160,18 +170,22 @@ function resolveTransaction(
     return buildClarification(understood, missing, options);
   }
 
-  const account = accountMatch as { kind: 'matched'; id: string; name: string };
-  const category = categoryMatch as { kind: 'matched'; id: string; name: string };
+  // Every unresolved match pushed into `missing` above, which returned a
+  // clarification — so both matches are matched here. The guard lets the
+  // compiler prove it instead of asserting.
+  if (accountMatch.kind !== 'matched' || categoryMatch.kind !== 'matched') {
+    throw new Error('resolveTransaction: unresolved match after clarification check');
+  }
 
   const resolved: ResolvedTransactionCommand = {
     kind: 'add-transaction',
     type: extracted.type,
     amount: extracted.amount,
     currency: defaultCurrency(extracted.currency, context),
-    accountId: account.id,
-    accountName: account.name,
-    categoryId: category.id,
-    categoryName: category.name,
+    accountId: accountMatch.id,
+    accountName: accountMatch.name,
+    categoryId: categoryMatch.id,
+    categoryName: categoryMatch.name,
     description: extracted.description,
     date: defaultDate(extracted.date),
   };
@@ -190,24 +204,15 @@ function resolveTransfer(extracted: ExtractedCommand, context: HouseholdContext)
   const missing: string[] = [];
   const options: { field: string; values: string[] }[] = [];
 
-  if (fromMatch.kind === 'missing') {
-    if (context.accounts.length === 1) {
-      fromMatch = { kind: 'matched', id: context.accounts[0].id, name: context.accounts[0].name };
-    } else {
-      missing.push('from account');
-    }
-  } else if (fromMatch.kind === 'ambiguous') {
+  fromMatch = autoPickSoleAccount(fromMatch, context.accounts, missing, 'from account');
+  toMatch = autoPickSoleAccount(toMatch, context.accounts, missing, 'to account');
+
+  if (fromMatch.kind === 'ambiguous') {
     missing.push('from account');
     options.push({ field: 'from account', values: fromMatch.candidates });
   }
 
-  if (toMatch.kind === 'missing') {
-    if (context.accounts.length === 1) {
-      toMatch = { kind: 'matched', id: context.accounts[0].id, name: context.accounts[0].name };
-    } else {
-      missing.push('to account');
-    }
-  } else if (toMatch.kind === 'ambiguous') {
+  if (toMatch.kind === 'ambiguous') {
     missing.push('to account');
     options.push({ field: 'to account', values: toMatch.candidates });
   }
@@ -217,17 +222,18 @@ function resolveTransfer(extracted: ExtractedCommand, context: HouseholdContext)
     return buildClarification(understood, missing, options);
   }
 
-  const from = fromMatch as { kind: 'matched'; id: string; name: string };
-  const to = toMatch as { kind: 'matched'; id: string; name: string };
+  if (fromMatch.kind !== 'matched' || toMatch.kind !== 'matched') {
+    throw new Error('resolveTransfer: unresolved match after clarification check');
+  }
 
   const resolved: ResolvedTransferCommand = {
     kind: 'add-transfer',
     amount: extracted.amount,
     currency: defaultCurrency(extracted.currency, context),
-    fromAccountId: from.id,
-    fromAccountName: from.name,
-    toAccountId: to.id,
-    toAccountName: to.name,
+    fromAccountId: fromMatch.id,
+    fromAccountName: fromMatch.name,
+    toAccountId: toMatch.id,
+    toAccountName: toMatch.name,
     description: extracted.description,
     date: defaultDate(extracted.date),
   };
@@ -239,6 +245,7 @@ export function resolveEntry(
   extracted: ExtractedCommand,
   context: HouseholdContext
 ): ResolvedCommand {
-  if (extracted.kind === 'unsupported') return extracted;
+  if (extracted.kind === 'unsupported' || extracted.kind === 'error') return extracted;
+  if (extracted.kind === 'add-transfer') return resolveTransfer(extracted, context);
   return resolveTransaction(extracted, context);
 }

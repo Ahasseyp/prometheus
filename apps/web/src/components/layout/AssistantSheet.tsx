@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 
 import { Sheet } from '@/components/ui/sheet.js';
@@ -7,11 +8,15 @@ import {
   toConversationHistory,
   type ThreadMessage,
 } from '@/features/assistant/assistant-thread.js';
-import { useSubmitAssistantCommand } from '@/features/assistant/gateways/assistant.js';
-import { useCreateTransaction } from '@/features/transactions/gateways/transactions.js';
+import {
+  useExecuteAssistantCommand,
+  useSubmitAssistantCommand,
+} from '@/features/assistant/gateways/assistant.js';
+import type { Transaction } from '@/features/transactions/gateways/transactions.js';
+import { invalidateTransactionData } from '@/features/transactions/gateways/transactions.js';
 import { getTransactionMutationErrorMessage } from '@/features/transactions/lib/transaction-errors.js';
-import type { TransactionFormDefaults } from '@/features/transactions/components/TransactionForm/TransactionForm.js';
-import { useCreateTransfer } from '@/features/transfers/gateways/transfers.js';
+import type { EditInFormTarget } from '@/features/assistant/assistant-thread.js';
+import type { Transfer } from '@/features/transfers/gateways/transfers.js';
 
 type AssistantSeed = { id: number; text: string };
 
@@ -21,13 +26,13 @@ type AssistantSheetProps = {
   /** Free-form text that opened the sheet; submitted when the sheet opens. */
   seed: AssistantSeed | null;
   /** No-AI escape hatch: open the transaction form pre-filled from a card. */
-  onEditInForm: (values: TransactionFormDefaults) => void;
+  onEditInForm: (target: EditInFormTarget) => void;
 };
 
 export function AssistantSheet({ open, onOpenChange, seed, onEditInForm }: AssistantSheetProps) {
   const submitCommand = useSubmitAssistantCommand();
-  const createTransaction = useCreateTransaction();
-  const createTransfer = useCreateTransfer();
+  const executeCommand = useExecuteAssistantCommand();
+  const queryClient = useQueryClient();
   const [thread, setThread] = React.useState<ThreadMessage[]>([]);
   const [confirmingIndex, setConfirmingIndex] = React.useState<number | null>(null);
   const handledSeedId = React.useRef<number | null>(null);
@@ -73,76 +78,76 @@ export function AssistantSheet({ open, onOpenChange, seed, onEditInForm }: Assis
         ? content.accountId !== undefined && content.categoryId !== undefined
         : content.fromAccountId !== undefined && content.toAccountId !== undefined;
     if (!executable) return;
-    setConfirmingIndex(index);
 
+    // The backend converts the parsed currency into the account's currency
+    // (via the exchange-rate seam) before creating the entry.
     if (content.kind === 'add-transaction') {
-      createTransaction.mutate(
-        {
-          type: content.type,
-          amount: content.amount,
-          accountId: content.accountId!,
-          categoryId: content.categoryId!,
-          date: new Date(content.date),
-          description: content.description ?? '',
-        },
-        {
-          onSuccess: (transaction) => {
-            setConfirmingIndex(null);
-            setThread((prev) =>
-              prev.map((m, i) =>
-                i === index
-                  ? { role: 'assistant', content: { kind: 'created', created: transaction } }
-                  : m
-              )
-            );
+      executeAndRecord(index, (handlers) =>
+        executeCommand.mutate(
+          {
+            kind: 'add-transaction',
+            type: content.type,
+            amount: content.amount,
+            currency: content.currency,
+            accountId: content.accountId!,
+            categoryId: content.categoryId!,
+            date: new Date(content.date),
+            description: content.description,
           },
-          onError: (error) => {
-            setConfirmingIndex(null);
-            setThread((prev) => [
-              ...prev,
-              {
-                role: 'assistant',
-                content: { kind: 'text', text: getTransactionMutationErrorMessage(error) },
-              },
-            ]);
-          },
-        }
+          handlers
+        )
       );
       return;
     }
 
-    if (content.fromAccountId === undefined || content.toAccountId === undefined) return;
-    createTransfer.mutate(
-      {
-        sourceAccountId: content.fromAccountId,
-        destinationAccountId: content.toAccountId,
-        amount: content.amount,
-        date: new Date(content.date),
-        description: content.description ?? '',
-      },
-      {
-        onSuccess: (transfer) => {
-          setConfirmingIndex(null);
-          setThread((prev) =>
-            prev.map((m, i) =>
-              i === index
-                ? { role: 'assistant', content: { kind: 'created', created: transfer } }
-                : m
-            )
-          );
+    executeAndRecord(index, (handlers) =>
+      executeCommand.mutate(
+        {
+          kind: 'add-transfer',
+          amount: content.amount,
+          currency: content.currency,
+          fromAccountId: content.fromAccountId!,
+          toAccountId: content.toAccountId!,
+          date: new Date(content.date),
+          description: content.description,
         },
-        onError: (error) => {
-          setConfirmingIndex(null);
-          setThread((prev) => [
-            ...prev,
-            {
-              role: 'assistant',
-              content: { kind: 'text', text: getTransactionMutationErrorMessage(error) },
-            },
-          ]);
-        },
-      }
+        handlers
+      )
     );
+  }
+
+  // Runs the execution mutation and records the outcome in the thread: the
+  // card flips to a "created" state on success; failures append an assistant
+  // message. React Query data is invalidated so balances/lists refresh.
+  function executeAndRecord(
+    index: number,
+    execute: (handlers: {
+      onSuccess(created: Transaction | Transfer): void;
+      onError(error: Error): void;
+    }) => void
+  ) {
+    setConfirmingIndex(index);
+    execute({
+      onSuccess: (created) => {
+        setConfirmingIndex(null);
+        void invalidateTransactionData(queryClient);
+        setThread((prev) =>
+          prev.map((m, i) =>
+            i === index ? { role: 'assistant', content: { kind: 'created', created } } : m
+          )
+        );
+      },
+      onError: (error) => {
+        setConfirmingIndex(null);
+        setThread((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: { kind: 'text', text: getTransactionMutationErrorMessage(error) },
+          },
+        ]);
+      },
+    });
   }
 
   function handleCancel(index: number) {
@@ -157,18 +162,36 @@ export function AssistantSheet({ open, onOpenChange, seed, onEditInForm }: Assis
     const message = thread[index];
     if (message?.role !== 'assistant') return;
     const content = message.content;
-    if (content.kind !== 'add-transaction') return;
-    if (content.accountId === undefined || content.categoryId === undefined) return;
-    onEditInForm({
-      type: content.type,
-      amount: content.amount,
-      accountId: content.accountId,
-      categoryId: content.categoryId,
-      // content.date crosses tRPC as a UTC ISO string; format in local time so
-      // the form shows the date the user actually means (today by default).
-      date: format(new Date(content.date), 'yyyy-MM-dd'),
-      description: content.description ?? '',
-    });
+    if (content.kind === 'add-transaction') {
+      if (content.accountId === undefined || content.categoryId === undefined) return;
+      onEditInForm({
+        form: 'transaction',
+        values: {
+          type: content.type,
+          amount: content.amount,
+          accountId: content.accountId,
+          categoryId: content.categoryId,
+          // content.date crosses tRPC as a UTC ISO string; format in local
+          // time so the form shows the date the user actually means.
+          date: format(new Date(content.date), 'yyyy-MM-dd'),
+          description: content.description ?? '',
+        },
+      });
+      return;
+    }
+    if (content.kind === 'add-transfer') {
+      if (content.fromAccountId === undefined || content.toAccountId === undefined) return;
+      onEditInForm({
+        form: 'transfer',
+        values: {
+          sourceAccountId: content.fromAccountId,
+          destinationAccountId: content.toAccountId,
+          amount: content.amount,
+          date: format(new Date(content.date), 'yyyy-MM-dd'),
+          description: content.description ?? '',
+        },
+      });
+    }
   }
 
   return (

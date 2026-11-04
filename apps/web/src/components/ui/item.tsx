@@ -1,3 +1,6 @@
+// Vendored from the shadcn/ui AI Elements registry (installed via `shadcn add`).
+// Converted to this repo's compound-export pattern; re-run `shadcn add <name>`
+// to update, then re-apply the Object.assign export conversion.
 import * as React from 'react';
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';

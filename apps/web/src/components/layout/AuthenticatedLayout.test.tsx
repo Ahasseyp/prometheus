@@ -29,12 +29,12 @@ import { mockAccountListResponse } from '@/test/account-helpers.js';
 import { mockBudgetListResponse } from '@/test/budget-helpers.js';
 import { makeCategory, mockCategoryListResponse } from '@/test/category-helpers.js';
 import { mockReportingSummaryResponse } from '@/test/reporting-helpers.js';
-import { mockAssistantSubmitCommandResponse } from '@/test/assistant-helpers.js';
 import {
-  makeTransaction,
-  mockCreateTransactionError,
-  mockCreateTransactionResponse,
-} from '@/test/transaction-helpers.js';
+  mockAssistantExecuteCommandError,
+  mockAssistantExecuteCommandResponse,
+  mockAssistantSubmitCommandResponse,
+} from '@/test/assistant-helpers.js';
+import { makeTransaction } from '@/test/transaction-helpers.js';
 
 import { AuthenticatedLayout } from './AuthenticatedLayout.js';
 
@@ -375,7 +375,9 @@ describe('AuthenticatedLayout', () => {
       description: 'Groceries',
       date: new Date().toISOString(),
     });
-    mockCreateTransactionResponse(makeTransaction({ amount: '300', description: 'Groceries' }));
+    mockAssistantExecuteCommandResponse(
+      makeTransaction({ amount: '300', description: 'Groceries' })
+    );
 
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();
@@ -412,7 +414,7 @@ describe('AuthenticatedLayout', () => {
       description: 'Groceries',
       date: new Date().toISOString(),
     });
-    mockCreateTransactionError('This transaction would overpay the loan.');
+    mockAssistantExecuteCommandError('This transaction would overpay the loan.');
 
     await renderAuthenticatedLayout({ initialEntries: ['/'] });
     const user = userEvent.setup();

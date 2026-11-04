@@ -40,10 +40,17 @@ export const extractedUnsupportedSchema = z.object({
   reason: z.string(),
 });
 
+/** Extraction itself failed (provider outage); retry, don't rephrase. */
+export const extractedErrorSchema = z.object({
+  kind: z.literal('error'),
+  message: z.string(),
+});
+
 export const extractedCommandSchema = z.discriminatedUnion('kind', [
   extractedTransactionCommandSchema,
   extractedTransferCommandSchema,
   extractedUnsupportedSchema,
+  extractedErrorSchema,
 ]);
 
 export type ExtractedTransactionCommand = z.infer<typeof extractedTransactionCommandSchema>;
@@ -96,6 +103,13 @@ export const resolvedCommandSchema = z.discriminatedUnion('kind', [
   resolvedTransferSchema,
   needsClarificationSchema,
   extractedUnsupportedSchema,
+  extractedErrorSchema,
+]);
+
+/** The resolved shapes that are ready to execute (no clarification/unsupported). */
+export const executableCommandSchema = z.discriminatedUnion('kind', [
+  resolvedTransactionSchema,
+  resolvedTransferSchema,
 ]);
 
 export type ResolvedTransactionCommand = z.infer<typeof resolvedTransactionSchema>;
